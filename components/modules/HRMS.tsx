@@ -359,7 +359,6 @@ export const HRMS: React.FC = () => {
             {/* Content Area */}
             <div className="flex-1 overflow-hidden relative">
                 {activeTab === 'OVERVIEW' && <OverviewDashboard stats={stats} announcements={announcements} />}
-                {activeTab === 'OVERVIEW' && <OverviewDashboard stats={stats} announcements={announcements} />}
                 {activeTab === 'PEOPLE' && <EmployeeDirectory
                     employees={employees}
                     roles={roles}

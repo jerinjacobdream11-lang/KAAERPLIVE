@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { supabase } from '../lib/supabase';
 import { Session, User } from '@supabase/supabase-js';
 
@@ -116,6 +116,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
         return () => subscription.unsubscribe();
     }, []);
+
+    // ===== Session Timeout (15 min inactivity) =====
+    const TIMEOUT_MS = 15 * 60 * 1000; // 15 minutes
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const resetTimer = useCallback(() => {
+        if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        if (session) {
+            timeoutRef.current = setTimeout(() => {
+                alert('Your session has expired due to inactivity. Please log in again.');
+                signOut();
+            }, TIMEOUT_MS);
+        }
+    }, [session]);
+
+    useEffect(() => {
+        if (!session) {
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+            return;
+        }
+        const events = ['mousemove', 'keydown', 'scroll', 'touchstart', 'click'];
+        events.forEach(evt => window.addEventListener(evt, resetTimer));
+        resetTimer(); // Start the timer
+        return () => {
+            events.forEach(evt => window.removeEventListener(evt, resetTimer));
+            if (timeoutRef.current) clearTimeout(timeoutRef.current);
+        };
+    }, [session, resetTimer]);
 
     const selectCompany = async (companyId: string) => {
         setCurrentCompanyId(companyId);

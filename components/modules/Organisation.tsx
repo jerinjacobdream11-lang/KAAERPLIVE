@@ -898,8 +898,12 @@ const Modal = ({ title, onClose, children, maxWidth = "max-w-lg" }: { title: str
 
 const GenericMasterModal = ({ config, item, onClose, onRefresh }: { config: MasterTableConfig, item: any, onClose: () => void, onRefresh: () => void }) => {
     const { currentCompanyId } = useAuth();
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError(null);
         const form = e.target as HTMLFormElement;
         const formData = new FormData(form);
 
@@ -919,21 +923,25 @@ const GenericMasterModal = ({ config, item, onClose, onRefresh }: { config: Mast
 
         if (currentCompanyId) {
             payload.company_id = currentCompanyId;
+            setSaving(true);
 
             if (item) {
                 const { error } = await supabase.from(config.tableName).update(payload).eq('id', item.id);
                 if (error) {
-                    alert("Error: " + error.message);
+                    setError(error.message);
+                    setSaving(false);
                     return;
                 }
             } else {
                 const { error } = await supabase.from(config.tableName).insert([payload]);
                 if (error) {
-                    alert("Error: " + error.message);
+                    setError(error.message);
+                    setSaving(false);
                     return;
                 }
             }
 
+            setSaving(false);
             onClose();
             onRefresh();
         }
@@ -942,6 +950,11 @@ const GenericMasterModal = ({ config, item, onClose, onRefresh }: { config: Mast
     return (
         <Modal title={`${item ? 'Edit' : 'Add'} ${config.displayName}`} onClose={onClose}>
             <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                    <div className="p-3 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl text-rose-600 dark:text-rose-400 text-sm font-medium">
+                        {error}
+                    </div>
+                )}
                 {config.fields.map(field => (
                     <div key={field.key}>
                         <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-1">
@@ -990,8 +1003,9 @@ const GenericMasterModal = ({ config, item, onClose, onRefresh }: { config: Mast
                         )}
                     </div>
                 ))}
-                <button className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95">
-                    {item ? 'Update' : 'Create'} {config.displayName}
+                <button disabled={saving} className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                    {saving && <Loader2 className="w-4 h-4 animate-spin" />}
+                    {saving ? 'Saving...' : `${item ? 'Update' : 'Create'} ${config.displayName}`}
                 </button>
             </form>
         </Modal>

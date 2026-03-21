@@ -1091,11 +1091,19 @@ export const ESSP: React.FC = () => {
     const MyLeaves = () => {
         const [leaves, setLeaves] = useState<any[]>([]);
         const [showForm, setShowForm] = useState(false);
-        const [formData, setFormData] = useState({ type: 'Annual', from: '', to: '', reason: '' });
+        const [formData, setFormData] = useState({ leave_type_id: '', type: 'Annual', from: '', to: '', reason: '' });
+        const [submitting, setSubmitting] = useState(false);
 
         useEffect(() => {
             if (currentEmployee) refreshLeaves();
         }, [currentEmployee]);
+
+        // Set initial leave type when leaveTypes load
+        useEffect(() => {
+            if (leaveTypes.length > 0 && !formData.leave_type_id) {
+                setFormData(prev => ({ ...prev, leave_type_id: leaveTypes[0].id, type: leaveTypes[0].name }));
+            }
+        }, [leaveTypes]);
 
         const refreshLeaves = async () => {
             const { data } = await supabase.from('leaves').select('*').eq('employee_id', currentEmployee.id).order('created_at', { ascending: false });
@@ -1104,10 +1112,17 @@ export const ESSP: React.FC = () => {
 
         const handleSubmit = async (e: React.FormEvent) => {
             e.preventDefault();
+            if (submitting) return;
+            setSubmitting(true);
+
+            const selectedType = leaveTypes.find((lt: any) => lt.id === formData.leave_type_id);
+
             const { data, error } = await supabase.from('leaves').insert([{
                 company_id: currentEmployee.company_id,
                 employee_id: currentEmployee.id,
-                type: formData.type,
+                leave_type_id: formData.leave_type_id || null,
+                type: selectedType?.name || formData.type,
+                leave_type: selectedType?.name || formData.type,
                 start_date: formData.from,
                 end_date: formData.to,
                 reason: formData.reason,
@@ -1116,6 +1131,7 @@ export const ESSP: React.FC = () => {
 
             if (error) {
                 alert('Failed to submit leave application: ' + error.message);
+                setSubmitting(false);
                 return;
             }
 
@@ -1136,8 +1152,9 @@ export const ESSP: React.FC = () => {
 
             alert('Leave application submitted successfully!');
             setShowForm(false);
+            setSubmitting(false);
             refreshLeaves();
-            setFormData({ type: 'Annual', from: '', to: '', reason: '' });
+            setFormData({ leave_type_id: leaveTypes[0]?.id || '', type: leaveTypes[0]?.name || 'Annual', from: '', to: '', reason: '' });
         };
 
         return (
@@ -1157,9 +1174,9 @@ export const ESSP: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Type</label>
-                                <select className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none text-slate-900 dark:text-white" value={formData.type} onChange={e => setFormData({ ...formData, type: e.target.value })}>
+                                <select className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none text-slate-900 dark:text-white" value={formData.leave_type_id} onChange={e => { const lt = leaveTypes.find((t: any) => t.id === e.target.value); setFormData({ ...formData, leave_type_id: e.target.value, type: lt?.name || e.target.value }); }}>
                                     {leaveTypes.length > 0 ? leaveTypes.map((lt: any) => (
-                                        <option key={lt.id} value={lt.name}>{lt.name}</option>
+                                        <option key={lt.id} value={lt.id}>{lt.name}</option>
                                     )) : (
                                         <>
                                             <option>Annual</option>
@@ -1184,7 +1201,7 @@ export const ESSP: React.FC = () => {
                             <input type="text" required className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none text-slate-900 dark:text-white" placeholder="Going to Hawaii..." value={formData.reason} onChange={e => setFormData({ ...formData, reason: e.target.value })} />
                         </div>
                         <div className="text-right">
-                            <button type="submit" className="px-8 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800">Submit Application</button>
+                            <button type="submit" disabled={submitting} className="px-8 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed">{submitting ? 'Submitting...' : 'Submit Application'}</button>
                         </div>
                     </form>
                 )}
