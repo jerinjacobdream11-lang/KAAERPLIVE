@@ -50,8 +50,28 @@ const filesToRun = [
 
 async function getMigrationFiles() {
     const migrationsDir = './supabase/migrations';
-    const files = fs.readdirSync(migrationsDir).filter(f => f.endsWith('.sql')).sort();
-    return files.map(f => ({ name: f, path: path.join(migrationsDir, f) }));
+    const rootDir = './supabase';
+    
+    // Get Phase files from root
+    let rootFiles = [];
+    if (fs.existsSync(rootDir)) {
+        rootFiles = fs.readdirSync(rootDir)
+            .filter(f => f.endsWith('.sql') && f.startsWith('phase'))
+            .sort()
+            .map(f => ({ name: f, path: path.join(rootDir, f) }));
+    }
+
+    // Get strictly migrations
+    let migrationFiles = [];
+    if (fs.existsSync(migrationsDir)) {
+        migrationFiles = fs.readdirSync(migrationsDir)
+            .filter(f => f.endsWith('.sql'))
+            .sort()
+            .map(f => ({ name: f, path: path.join(migrationsDir, f) }));
+    }
+    
+    // Return all files sorted
+    return [...rootFiles, ...migrationFiles];
 }
 
 async function run() {

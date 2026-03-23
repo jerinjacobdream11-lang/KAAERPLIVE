@@ -9,12 +9,13 @@ import { Organisation } from './components/modules/Organisation';
 import { ESSP } from './components/modules/ESSP';
 import { Settings } from './components/Settings';
 import { AppView } from './types';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Loader2 } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UIProvider } from './contexts/UIContext';
 import { ESSPProvider } from './contexts/ESSPContext';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { supabase } from './lib/supabase';
+import { KAA_LOGO_URL } from './constants';
 import { InventoryDashboard } from './components/inventory/InventoryDashboard';
 import { AccountingDashboard } from './components/accounting/AccountingDashboard';
 import { ManufacturingDashboard } from './components/manufacturing/ManufacturingDashboard';
@@ -22,7 +23,7 @@ import { ProcurementSalesDashboard } from './components/procurement/ProcurementS
 import { CompanySelector } from './components/auth/CompanySelector';
 
 const AppContent: React.FC = () => {
-  const { session, loading, currentCompanyId, selectCompany, userRole } = useAuth();
+  const { session, loading, currentCompanyId, selectCompany, userRole, isSplashVisible } = useAuth();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -112,6 +113,19 @@ const AppContent: React.FC = () => {
           </Routes>
         )}
       </main>
+
+      {/* Login Splash Popup */}
+      {isSplashVisible && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-slate-50 dark:bg-zinc-950 transition-opacity duration-300">
+             <div className="flex flex-col items-center animate-pulse">
+                 <img src={KAA_LOGO_URL} alt="Kaa Logo" className="w-32 h-auto drop-shadow-2xl mb-8" />
+                 <div className="flex flex-col items-center gap-4">
+                     <Loader2 className="w-8 h-8 animate-spin text-indigo-500" />
+                     <span className="text-sm font-bold text-slate-600 dark:text-slate-300 tracking-[0.2em] uppercase">Authenticating...</span>
+                 </div>
+             </div>
+        </div>
+      )}
     </div>
   );
 };
