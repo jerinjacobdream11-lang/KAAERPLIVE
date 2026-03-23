@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { ArrowRight, Lock, Mail, Building2, User, Loader2 } from 'lucide-react';
 import { KAA_LOGO_URL } from '../constants';
 import { supabase } from '../lib/supabase';
@@ -7,6 +7,8 @@ export const Login: React.FC = () => {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [showSplash, setShowSplash] = useState(false);
+    const [progress, setProgress] = useState(0);
     const [isSignUp, setIsSignUp] = useState(false);
 
     // Sign Up Extra Fields
@@ -82,7 +84,6 @@ export const Login: React.FC = () => {
 
             } else {
                 // Sign In
-                // Transform User ID to Email if needed
                 let loginEmail = email.trim();
                 if (!loginEmail.includes('@')) {
                     loginEmail = `${loginEmail}@kaa.com`;
@@ -93,6 +94,11 @@ export const Login: React.FC = () => {
                     password,
                 });
                 if (error) throw error;
+
+                // Show branded splash for 3 seconds
+                setShowSplash(true);
+                setProgress(0);
+                return; // Let the splash handle the rest
             }
         } catch (err: any) {
             console.error("Auth Error:", err);
@@ -107,6 +113,63 @@ export const Login: React.FC = () => {
             setIsLoading(false);
         }
     };
+
+    // Animate progress bar during splash
+    useEffect(() => {
+        if (!showSplash) return;
+        setProgress(0);
+        const interval = setInterval(() => {
+            setProgress(p => {
+                if (p >= 100) { clearInterval(interval); return 100; }
+                return p + (100 / 30); // ~3 seconds at 10fps
+            });
+        }, 100);
+        return () => clearInterval(interval);
+    }, [showSplash]);
+
+    // Login splash overlay
+    if (showSplash) {
+        return (
+            <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-50 dark:bg-zinc-950 overflow-hidden">
+                {/* Ambient blobs */}
+                <div className="absolute inset-0 pointer-events-none">
+                    <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px] animate-blob" />
+                    <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] animate-blob animation-delay-2000" />
+                </div>
+
+                <div className="relative flex flex-col items-center gap-8 z-10">
+                    {/* Logo pulse ring */}
+                    <div className="relative flex items-center justify-center">
+                        <div className="absolute w-40 h-40 bg-indigo-500/20 rounded-full animate-ping" />
+                        <div className="absolute w-32 h-32 bg-indigo-500/10 rounded-full animate-pulse" />
+                        <img src={KAA_LOGO_URL} alt="KAA Logo" className="relative w-28 h-auto drop-shadow-2xl z-10" />
+                    </div>
+
+                    {/* Brand text */}
+                    <div className="flex flex-col items-center gap-1">
+                        <h1 className="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-slate-900 to-slate-500 dark:from-white dark:to-slate-400">
+                            KAA ERP
+                        </h1>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium tracking-[0.25em] uppercase">Powered by Kaa Technologies</p>
+                    </div>
+
+                    {/* Spinner + label */}
+                    <div className="flex flex-col items-center gap-3">
+                        <Loader2 className="w-7 h-7 animate-spin text-indigo-500" />
+                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-[0.2em] uppercase">Signing you in...</span>
+                    </div>
+
+                    {/* Progress bar */}
+                    <div className="w-56 h-1 rounded-full bg-slate-200 dark:bg-zinc-800 overflow-hidden">
+                        <div
+                            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-100 ease-linear"
+                            style={{ width: `${Math.min(progress, 100)}%` }}
+                        />
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-zinc-50 dark:bg-zinc-950 p-6 relative overflow-hidden transition-colors duration-500">
