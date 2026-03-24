@@ -121,51 +121,68 @@ export const Login: React.FC = () => {
         const interval = setInterval(() => {
             setProgress(p => {
                 if (p >= 100) { clearInterval(interval); return 100; }
-                return p + (100 / 30); // ~3 seconds at 10fps
+                return p + (100 / 30);
             });
         }, 100);
         return () => clearInterval(interval);
     }, [showSplash]);
 
-    // Login splash overlay
+    // ERP-style login splash — dark enterprise theme, only shown during sign-in
     if (showSplash) {
         return (
-            <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-slate-50 dark:bg-zinc-950 overflow-hidden">
-                {/* Ambient blobs */}
-                <div className="absolute inset-0 pointer-events-none">
-                    <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-indigo-500/10 rounded-full blur-[120px] animate-blob" />
-                    <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-[120px] animate-blob animation-delay-2000" />
+            <div className="fixed inset-0 z-[9999] flex flex-col items-center justify-center overflow-hidden"
+                style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #0f172a 100%)' }}>
+
+                {/* Subtle grid overlay */}
+                <div className="absolute inset-0 opacity-[0.04]"
+                    style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '48px 48px' }} />
+
+                {/* Faint radial glow */}
+                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <div className="w-[600px] h-[600px] rounded-full opacity-20"
+                        style={{ background: 'radial-gradient(circle, rgba(99,102,241,0.6) 0%, transparent 70%)' }} />
                 </div>
 
-                <div className="relative flex flex-col items-center gap-8 z-10">
-                    {/* Logo pulse ring */}
-                    <div className="relative flex items-center justify-center">
-                        <div className="absolute w-40 h-40 bg-indigo-500/20 rounded-full animate-ping" />
-                        <div className="absolute w-32 h-32 bg-indigo-500/10 rounded-full animate-pulse" />
-                        <img src={KAA_LOGO_URL} alt="KAA Logo" className="relative w-28 h-auto drop-shadow-2xl z-10" />
+                {/* Main content */}
+                <div className="relative z-10 flex flex-col items-center gap-10">
+                    {/* Logo card */}
+                    <div className="flex flex-col items-center gap-5">
+                        <div className="p-6 rounded-3xl border border-white/10 backdrop-blur-xl flex items-center justify-center"
+                            style={{ background: 'rgba(255,255,255,0.05)' }}>
+                            <img src={KAA_LOGO_URL} alt="KAA Logo" className="h-20 w-auto drop-shadow-2xl" />
+                        </div>
+                        <div className="flex flex-col items-center gap-1">
+                            <h1 className="text-white text-xl font-black tracking-[0.1em] uppercase">KAA ERP</h1>
+                            <p className="text-indigo-300/70 text-[10px] font-bold tracking-[0.3em] uppercase">Enterprise Resource Planning</p>
+                        </div>
                     </div>
 
-                    {/* Brand text */}
-                    <div className="flex flex-col items-center gap-1">
-                        <h1 className="text-2xl font-extrabold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-slate-900 to-slate-500 dark:from-white dark:to-slate-400">
-                            KAA ERP
-                        </h1>
-                        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium tracking-[0.25em] uppercase">Powered by Kaa Technologies</p>
-                    </div>
+                    {/* Status row */}
+                    <div className="flex flex-col items-center gap-5">
+                        <div className="flex items-center gap-3">
+                            <span className="relative flex h-2.5 w-2.5">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+                            </span>
+                            <span className="text-indigo-200/80 text-xs font-bold tracking-[0.2em] uppercase">Initialising Workspace</span>
+                        </div>
 
-                    {/* Spinner + label */}
-                    <div className="flex flex-col items-center gap-3">
-                        <Loader2 className="w-7 h-7 animate-spin text-indigo-500" />
-                        <span className="text-xs font-bold text-slate-500 dark:text-slate-400 tracking-[0.2em] uppercase">Signing you in...</span>
+                        {/* Segmented progress bar */}
+                        <div className="w-64 h-[3px] rounded-full bg-white/10 overflow-hidden">
+                            <div
+                                className="h-full rounded-full transition-all duration-100 ease-linear"
+                                style={{
+                                    width: `${Math.min(progress, 100)}%`,
+                                    background: 'linear-gradient(90deg, #6366f1, #818cf8, #a5b4fc)'
+                                }}
+                            />
+                        </div>
                     </div>
+                </div>
 
-                    {/* Progress bar */}
-                    <div className="w-56 h-1 rounded-full bg-slate-200 dark:bg-zinc-800 overflow-hidden">
-                        <div
-                            className="h-full rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-100 ease-linear"
-                            style={{ width: `${Math.min(progress, 100)}%` }}
-                        />
-                    </div>
+                {/* Footer */}
+                <div className="absolute bottom-8 text-center">
+                    <p className="text-white/20 text-[10px] font-bold tracking-[0.25em] uppercase">Powered by Kaa Technologies</p>
                 </div>
             </div>
         );

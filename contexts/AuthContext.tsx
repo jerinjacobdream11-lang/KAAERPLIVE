@@ -13,7 +13,6 @@ interface AuthContextType {
     userRole: string | null;
     permissions: string[];
     hasPermission: (permission: string) => boolean;
-    isSplashVisible: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -25,7 +24,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
     const [userRole, setUserRole] = useState<string | null>(null);
     const [permissions, setPermissions] = useState<string[]>([]);
-    const [isSplashVisible, setIsSplashVisible] = useState(false);
 
     const fetchUserRoleAndPermissions = async (userId: string, roleNameOverride?: string) => {
         try {
@@ -105,11 +103,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setSession(session);
             setUser(session?.user ?? null);
             setLoading(false);
-
-            if (event === 'SIGNED_IN') {
-                setIsSplashVisible(true);
-                setTimeout(() => setIsSplashVisible(false), 3000);
-            }
 
             if (!session) {
                 localStorage.removeItem('app.current_company');
@@ -204,7 +197,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ session, user, loading, signOut, currentCompanyId, selectCompany, userRole, permissions, hasPermission, isSplashVisible }}>
+        <AuthContext.Provider value={{ session, user, loading, signOut, currentCompanyId, selectCompany, userRole, permissions, hasPermission }}>
             {children}
         </AuthContext.Provider>
     );

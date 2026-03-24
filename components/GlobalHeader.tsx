@@ -20,20 +20,27 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ currentView }) => {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const [companyName, setCompanyName] = useState<string>('');
+    const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
     const [companyLoaded, setCompanyLoaded] = useState(false);
 
-    // Fetch company name on mount
+    // Fetch company name and logo on mount
     useEffect(() => {
         if (currentCompanyId) {
             setCompanyLoaded(false);
-            supabase.from('companies').select('display_name').eq('id', currentCompanyId).maybeSingle()
-                .then(({ data, error }) => {
-                    if (data) setCompanyName(data.display_name);
-                    else setCompanyName('');
+            supabase.from('companies').select('display_name, name, logo_url').eq('id', currentCompanyId).maybeSingle()
+                .then(({ data }) => {
+                    if (data) {
+                        setCompanyName(data.display_name || data.name || '');
+                        setCompanyLogoUrl(data.logo_url || null);
+                    } else {
+                        setCompanyName('');
+                        setCompanyLogoUrl(null);
+                    }
                     setCompanyLoaded(true);
                 });
         } else {
             setCompanyName('');
+            setCompanyLogoUrl(null);
             setCompanyLoaded(true);
         }
     }, [currentCompanyId]);
@@ -71,12 +78,21 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ currentView }) => {
     return (
         <header className="h-16 flex items-center justify-between px-6 bg-white dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 z-50">
             {/* Left: Logo and Company Name */}
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+                {/* Client company logo or KAA fallback */}
                 <div
                     className="flex items-center cursor-pointer active:scale-95 transition-transform"
                     onClick={() => navigate('/')}
                 >
-                    <img src={KAA_LOGO_URL} alt="Kaa" className="h-10 w-auto object-contain brightness-100 dark:brightness-110" />
+                    {companyLogoUrl ? (
+                        <img
+                            src={companyLogoUrl}
+                            alt={companyName || 'Company Logo'}
+                            className="h-10 w-auto max-w-[140px] object-contain rounded-lg shadow-sm"
+                        />
+                    ) : (
+                        <img src={KAA_LOGO_URL} alt="Kaa" className="h-10 w-auto object-contain brightness-100 dark:brightness-110" />
+                    )}
                 </div>
 
                 {/* Company Badge */}
