@@ -254,13 +254,7 @@ export const convertOpportunityToCustomer = async (
 export const getDeals = async (): Promise<Deal[]> => {
   const { data, error } = await supabase
     .from('crm_deals')
-    .select(`
-        *,
-        stage:org_crm_stages!stage_id(*),
-        deal_type:org_deal_types(*),
-        source:org_lead_sources(*),
-        owner:employees(*)
-    `)
+    .select('*')
     .order('created_at', { ascending: false });
 
   if (error) {

@@ -996,7 +996,7 @@ export const ESSP: React.FC = () => {
             // Fetch direct reportees first
             const { data: reportees } = await supabase.from('employees')
                 .select('id, name, department, role, profile_photo_url')
-                .eq('reporting_manager_id', currentEmployee.id);
+                .eq('manager_id', currentEmployee.id);
 
             if (!reportees || reportees.length === 0) {
                 setRecords([]);
