@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { KAA_LOGO_URL, MODULES } from '../constants';
 import { AppView } from '../types';
-import { Search, Command, Bell, Settings } from 'lucide-react';
+import { Search, Command, Bell, Settings, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   HRMSWidget, CRMWidget, OrganisationWidget, ESSPWidget, UpcomingWidget,
@@ -56,7 +56,7 @@ export const Dashboard: React.FC = () => {
   const [greeting, setGreeting] = useState('');
   const [stats, setStats] = useState<GlobalStats>(INITIAL_STATS);
 
-  const [companyLogo, setCompanyLogo] = useState(KAA_LOGO_URL);
+  const [companyLogo, setCompanyLogo] = useState<string | null>(null);
 
   // ── Greet ──
   useEffect(() => {
@@ -123,17 +123,12 @@ export const Dashboard: React.FC = () => {
     };
 
     const fetchCompanyLogo = async () => {
+      if (!currentCompanyId) return;
       try {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        if (authUser) {
-          const { data: profile } = await supabase
-            .from('profiles').select('company_id').eq('id', authUser.id).maybeSingle();
-          if (profile?.company_id) {
-            const { data } = await supabase
-              .from('companies').select('logo_url').eq('id', profile.company_id).maybeSingle();
-            if (data?.logo_url) setCompanyLogo(data.logo_url);
-          }
-        }
+        const { data } = await supabase
+          .from('companies').select('logo_url').eq('id', currentCompanyId).maybeSingle();
+        if (data?.logo_url) setCompanyLogo(data.logo_url);
+        else setCompanyLogo(null);
       } catch (e) {
         console.error('[Dashboard] Error fetching logo:', e);
       }
@@ -247,9 +242,18 @@ export const Dashboard: React.FC = () => {
         {/* Top Bar / Command Center */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12 animate-slide-up">
           <div>
-            <div className="flex items-center gap-3 mb-1">
-              <img src={companyLogo} alt="Company Logo" className="h-20 w-auto object-contain brightness-100 dark:brightness-[1.2]" />
-              <span className="text-xs font-bold tracking-[0.2em] text-slate-400 dark:text-zinc-500 uppercase">Workspace</span>
+            <div className="flex items-center gap-4 mb-3">
+              {companyLogo ? (
+                <img src={companyLogo} alt="Company Logo" className="h-16 w-auto object-contain brightness-100 dark:brightness-[1.2] rounded-xl shadow-lg shadow-indigo-500/10" />
+              ) : (
+                <div className="p-3 bg-white dark:bg-zinc-900 rounded-xl shadow-md border border-slate-100 dark:border-zinc-800">
+                  <Building2 className="w-8 h-8 text-indigo-500" />
+                </div>
+              )}
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black tracking-[0.3em] text-indigo-500/70 dark:text-indigo-400/60 uppercase">Workspace</span>
+                <span className="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase">Organization Portal</span>
+              </div>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-slate-900 dark:text-white tracking-tight">
               {greeting}, <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600">
