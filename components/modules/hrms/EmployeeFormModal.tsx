@@ -72,10 +72,18 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         ifsc_code: initialData?.ifsc_code || '',
         role_id: initialData?.role_id?.toString() || '',
         status: initialData?.status || 'Active',
-        profile_photo_url: initialData?.profile_photo_url || ''
+        profile_photo_url: initialData?.profile_photo_url || '',
+        // Immigration & Travel Documents
+        passport_number: (initialData as any)?.passport_number || '',
+        passport_expiry: (initialData as any)?.passport_expiry || '',
+        visa_number: (initialData as any)?.visa_number || '',
+        visa_expiry: (initialData as any)?.visa_expiry || '',
+        visa_sponsor: (initialData as any)?.visa_sponsor || '',
+        visa_type: (initialData as any)?.visa_type || '',
+        client_name: (initialData as any)?.client_name || '',
     });
 
-    const [activeSection, setActiveSection] = useState<'OVERVIEW' | 'PROFESSIONAL' | 'CONTACT' | 'FINANCIAL' | 'DOCUMENTS' | 'LEAVE'>('OVERVIEW');
+    const [activeSection, setActiveSection] = useState<'OVERVIEW' | 'PROFESSIONAL' | 'CONTACT' | 'IMMIGRATION' | 'FINANCIAL' | 'DOCUMENTS' | 'LEAVE'>('OVERVIEW');
     const [submitError, setSubmitError] = useState<string | null>(null);
     const [loading, setLoading] = useState(false);
     const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -293,7 +301,15 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                 phone: formData.office_mobile || formData.personal_mobile || null,
                 role: roles.find(r => r.id === formData.role_id)?.name || null,
                 department: departments.find(d => d.id === formData.department_id)?.name || null,
-                location: locations.find(l => l.id === formData.location_id)?.name || null
+                location: locations.find(l => l.id === formData.location_id)?.name || null,
+                // Immigration fields
+                passport_number: formData.passport_number || null,
+                passport_expiry: formData.passport_expiry || null,
+                visa_number: formData.visa_number || null,
+                visa_expiry: formData.visa_expiry || null,
+                visa_sponsor: formData.visa_sponsor || null,
+                visa_type: formData.visa_type || null,
+                client_name: formData.client_name || null,
             };
 
             let employeeId = initialData?.id;
@@ -342,6 +358,7 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         { id: 'OVERVIEW', label: 'Overview', icon: User },
         { id: 'PROFESSIONAL', label: 'Professional', icon: Briefcase },
         { id: 'CONTACT', label: 'Personal & Contact', icon: Phone },
+        { id: 'IMMIGRATION', label: 'Immigration', icon: Calendar },
         { id: 'FINANCIAL', label: 'Financial & Statutory', icon: DollarSign },
         { id: 'DOCUMENTS', label: 'Documents', icon: FileText },
         { id: 'LEAVE', label: 'Leave', icon: Leaf }
@@ -596,6 +613,70 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                     <div className="space-y-2">
                                         <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Current Address</label>
                                         <textarea name="current_address" value={formData.current_address} onChange={handleChange} className="w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none min-h-[100px] text-slate-900 dark:text-white" />
+                                    </div>
+                                </div>
+                            )}
+
+                            {activeSection === 'IMMIGRATION' && (
+                                <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+                                    {/* Client Assignment */}
+                                    <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-zinc-800 rounded-2xl p-6">
+                                        <h4 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                                            <Briefcase className="w-4 h-4 text-indigo-500" /> Client Assignment
+                                        </h4>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Client / Project Name</label>
+                                            <input name="client_name" value={formData.client_name} onChange={handleChange} placeholder="e.g. PEC, IMPERIAL..." className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none text-slate-800 dark:text-white" />
+                                        </div>
+                                    </div>
+                                    {/* Passport */}
+                                    <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-zinc-800 rounded-2xl p-6">
+                                        <h4 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                                            <Hash className="w-4 h-4 text-blue-500" /> Passport Details
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Passport Number</label>
+                                                <input name="passport_number" value={formData.passport_number} onChange={handleChange} placeholder="e.g. N1234567" className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-800 dark:text-white" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Passport Expiry Date</label>
+                                                <input type="date" name="passport_expiry" value={formData.passport_expiry} onChange={handleChange} className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-800 dark:text-white" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {/* Visa / OD */}
+                                    <div className="bg-white dark:bg-[#18181b] border border-slate-200 dark:border-zinc-800 rounded-2xl p-6">
+                                        <h4 className="font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
+                                            <Mail className="w-4 h-4 text-emerald-500" /> Visa / OD Details
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Visa / OD Number</label>
+                                                <input name="visa_number" value={formData.visa_number} onChange={handleChange} placeholder="e.g. 2925243890" className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-slate-800 dark:text-white" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Visa / OD Valid Until</label>
+                                                <input type="date" name="visa_expiry" value={formData.visa_expiry} onChange={handleChange} className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-slate-800 dark:text-white" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Visa Sponsor</label>
+                                                <input name="visa_sponsor" value={formData.visa_sponsor} onChange={handleChange} placeholder="e.g. PEC" className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-slate-800 dark:text-white" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Visa Type</label>
+                                                <select name="visa_type" value={formData.visa_type} onChange={handleChange} className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-slate-800 dark:text-white">
+                                                    <option value="">Select Visa Type</option>
+                                                    <option>Working Visa</option>
+                                                    <option>OD</option>
+                                                    <option>Tourist Visa</option>
+                                                    <option>Resident Permit</option>
+                                                    <option>Business Visa</option>
+                                                    <option>Student Visa</option>
+                                                    <option>Other</option>
+                                                </select>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )}

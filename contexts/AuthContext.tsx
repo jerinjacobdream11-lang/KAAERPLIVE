@@ -28,33 +28,35 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const fetchUserRoleAndPermissions = async (userId: string, roleNameOverride?: string) => {
         try {
             let roleName = roleNameOverride;
+            let companyId: string | null = null;
 
             if (!roleName) {
                 const { data: profile, error: profileError } = await supabase
                     .from('profiles')
-                    .select('role')
+                    .select('role, company_id')
                     .eq('id', userId)
                     .maybeSingle();
 
                 if (profileError) {
                     console.warn('Could not fetch profile (RLS?), defaulting to Admin:', profileError.message);
-                    // If we can't even read the profile, grant full access to avoid lockout
                     setUserRole('Admin');
                     setPermissions(['*']);
                     return;
                 }
-                roleName = profile?.role || 'Admin'; // Default to Admin instead of essp_user
+                roleName = profile?.role || 'Admin';
+                companyId = profile?.company_id || null;
             }
 
             setUserRole(roleName);
 
-            // Admin bypass - don't even need to look up permissions
+            // Admin bypass
             if (roleName?.toLowerCase() === 'admin') {
                 setPermissions(['*']);
                 return;
             }
 
-            // Fetch permissions from roles table for non-admin roles
+            // Fetch role-based permissions
+            let rolePerms: string[] = [];
             const { data: roleData, error: roleError } = await supabase
                 .from('roles')
                 .select('permissions')
@@ -68,11 +70,22 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             }
 
             if (roleData?.permissions && roleData.permissions.length > 0) {
-                setPermissions(roleData.permissions);
+                rolePerms = roleData.permissions;
             } else {
-                // Fallback: grant full access if role has no permissions defined
                 setPermissions(['*']);
+                return;
             }
+
+            // Fetch per-user permission overrides and merge (additive)
+            const { data: userPerms } = await supabase
+                .from('user_permissions')
+                .select('permission, granted')
+                .eq('user_id', userId)
+                .eq('granted', true);
+
+            const extraPerms = userPerms?.map((p: any) => p.permission) || [];
+            const merged = Array.from(new Set([...rolePerms, ...extraPerms]));
+            setPermissions(merged);
         } catch (err) {
             console.error('Permission fetch crashed, granting full access:', err);
             setUserRole('Admin');

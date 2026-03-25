@@ -2222,14 +2222,13 @@ export const Organisation: React.FC = () => {
 
                 // Also fetch users to show counts
                 const { data: userData } = await supabase.from('profiles')
-                    .select('*, roles:role_id(id, name), employees:employee_id(id, name, employee_code, email)')
+                    .select('*, employees:employee_id(id, name, employee_code, email)')
                     .eq('company_id', currentCompanyId);
 
                 if (userData) {
                     const appUsers: AppUser[] = userData.map((p: any) => {
-                        const roleName = p.roles?.name || p.role || 'Employee';
-                        // Link using role_id preferably
-                        const roleId = p.roles?.id || p.role_id || '';
+                        const roleName = p.role || 'Employee';
+                        const roleId = roles.find(r => r.name.toLowerCase() === roleName.toLowerCase())?.id || '';
 
                         return {
                             id: p.id,
@@ -2264,13 +2263,13 @@ export const Organisation: React.FC = () => {
             }
 
             const { data } = await supabase.from('profiles')
-                .select('*, roles:role_id(id, name), employees:employee_id(id, name, employee_code, email)');
+                .select('*, employees:employee_id(id, name, employee_code, email)')
+                .eq('company_id', currentCompanyId);
 
             if (data) {
                 const appUsers: AppUser[] = data.map((p: any) => {
-                    // Prefer role_id link, fall back to text match
-                    const roleName = p.roles?.name || p.role || 'Employee';
-                    const roleId = p.roles?.id || p.role_id || (roles.find(r => r.name.toLowerCase() === roleName.toLowerCase())?.id) || '';
+                    const roleName = p.role || 'Employee';
+                    const roleId = roles.find(r => r.name.toLowerCase() === roleName.toLowerCase())?.id || '';
 
                     return {
                         id: p.id,
@@ -2406,7 +2405,6 @@ export const Organisation: React.FC = () => {
         const payload: any = {
             full_name: formData.get('name') as string,
             role: roleName,
-            role_id: roleId,
         };
 
         // Link employee from dropdown selection
@@ -2462,7 +2460,6 @@ export const Organisation: React.FC = () => {
                         id: signUpData.user.id,
                         full_name: name,
                         role: roleName,
-                        role_id: roleId,
                         company_id: currentCompanyId,
                     };
                     if (linkedEmployeeId) profilePayload.employee_id = linkedEmployeeId;
@@ -2728,59 +2725,113 @@ export const Organisation: React.FC = () => {
         );
     };
 
-    const GenericUserModal = ({ setShowAddUser, handleSaveUser, roles, editingUser, allEmployees }: any) => (
-        <Modal title={editingUser ? "Edit User" : "Add New User"} onClose={() => { setShowAddUser(false); setEditingUser(null); }}>
-            <form onSubmit={handleSaveUser} className="space-y-4">
-                <input
-                    name="name"
-                    defaultValue={editingUser?.name || ''}
-                    required
-                    placeholder="Full Name"
-                    className="w-full p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white shadow-sm"
-                />
-                <input
-                    name="email"
-                    defaultValue={editingUser?.email || ''}
-                    required
-                    type="email"
-                    placeholder="Email"
-                    disabled={!!editingUser}
-                    className={`w-full p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white shadow-sm ${editingUser ? 'opacity-60 cursor-not-allowed' : ''}`}
-                />
-                <select
-                    name="roleId"
-                    defaultValue={editingUser?.roleId || ''}
-                    required
-                    className="w-full p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white shadow-sm"
-                >
-                    <option value="">Select Role...</option>
-                    {roles.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
-                </select>
-                <div>
-                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Link Employee Record</label>
-                    <select
-                        name="employeeId"
-                        defaultValue={editingUser?.linkedEmployeeId || ''}
-                        className="w-full p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white shadow-sm"
-                    >
-                        <option value="">— No Employee Linked —</option>
-                        {(allEmployees || []).map((emp: any) => (
-                            <option key={emp.id} value={emp.id}>
-                                {emp.name} {emp.employee_code ? `(${emp.employee_code})` : ''} — {emp.email || 'No email'}
-                            </option>
-                        ))}
+    const GenericUserModal = ({ setShowAddUser, handleSaveUser, roles, editingUser, allEmployees }: any) => {
+        const MODULE_PERMISSIONS = [
+            { label: 'HRMS', perms: ['hrms.employees.view', 'hrms.attendance.view', 'hrms.leave.view', 'hrms.payroll.view'] },
+            { label: 'Self Service (ESSP)', perms: ['essp.view'] },
+            { label: 'CRM', perms: ['crm.dashboard.view', 'crm.deals.view', 'crm.customers.view'] },
+            { label: 'Organisation', perms: ['org.structure.view', 'org.company.manage', 'org.roles.manage', 'org.users.manage', 'org.masters.manage'] },
+            { label: 'Inventory', perms: ['inventory.view'] },
+            { label: 'Accounting / Finance', perms: ['finance.dashboard.view', 'finance.payroll.manage'] },
+            { label: 'Manufacturing', perms: ['manufacturing.view'] },
+            { label: 'Procurement', perms: ['procurement.view'] },
+        ];
+        const [grantedPerms, setGrantedPerms] = React.useState<string[]>([]);
+        const [showPerms, setShowPerms] = React.useState(false);
+
+        React.useEffect(() => {
+            if (editingUser?.id) {
+                supabase.from('user_permissions')
+                    .select('permission')
+                    .eq('user_id', editingUser.id)
+                    .eq('granted', true)
+                    .then(({ data }) => setGrantedPerms(data?.map((d: any) => d.permission) || []));
+            }
+        }, [editingUser?.id]);
+
+        const togglePerm = (perm: string) =>
+            setGrantedPerms(prev => prev.includes(perm) ? prev.filter(p => p !== perm) : [...prev, perm]);
+
+        const handleSubmit = async (e: React.FormEvent) => {
+            await handleSaveUser(e);
+            if (editingUser?.id && currentCompanyId) {
+                const allPerms = MODULE_PERMISSIONS.flatMap(m => m.perms);
+                const upsertPayload = allPerms.map(p => ({
+                    user_id: editingUser.id, company_id: currentCompanyId,
+                    permission: p, granted: grantedPerms.includes(p)
+                }));
+                await supabase.from('user_permissions').upsert(upsertPayload, { onConflict: 'user_id,company_id,permission' });
+            }
+        };
+
+        return (
+            <Modal title={editingUser ? "Edit User" : "Add New User"} onClose={() => { setShowAddUser(false); setEditingUser(null); }} maxWidth="max-w-xl">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <input name="name" defaultValue={editingUser?.name || ''} required placeholder="Full Name"
+                        className="w-full p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white shadow-sm" />
+                    <input name="email" defaultValue={editingUser?.email || ''} required type="email" placeholder="Email"
+                        disabled={!!editingUser}
+                        className={`w-full p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white shadow-sm ${editingUser ? 'opacity-60 cursor-not-allowed' : ''}`} />
+                    <select name="roleId" defaultValue={editingUser?.roleId || ''} required
+                        className="w-full p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white shadow-sm">
+                        <option value="">Select Role...</option>
+                        {roles.map((r: any) => <option key={r.id} value={r.id}>{r.name}</option>)}
                     </select>
-                    <p className="text-xs text-slate-400 mt-1">Linking enables the employee to see their profile data in ESSP.</p>
-                </div>
-                <div className="p-4 bg-blue-50 text-blue-700 rounded-xl text-xs">
-                    Note: Changing role here updates the profile access level.
-                </div>
-                <button className="w-full py-4 bg-blue-600 text-white rounded-2xl font-bold">
-                    {editingUser ? 'Update User' : 'Send Invitation'}
-                </button>
-            </form>
-        </Modal>
-    );
+                    <div>
+                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Link Employee Record</label>
+                        <select name="employeeId" defaultValue={editingUser?.linkedEmployeeId || ''}
+                            className="w-full p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white shadow-sm">
+                            <option value="">— No Employee Linked —</option>
+                            {(allEmployees || []).map((emp: any) => (
+                                <option key={emp.id} value={emp.id}>
+                                    {emp.name} {emp.employee_code ? `(${emp.employee_code})` : ''} — {emp.email || 'No email'}
+                                </option>
+                            ))}
+                        </select>
+                        <p className="text-xs text-slate-400 mt-1">Linking enables the employee to see their profile data in ESSP.</p>
+                    </div>
+
+                    {/* Permission Matrix — only for existing users */}
+                    {editingUser && (
+                        <div className="border border-slate-200 dark:border-zinc-700 rounded-2xl overflow-hidden">
+                            <button type="button" onClick={() => setShowPerms(v => !v)}
+                                className="w-full flex items-center justify-between p-4 bg-slate-50 dark:bg-zinc-800 text-sm font-bold text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors">
+                                <span>🔐 Module Permissions (Per-User Override)</span>
+                                <span className="text-xs text-slate-400">{showPerms ? '▲ Hide' : '▼ Expand'}</span>
+                            </button>
+                            {showPerms && (
+                                <div className="p-4 space-y-4 bg-white dark:bg-zinc-900 max-h-64 overflow-y-auto">
+                                    <p className="text-xs text-slate-500 bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 p-2 rounded-lg">These override role-based permissions for this user only.</p>
+                                    {MODULE_PERMISSIONS.map(module => (
+                                        <div key={module.label}>
+                                            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1">{module.label}</p>
+                                            <div className="grid grid-cols-1 gap-1 pl-2">
+                                                {module.perms.map(perm => (
+                                                    <label key={perm} className="flex items-center gap-2 cursor-pointer group">
+                                                        <input type="checkbox" checked={grantedPerms.includes(perm)}
+                                                            onChange={() => togglePerm(perm)} className="w-4 h-4 rounded accent-blue-600" />
+                                                        <span className="text-xs text-slate-600 dark:text-slate-300 group-hover:text-blue-500 transition-colors font-mono">{perm}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    <div className="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-xl text-xs">
+                        Note: Changing role updates the profile access level.{!editingUser && ' After creating, edit the user to set specific module permissions.'}
+                    </div>
+                    <button className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold transition-colors">
+                        {editingUser ? 'Update User' : 'Send Invitation'}
+                    </button>
+                </form>
+            </Modal>
+        );
+    };
+
 
     const GenericAddWorkflowModal = ({ setShowAddWorkflow, handleAddWorkflow }: any) => (
         <Modal title="Create New Workflow" onClose={() => setShowAddWorkflow(false)}>
