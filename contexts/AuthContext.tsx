@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUserRole(roleName);
 
             // Admin bypass
-            if (roleName?.toLowerCase() === 'admin') {
+            if (['admin', 'super admin'].includes(roleName?.toLowerCase() || '')) {
                 setPermissions(['*']);
                 return;
             }
@@ -205,7 +205,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const hasPermission = (permission: string) => {
         if (permissions.includes('*')) return true; // Super admin wildcard
-        if (userRole?.toLowerCase() === 'admin') return true; // Admin bypass (case insensitive)
+        if (['admin', 'super admin'].includes(userRole?.toLowerCase() || '')) return true; // Admin bypass
         return permissions.includes(permission);
     };
 
