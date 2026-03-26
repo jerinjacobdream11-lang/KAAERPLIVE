@@ -48,7 +48,7 @@ export const JournalEntries: React.FC = () => {
             `)
             .order('date', { ascending: false });
         if (error) console.error(error);
-        else setEntries(data || []);
+        else setEntries((data || []) as any);
     };
 
     const fetchMasters = async () => {
@@ -175,11 +175,12 @@ export const JournalEntries: React.FC = () => {
 
         if (error) alert('Error: ' + error.message);
         else {
-            if (data.success) {
+            const res = data as any;
+            if (res?.success) {
                 alert('Posted Successfully');
                 fetchEntries();
             } else {
-                alert('Post Failed: ' + data.message);
+                alert('Post Failed: ' + (res?.message || 'Unknown error'));
             }
         }
     };

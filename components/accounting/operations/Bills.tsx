@@ -103,9 +103,17 @@ export const Bills: React.FC = () => {
         e.stopPropagation();
         if (!confirm('Confirm Post? This will lock the bill.')) return;
 
-        const { data, error } = await supabase.rpc('rpc_post_move', { p_move_id: id });
+        const { data, error } = await supabase.rpc('rpc_post_move', { 
+            p_move_id: id,
+            p_user_id: (await supabase.auth.getUser()).data.user?.id 
+        });
         if (error) alert('Error posting: ' + error.message);
-        else fetchBills();
+        else {
+            const res = data as any;
+            if (res?.success) alert('Posted Successfully');
+            else alert('Post Failed: ' + (res?.message || 'Unknown error'));
+            fetchBills();
+        }
     };
 
     return (

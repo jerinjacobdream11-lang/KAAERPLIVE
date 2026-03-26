@@ -20,18 +20,21 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ currentView }) => {
     const [showMenu, setShowMenu] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
     const [companyName, setCompanyName] = useState<string>('');
+    const [companyLogo, setCompanyLogo] = useState<string | null>(null);
     const [companyLoaded, setCompanyLoaded] = useState(false);
 
     // Fetch company name on mount
     useEffect(() => {
         if (currentCompanyId) {
             setCompanyLoaded(false);
-            supabase.from('companies').select('display_name, name').eq('id', currentCompanyId).maybeSingle()
+            supabase.from('companies').select('display_name, name, logo_url').eq('id', currentCompanyId).maybeSingle()
                 .then(({ data }) => {
                     if (data) {
                         setCompanyName(data.display_name || data.name || '');
+                        setCompanyLogo(data.logo_url);
                     } else {
                         setCompanyName('');
+                        setCompanyLogo(null);
                     }
                     setCompanyLoaded(true);
                 });
@@ -83,10 +86,14 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ currentView }) => {
                     <img src={KAA_LOGO_URL} alt="Kaa" className="h-10 w-auto object-contain brightness-100 dark:brightness-110" />
                 </div>
 
-                {/* Company Badge */}
+                {/* Company Badge / Logo */}
                 {companyName && (
                     <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-slate-50 dark:bg-zinc-800 rounded-full border border-slate-200 dark:border-zinc-700">
-                        <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        {companyLogo ? (
+                            <img src={companyLogo} alt="Logo" className="w-5 h-5 rounded-sm object-contain" />
+                        ) : (
+                            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                        )}
                         <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 max-w-[150px] truncate">
                             {companyName}
                         </span>

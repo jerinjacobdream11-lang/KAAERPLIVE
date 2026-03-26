@@ -2933,7 +2933,7 @@ export const Organisation: React.FC = () => {
                         />
                     )}
                     {subTab === 'POLLS' && (
-                        <PollsView polls={polls} onAdd={onAddPoll} onDelete={async (id: string) => {
+                        <OrganisationPollsView polls={polls} onAdd={() => setShowAddPoll(true)} onDelete={async (id: string) => {
                             if (confirm('Delete Poll?')) {
                                 await supabase.from('polls').delete().eq('id', id);
                                 refreshData();
@@ -2945,7 +2945,7 @@ export const Organisation: React.FC = () => {
         );
     };
 
-    const PollsView = ({ polls, onAdd, onDelete }: any) => (
+    const OrganisationPollsView = ({ polls, onAdd, onDelete }: any) => (
         <div className="h-full flex flex-col">
             <div className="flex justify-end mb-6">
                 <button

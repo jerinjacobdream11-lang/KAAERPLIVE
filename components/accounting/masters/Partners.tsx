@@ -54,7 +54,7 @@ export const Partners: React.FC<{ type?: 'Customer' | 'Vendor' }> = ({ type }) =
 
         const { data, error } = await query;
         if (error) console.error('Error fetching partners:', error);
-        else setPartners(data || []);
+        else setPartners((data || []) as Partner[]);
         setLoading(false);
     };
 
@@ -83,13 +83,13 @@ export const Partners: React.FC<{ type?: 'Customer' | 'Vendor' }> = ({ type }) =
             if (editingPartner) {
                 const { error } = await supabase
                     .from('accounting_partners')
-                    .update(data)
+                    .update(data as any)
                     .eq('id', editingPartner.id);
                 if (error) throw error;
             } else {
                 const { error } = await supabase
                     .from('accounting_partners')
-                    .insert([data]);
+                    .insert([data as any]);
                 if (error) throw error;
             }
             setIsModalOpen(false);

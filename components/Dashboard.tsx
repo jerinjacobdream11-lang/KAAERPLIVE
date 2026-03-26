@@ -76,18 +76,22 @@ export const Dashboard: React.FC = () => {
             .rpc('rpc_global_dashboard', { p_company_id: currentCompanyId });
 
           if (!rpcError && globalData) {
+            const gd = globalData as any;
             setStats(prev => ({
               ...prev,
-              activeEmployees: globalData.hr?.active_employees ?? 0,
-              attendancePercentage: globalData.hr?.attendance_pct ?? 0,
-              pendingLeaves: globalData.hr?.pending_leaves ?? 0,
-              receivables: globalData.finance?.receivables ?? 0,
-              overdueInvoices: globalData.finance?.overdue_invoices ?? 0,
-              stockValue: globalData.inventory?.stock_value ?? 0,
-              lowStockItems: globalData.inventory?.low_stock_items ?? 0,
-              pendingTransitions: globalData.approvals?.pending_transitions ?? 0,
+              activeEmployees: gd.hr?.active_employees ?? 0,
+              attendancePercentage: gd.hr?.attendance_pct ?? 0,
+              pendingLeaves: gd.hr?.pending_leaves ?? 0,
+              receivables: gd.finance?.receivables ?? 0,
+              overdueInvoices: gd.finance?.overdue_invoices ?? 0,
+              stockValue: gd.inventory?.stock_value ?? 0,
+              lowStockItems: gd.inventory?.low_stock_items ?? 0,
+              pendingTransitions: gd.approvals?.pending_transitions ?? 0,
             }));
 
+            // Fetch Company Logo
+            const { data: comp } = await supabase.from('companies').select('logo_url').eq('id', currentCompanyId).maybeSingle();
+            if (comp) setCompanyLogo(comp.logo_url);
 
           } else {
             // Fallback: fetch HR stats directly if RPC not yet deployed

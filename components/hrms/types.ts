@@ -49,7 +49,7 @@ export type AttendanceStatusType = 'Present' | 'Absent' | 'Half Day' | 'Weekend'
 
 // Master Data Interfaces
 export interface Department {
-  id: string;
+  id: number;
   code: string;
   name: string;
   description?: string;
@@ -58,7 +58,7 @@ export interface Department {
 }
 
 export interface Location {
-  id: string;
+  id: number;
   name: string;
   address?: string;
   status: 'Active' | 'Inactive';
@@ -76,7 +76,7 @@ export interface Role {
 
 // Generic Interface for simple masters (Designation, Grade, etc.)
 export interface BaseMaster {
-  id: string;
+  id: number;
   code: string;
   name: string;
   description?: string;

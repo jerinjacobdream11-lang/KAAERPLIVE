@@ -154,7 +154,7 @@ export const FinanceDashboard: React.FC = () => {
                 supabase.rpc('rpc_revenue_expense_trend', { p_company_id: currentCompanyId }),
                 supabase
                     .from('accounting_moves')
-                    .select('id, name, invoice_date_due, amount_residual, accounting_partners(name)')
+                    .select('id, reference, invoice_date_due, amount_residual, partner:accounting_partners(name)')
                     .eq('company_id', currentCompanyId)
                     .eq('move_type', 'out_invoice')
                     .eq('state', 'Posted')
@@ -165,18 +165,19 @@ export const FinanceDashboard: React.FC = () => {
             ]);
 
             if (summaryRes.status === 'fulfilled' && summaryRes.value.data) {
-                setSummary(summaryRes.value.data);
+                setSummary(summaryRes.value.data as any as FinanceSummary);
             }
             if (agingRes.status === 'fulfilled' && agingRes.value.data) {
-                setAging(agingRes.value.data);
+                setAging(agingRes.value.data as any as AgingData);
             }
             if (trendRes.status === 'fulfilled' && trendRes.value.data) {
-                setTrend(trendRes.value.data as TrendPoint[]);
+                setTrend((trendRes.value.data as any) || []);
             }
             if (overdueRes.status === 'fulfilled' && overdueRes.value.data) {
-                setOverdue(overdueRes.value.data.map((d: any) => ({
+                setOverdue((overdueRes.value.data as any[]).map((d: any) => ({
                     ...d,
-                    partner_name: d.accounting_partners?.name
+                    name: d.reference || d.name,
+                    partner_name: d.partner?.name
                 })));
             }
         } catch (e) {

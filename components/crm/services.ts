@@ -21,29 +21,29 @@ export const getStages = async (): Promise<CRMStage[]> => {
     console.error('Error fetching stages:', error);
     return [];
   }
-  return data || [];
+  return (data || []) as any as CRMStage[];
 }
 
 export const getTaskStatuses = async (): Promise<CRMTaskStatus[]> => {
-  const { data, error } = await supabase
-    .from('org_task_status')
+  const { data, error } = await (supabase
+    .from('org_task_status') as any)
     .select('*');
   if (error) return [];
-  return data || [];
+  return (data || []) as any as CRMTaskStatus[];
 }
 
 export const getTaskPriorities = async (): Promise<CRMTaskPriority[]> => {
-  const { data, error } = await supabase
-    .from('org_task_priority')
+  const { data, error } = await (supabase
+    .from('org_task_priority') as any)
     .select('*');
   if (error) return [];
-  return data || [];
+  return (data || []) as any as CRMTaskPriority[];
 }
 
 // LEADS
 export const getLeads = async (): Promise<Lead[]> => {
-  const { data, error } = await supabase
-    .from('crm_leads')
+  const { data, error } = await (supabase
+    .from('crm_leads') as any)
     .select(`*`)
     .order('created_at', { ascending: false });
 
@@ -55,11 +55,11 @@ export const getLeads = async (): Promise<Lead[]> => {
 };
 
 export const createLead = async (lead: Partial<Lead>): Promise<Lead | null> => {
-  const { data, error } = await supabase
-    .from('crm_leads')
+  const { data, error } = await (supabase
+    .from('crm_leads') as any)
     .insert([lead])
     .select()
-    .maybeSingle();
+    .single();
 
   if (error) {
     console.error('Error creating lead:', error);
@@ -69,12 +69,12 @@ export const createLead = async (lead: Partial<Lead>): Promise<Lead | null> => {
 };
 
 export const updateLead = async (id: string, updates: Partial<Lead>): Promise<Lead | null> => {
-  const { data, error } = await supabase
-    .from('crm_leads')
+  const { data, error } = await (supabase
+    .from('crm_leads') as any)
     .update(updates)
     .eq('id', id)
     .select()
-    .maybeSingle();
+    .single();
 
   if (error) {
     console.error('Error updating lead:', error);
@@ -85,10 +85,10 @@ export const updateLead = async (id: string, updates: Partial<Lead>): Promise<Le
 
 // CUSTOMERS
 export const getCustomers = async (): Promise<Customer[]> => {
-  const { data, error } = await supabase
-    .from('crm_customers')
+  const { data, error } = await (supabase
+    .from('crm_customers') as any)
     .select(`*`)
-    .order('created_at', { ascending: false });
+    .order('name', { ascending: true });
 
   if (error) {
     console.error('Error fetching customers:', error);
@@ -98,11 +98,11 @@ export const getCustomers = async (): Promise<Customer[]> => {
 };
 
 export const createCustomer = async (customer: Partial<Customer>): Promise<Customer | null> => {
-  const { data, error } = await supabase
-    .from('crm_customers')
+  const { data, error } = await (supabase
+    .from('crm_customers') as any)
     .insert([customer])
     .select()
-    .maybeSingle();
+    .single();
 
   if (error) {
     console.error('Error creating customer:', error);
@@ -112,8 +112,8 @@ export const createCustomer = async (customer: Partial<Customer>): Promise<Custo
 };
 
 export const updateCustomer = async (id: string, updates: Partial<Customer>): Promise<Customer | null> => {
-  const { data, error } = await supabase
-    .from('crm_customers')
+  const { data, error } = await (supabase
+    .from('crm_customers') as any)
     .update(updates)
     .eq('id', id)
     .select()
@@ -128,8 +128,8 @@ export const updateCustomer = async (id: string, updates: Partial<Customer>): Pr
 
 // OPPORTUNITIES
 export const getOpportunities = async (): Promise<Opportunity[]> => {
-  const { data, error } = await supabase
-    .from('crm_opportunities')
+  const { data, error } = await (supabase
+    .from('crm_opportunities') as any)
     .select(`
         *,
         customer:crm_customers(*),
@@ -145,8 +145,8 @@ export const getOpportunities = async (): Promise<Opportunity[]> => {
 };
 
 export const createOpportunity = async (opp: Partial<Opportunity>): Promise<Opportunity | null> => {
-  const { data, error } = await supabase
-    .from('crm_opportunities')
+  const { data, error } = await (supabase
+    .from('crm_opportunities') as any)
     .insert([opp])
     .select()
     .maybeSingle();
@@ -159,8 +159,8 @@ export const createOpportunity = async (opp: Partial<Opportunity>): Promise<Oppo
 };
 
 export const updateOpportunity = async (id: string, updates: Partial<Opportunity>): Promise<Opportunity | null> => {
-  const { data, error } = await supabase
-    .from('crm_opportunities')
+  const { data, error } = await (supabase
+    .from('crm_opportunities') as any)
     .update(updates)
     .eq('id', id)
     .select()
@@ -241,8 +241,8 @@ export const convertOpportunityToCustomer = async (
 
   // 3. If this opp was from a lead, update the lead too
   if (opp.lead_id) {
-    await supabase
-      .from('crm_leads')
+    await (supabase
+      .from('crm_leads') as any)
       .update({ converted_customer_id: newCust.id })
       .eq('id', opp.lead_id);
   }
@@ -252,8 +252,8 @@ export const convertOpportunityToCustomer = async (
 
 // DEALS (Legacy / To be migrated)
 export const getDeals = async (): Promise<Deal[]> => {
-  const { data, error } = await supabase
-    .from('crm_deals')
+  const { data, error } = await (supabase
+    .from('crm_deals') as any)
     .select('*')
     .order('created_at', { ascending: false });
 
@@ -266,8 +266,8 @@ export const getDeals = async (): Promise<Deal[]> => {
 
 export const createDeal = async (deal: Partial<Deal>): Promise<Deal | null> => {
   console.log('Creating deal payload:', deal);
-  const { data, error } = await supabase
-    .from('crm_deals')
+  const { data, error } = await (supabase
+    .from('crm_deals') as any)
     .insert([deal])
     .select();
 
@@ -293,8 +293,8 @@ export const createDeal = async (deal: Partial<Deal>): Promise<Deal | null> => {
 
 // WORKFLOW HELPERS
 export const checkWorkflowAvailability = async (companyId: string): Promise<string | null> => {
-  const { data, error } = await supabase
-    .from('workflows')
+  const { data, error } = await (supabase
+    .from('workflows') as any)
     .select('id')
     .eq('module', 'CRM')
     .eq('trigger_type', 'DEAL_APPROVAL')
@@ -322,8 +322,8 @@ export const updateDealStage = async (id: number, stage_id: number, company_id?:
 
     if (!wfError) {
       // Set the pending target stage on the deal so UI knows
-      await supabase
-        .from('crm_deals')
+      await (supabase
+        .from('crm_deals') as any)
         .update({ pending_target_stage_id: stage_id })
         .eq('id', id);
 
@@ -336,8 +336,8 @@ export const updateDealStage = async (id: number, stage_id: number, company_id?:
   }
 
   // 3. Normal Update
-  const { error } = await supabase
-    .from('crm_deals')
+  const { error } = await (supabase
+    .from('crm_deals') as any)
     .update({ stage_id: stage_id, pending_target_stage_id: null }) // Clear pending if any
     .eq('id', id);
 
@@ -359,8 +359,8 @@ export const updateDealStage = async (id: number, stage_id: number, company_id?:
 
 // CONTACTS
 export const getContacts = async (): Promise<Contact[]> => {
-  const { data, error } = await supabase
-    .from('crm_contacts')
+  const { data, error } = await (supabase
+    .from('crm_contacts') as any)
     .select(`
         *,
         assignee:employees(*)
@@ -375,8 +375,8 @@ export const getContacts = async (): Promise<Contact[]> => {
 };
 
 export const createContact = async (contact: Partial<Contact>): Promise<Contact | null> => {
-  const { data, error } = await supabase
-    .from('crm_contacts')
+  const { data, error } = await (supabase
+    .from('crm_contacts') as any)
     .insert([contact])
     .select()
     .maybeSingle();
@@ -400,8 +400,8 @@ export const createContact = async (contact: Partial<Contact>): Promise<Contact 
 
 // TASKS
 export const getTasks = async (): Promise<Task[]> => {
-  const { data, error } = await supabase
-    .from('crm_tasks')
+  const { data, error } = await (supabase
+    .from('crm_tasks') as any)
     .select(`
         *,
         status_details:org_task_status(*),
@@ -421,8 +421,8 @@ export const createTask = async (task: Partial<Task>): Promise<Task | null> => {
   // For tasks, we need to handle reference IDs for status and priority
   // This helper assumes 'task' might contain direct 'status_id' etc. 
   // If the UI sends raw strings, we need lookup. But let's assume UI sends IDs for V1.2
-  const { data, error } = await supabase
-    .from('crm_tasks')
+  const { data, error } = await (supabase
+    .from('crm_tasks') as any)
     .insert([task])
     .select()
     .maybeSingle();
@@ -506,8 +506,8 @@ export const draftEmail = async (contact: Contact): Promise<string> => {
 
 // DOCUMENTS
 export const getDocuments = async (): Promise<CRMDocument[]> => {
-  const { data, error } = await supabase
-    .from('crm_documents')
+  const { data, error } = await (supabase
+    .from('crm_documents') as any)
     .select(`*, uploader:employees(*)`)
     .order('created_at', { ascending: false });
 
@@ -519,8 +519,8 @@ export const getDocuments = async (): Promise<CRMDocument[]> => {
 };
 
 export const createDocument = async (doc: Partial<CRMDocument>): Promise<CRMDocument | null> => {
-  const { data, error } = await supabase
-    .from('crm_documents')
+  const { data, error } = await (supabase
+    .from('crm_documents') as any)
     .insert([doc])
     .select()
     .maybeSingle();
@@ -545,8 +545,8 @@ export const createDocument = async (doc: Partial<CRMDocument>): Promise<CRMDocu
 
 // ACTIVITIES
 export const getActivities = async (): Promise<CRMActivity[]> => {
-  const { data, error } = await supabase
-    .from('crm_activity_log')
+  const { data, error } = await (supabase
+    .from('crm_activity_log') as any)
     .select(`*, performer:employees(*)`)
     .order('created_at', { ascending: false })
     .limit(50);
@@ -565,12 +565,12 @@ export async function logActivity(activity: Partial<CRMActivity>): Promise<void>
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
       // Try to find employee linked to this user
-      const { data: emp } = await supabase.from('employees').select('id').eq('email', user.email).maybeSingle();
+      const { data: emp } = await (supabase.from('employees') as any).select('id').eq('email', user.email).maybeSingle();
       if (emp) performerId = emp.id;
     }
   }
 
-  const { error } = await supabase.from('crm_activity_log').insert([{
+  const { error } = await (supabase.from('crm_activity_log') as any).insert([{
     ...activity,
     performed_by: performerId
   }]);
@@ -582,8 +582,8 @@ export const getUserRole = async (): Promise<string | null> => {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data, error } = await supabase
-    .from('employees')
+  const { data, error } = await (supabase
+    .from('employees') as any)
     .select(`
             role:roles(name)
         `)
@@ -603,8 +603,8 @@ export const getUserRole = async (): Promise<string | null> => {
 import type { CRMItem, CRMQuotation, CRMQuotationLine, CRMSalesInvoice, CRMSalesInvoiceLine, CRMDeliveryNote, CRMDeliveryNoteLine, CRMAttachment } from './types';
 
 export const getItems = async (): Promise<CRMItem[]> => {
-  const { data, error } = await supabase
-    .from('item_master')
+  const { data, error } = await (supabase
+    .from('item_master') as any)
     .select('*')
     .order('name');
   if (error) { console.error('Error fetching items:', error); return []; }
@@ -612,21 +612,21 @@ export const getItems = async (): Promise<CRMItem[]> => {
 };
 
 export const createItem = async (item: Partial<CRMItem>): Promise<CRMItem | null> => {
-  const { data, error } = await supabase.from('item_master').insert([item]).select().maybeSingle();
+  const { data, error } = await (supabase.from('item_master') as any).insert([item]).select().maybeSingle();
   if (error) { console.error('Error creating item:', error); return null; }
   return data;
 };
 
 export const updateItem = async (id: string, updates: Partial<CRMItem>): Promise<CRMItem | null> => {
-  const { data, error } = await supabase.from('item_master').update(updates).eq('id', id).select().maybeSingle();
+  const { data, error } = await (supabase.from('item_master') as any).update(updates).eq('id', id).select().maybeSingle();
   if (error) { console.error('Error updating item:', error); return null; }
   return data;
 };
 
 // --- QUOTATIONS ---
 export const getQuotations = async (): Promise<CRMQuotation[]> => {
-  const { data, error } = await supabase
-    .from('crm_quotations')
+  const { data, error } = await (supabase
+    .from('crm_quotations') as any)
     .select('*, customer:crm_customers(*)')
     .order('created_at', { ascending: false });
   if (error) { console.error('Error fetching quotations:', error); return []; }
@@ -634,8 +634,8 @@ export const getQuotations = async (): Promise<CRMQuotation[]> => {
 };
 
 export const getQuotation = async (id: string): Promise<CRMQuotation | null> => {
-  const { data, error } = await supabase
-    .from('crm_quotations')
+  const { data, error } = await (supabase
+    .from('crm_quotations') as any)
     .select('*, customer:crm_customers(*)')
     .eq('id', id)
     .maybeSingle();
@@ -644,8 +644,8 @@ export const getQuotation = async (id: string): Promise<CRMQuotation | null> => 
 };
 
 export const getQuotationLines = async (quotationId: string): Promise<CRMQuotationLine[]> => {
-  const { data, error } = await supabase
-    .from('crm_quotation_lines')
+  const { data, error } = await (supabase
+    .from('crm_quotation_lines') as any)
     .select('*')
     .eq('quotation_id', quotationId)
     .order('sort_order');
@@ -654,31 +654,31 @@ export const getQuotationLines = async (quotationId: string): Promise<CRMQuotati
 };
 
 export const createQuotation = async (quot: Partial<CRMQuotation>): Promise<CRMQuotation | null> => {
-  const { data, error } = await supabase.from('crm_quotations').insert([quot]).select().maybeSingle();
+  const { data, error } = await (supabase.from('crm_quotations') as any).insert([quot]).select().maybeSingle();
   if (error) { console.error('Error creating quotation:', error); return null; }
   return data;
 };
 
 export const updateQuotation = async (id: string, updates: Partial<CRMQuotation>): Promise<CRMQuotation | null> => {
-  const { data, error } = await supabase.from('crm_quotations').update(updates).eq('id', id).select().maybeSingle();
+  const { data, error } = await (supabase.from('crm_quotations') as any).update(updates).eq('id', id).select().maybeSingle();
   if (error) { console.error('Error updating quotation:', error); return null; }
   return data;
 };
 
 export const saveQuotationLines = async (quotationId: string, lines: CRMQuotationLine[]): Promise<boolean> => {
   // Delete existing lines, then insert new
-  await supabase.from('crm_quotation_lines').delete().eq('quotation_id', quotationId);
+  await (supabase.from('crm_quotation_lines') as any).delete().eq('quotation_id', quotationId);
   if (lines.length === 0) return true;
   const toInsert = lines.map((l, i) => ({ ...l, quotation_id: quotationId, sort_order: i, id: undefined, amount: undefined }));
-  const { error } = await supabase.from('crm_quotation_lines').insert(toInsert);
+  const { error } = await (supabase.from('crm_quotation_lines') as any).insert(toInsert);
   if (error) { console.error('Error saving quotation lines:', error); return false; }
   return true;
 };
 
 // --- SALES INVOICES ---
 export const getSalesInvoices = async (): Promise<CRMSalesInvoice[]> => {
-  const { data, error } = await supabase
-    .from('crm_sales_invoices')
+  const { data, error } = await (supabase
+    .from('crm_sales_invoices') as any)
     .select('*, customer:crm_customers(*)')
     .order('created_at', { ascending: false });
   if (error) { console.error('Error fetching invoices:', error); return []; }
@@ -686,36 +686,36 @@ export const getSalesInvoices = async (): Promise<CRMSalesInvoice[]> => {
 };
 
 export const createSalesInvoice = async (inv: Partial<CRMSalesInvoice>): Promise<CRMSalesInvoice | null> => {
-  const { data, error } = await supabase.from('crm_sales_invoices').insert([inv]).select().maybeSingle();
+  const { data, error } = await (supabase.from('crm_sales_invoices') as any).insert([inv]).select().maybeSingle();
   if (error) { console.error('Error creating invoice:', error); return null; }
   return data;
 };
 
 export const updateSalesInvoice = async (id: string, updates: Partial<CRMSalesInvoice>): Promise<CRMSalesInvoice | null> => {
-  const { data, error } = await supabase.from('crm_sales_invoices').update(updates).eq('id', id).select().maybeSingle();
+  const { data, error } = await (supabase.from('crm_sales_invoices') as any).update(updates).eq('id', id).select().maybeSingle();
   if (error) { console.error('Error updating invoice:', error); return null; }
   return data;
 };
 
 export const getSalesInvoiceLines = async (invoiceId: string): Promise<CRMSalesInvoiceLine[]> => {
-  const { data, error } = await supabase.from('crm_sales_invoice_lines').select('*').eq('invoice_id', invoiceId).order('sort_order');
+  const { data, error } = await (supabase.from('crm_sales_invoice_lines') as any).select('*').eq('invoice_id', invoiceId).order('sort_order');
   if (error) return [];
   return data || [];
 };
 
 export const saveSalesInvoiceLines = async (invoiceId: string, lines: CRMSalesInvoiceLine[]): Promise<boolean> => {
-  await supabase.from('crm_sales_invoice_lines').delete().eq('invoice_id', invoiceId);
+  await (supabase.from('crm_sales_invoice_lines') as any).delete().eq('invoice_id', invoiceId);
   if (lines.length === 0) return true;
   const toInsert = lines.map((l, i) => ({ ...l, invoice_id: invoiceId, sort_order: i, id: undefined, amount: undefined }));
-  const { error } = await supabase.from('crm_sales_invoice_lines').insert(toInsert);
+  const { error } = await (supabase.from('crm_sales_invoice_lines') as any).insert(toInsert);
   if (error) { console.error('Error saving invoice lines:', error); return false; }
   return true;
 };
 
 // --- DELIVERY NOTES ---
 export const getDeliveryNotes = async (): Promise<CRMDeliveryNote[]> => {
-  const { data, error } = await supabase
-    .from('crm_delivery_notes')
+  const { data, error } = await (supabase
+    .from('crm_delivery_notes') as any)
     .select('*, customer:crm_customers(*)')
     .order('created_at', { ascending: false });
   if (error) { console.error('Error fetching delivery notes:', error); return []; }
@@ -723,36 +723,36 @@ export const getDeliveryNotes = async (): Promise<CRMDeliveryNote[]> => {
 };
 
 export const createDeliveryNote = async (dn: Partial<CRMDeliveryNote>): Promise<CRMDeliveryNote | null> => {
-  const { data, error } = await supabase.from('crm_delivery_notes').insert([dn]).select().maybeSingle();
+  const { data, error } = await (supabase.from('crm_delivery_notes') as any).insert([dn]).select().maybeSingle();
   if (error) { console.error('Error creating delivery note:', error); return null; }
   return data;
 };
 
 export const updateDeliveryNote = async (id: string, updates: Partial<CRMDeliveryNote>): Promise<CRMDeliveryNote | null> => {
-  const { data, error } = await supabase.from('crm_delivery_notes').update(updates).eq('id', id).select().maybeSingle();
+  const { data, error } = await (supabase.from('crm_delivery_notes') as any).update(updates).eq('id', id).select().maybeSingle();
   if (error) { console.error('Error updating delivery note:', error); return null; }
   return data;
 };
 
 export const getDeliveryNoteLines = async (dnId: string): Promise<CRMDeliveryNoteLine[]> => {
-  const { data, error } = await supabase.from('crm_delivery_note_lines').select('*').eq('delivery_note_id', dnId).order('sort_order');
+  const { data, error } = await (supabase.from('crm_delivery_note_lines') as any).select('*').eq('delivery_note_id', dnId).order('sort_order');
   if (error) return [];
   return data || [];
 };
 
 export const saveDeliveryNoteLines = async (dnId: string, lines: CRMDeliveryNoteLine[]): Promise<boolean> => {
-  await supabase.from('crm_delivery_note_lines').delete().eq('delivery_note_id', dnId);
+  await (supabase.from('crm_delivery_note_lines') as any).delete().eq('delivery_note_id', dnId);
   if (lines.length === 0) return true;
   const toInsert = lines.map((l, i) => ({ ...l, delivery_note_id: dnId, sort_order: i, id: undefined }));
-  const { error } = await supabase.from('crm_delivery_note_lines').insert(toInsert);
+  const { error } = await (supabase.from('crm_delivery_note_lines') as any).insert(toInsert);
   if (error) { console.error('Error saving DN lines:', error); return false; }
   return true;
 };
 
 // --- ATTACHMENTS ---
 export const getAttachments = async (module: string, recordId: string): Promise<CRMAttachment[]> => {
-  const { data, error } = await supabase
-    .from('crm_attachments')
+  const { data, error } = await (supabase
+    .from('crm_attachments') as any)
     .select('*')
     .eq('module', module)
     .eq('record_id', recordId)
@@ -772,7 +772,7 @@ export const uploadAttachment = async (
   const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, file);
   if (uploadErr) { console.error('Upload error:', uploadErr); return null; }
   const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
-  const { data, error } = await supabase.from('crm_attachments').insert([{
+  const { data, error } = await (supabase.from('crm_attachments') as any).insert([{
     company_id: companyId,
     module,
     record_id: recordId,
@@ -790,7 +790,7 @@ export const deleteAttachment = async (id: string, fileUrl: string): Promise<boo
   // Extract path from URL for storage deletion
   const path = fileUrl.split('/storage/v1/object/public/attachments/')[1];
   if (path) await supabase.storage.from('attachments').remove([path]);
-  const { error } = await supabase.from('crm_attachments').delete().eq('id', id);
+  const { error } = await (supabase.from('crm_attachments') as any).delete().eq('id', id);
   return !error;
 };
 

@@ -35,8 +35,9 @@ export const AccountingSettings: React.FC = () => {
                 .maybeSingle();
 
             if (data) {
-                setConfig(data);
+                setConfig(data as any);
             }
+            if (error) throw error;
         } catch (error) {
             console.error('Error fetching account config:', error);
         } finally {
@@ -57,8 +58,8 @@ export const AccountingSettings: React.FC = () => {
 
             // Check if exists to determine insert/update logic (or use upset if unique constraint exists on company_id)
             // Assuming unique constraint on company_id from schema
-            const { error } = await supabase
-                .from('inventory_account_config')
+            const { error } = await (supabase
+                .from('inventory_account_config') as any)
                 .upsert(payload, { onConflict: 'company_id' });
 
             if (error) throw error;
