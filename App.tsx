@@ -97,7 +97,10 @@ const AppContent: React.FC = () => {
         )}
 
         {/* Keep-Alive Modules Container */}
-        <div className="w-full h-full relative">
+        <div 
+          className="w-full h-full relative"
+          style={{ display: KEEPALIVE_MODULES.some(m => m.path === location.pathname) ? 'block' : 'none' }}
+        >
           {KEEPALIVE_MODULES.map((module) => {
             // Check if user has access to this path (simple check or role-based)
             const isEsspOnly = userRole === 'essp_user';
