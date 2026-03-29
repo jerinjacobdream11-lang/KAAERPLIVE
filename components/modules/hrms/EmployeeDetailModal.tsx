@@ -8,6 +8,7 @@ import { Employee } from '../../hrms/types';
 import { JobTransitionModal } from '../../hrms/transitions/JobTransitionModal';
 import { CompensationChangeModal } from '../../hrms/transitions/CompensationChangeModal';
 import { CareerTimeline } from '../../hrms/transitions/CareerTimeline';
+import { EmployeeDocuments } from './EmployeeDocuments';
 
 interface EmployeeDetailModalProps {
     emp: Employee;
@@ -392,27 +393,18 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
 
                     {tab === 'DOCUMENTS' && (
                         <div className="animate-fade-in-up">
-                            <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-6 tracking-tight">Employee Documents</h3>
-                            <div className="space-y-4">
-                                {emp.documents?.map((doc, i) => (
-                                    <div key={i} className="flex items-center justify-between p-5 bg-white dark:bg-zinc-800 rounded-[1.5rem] border border-slate-100 dark:border-zinc-700 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all">
-                                        <div className="flex items-center gap-4">
-                                            <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-2xl"><FileText className="w-6 h-6" /></div>
-                                            <div>
-                                                <p className="font-bold text-slate-800 dark:text-slate-100">{doc.name}</p>
-                                                <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">Uploaded {doc.date}</p>
-                                            </div>
-                                        </div>
-                                        <button className="text-indigo-600 dark:text-indigo-400 font-bold text-sm bg-indigo-50 dark:bg-indigo-900/30 px-4 py-2 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors">Download</button>
-                                    </div>
-                                ))}
-                                {(!emp.documents || emp.documents.length === 0) && (
-                                    <div className="p-10 border-2 border-dashed border-slate-200 dark:border-zinc-700 rounded-[2rem] text-center text-slate-400 dark:text-slate-500">
-                                        <FileText className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                                        <p className="text-sm">No documents uploaded.</p>
-                                    </div>
-                                )}
-                            </div>
+                            {emp.id && emp.company_id ? (
+                                <EmployeeDocuments
+                                    employeeId={emp.id}
+                                    companyId={emp.company_id}
+                                    readOnly={false}
+                                />
+                            ) : (
+                                <div className="p-10 border-2 border-dashed border-slate-200 dark:border-zinc-700 rounded-[2rem] text-center text-slate-400 dark:text-slate-500">
+                                    <FileText className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                                    <p className="text-sm">Employee profile not loaded.</p>
+                                </div>
+                            )}
                         </div>
                     )}
 
