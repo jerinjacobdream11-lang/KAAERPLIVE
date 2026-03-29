@@ -94,6 +94,9 @@ export interface Faith extends BaseMaster { }
 export interface MaritalStatus extends BaseMaster { }
 export interface BloodGroup extends BaseMaster { }
 export interface Nationality extends BaseMaster { }
+export interface VisaType extends BaseMaster { }
+export interface EmployeeStatusMaster extends BaseMaster { }
+export interface LeavePlan extends BaseMaster { }
 
 export interface LeaveType extends BaseMaster {
   default_balance?: number;
@@ -180,6 +183,9 @@ export interface Employee {
   // Extended HR Fields
   nationality?: string;
   nationality_id?: number | null;
+  visa_type_id?: number | null;
+  employee_status_id?: number | null;
+  leave_plan_id?: number | null;
   annual_leave_duration_policy?: string;
   memo?: string;
   remarks?: string;

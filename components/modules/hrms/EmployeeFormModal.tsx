@@ -7,7 +7,7 @@ import { supabase } from '../../../lib/supabase';
 import { EmployeeDocuments } from './EmployeeDocuments';
 import {
     Employee, Department, Location, Designation, Grade, EmploymentType,
-    PayGroup, Faith, MaritalStatus, BloodGroup, Nationality, Role, LeaveType,
+    PayGroup, Faith, MaritalStatus, BloodGroup, Nationality, VisaType, EmployeeStatusMaster, LeavePlan, Role, LeaveType,
     ShiftTiming, WeekoffRule, SalaryComponent
 } from '../../hrms/types';
 import { Modal } from '../../ui/Modal';
@@ -26,6 +26,9 @@ interface EmployeeFormModalProps {
     maritalStatuses: MaritalStatus[];
     bloodGroups: BloodGroup[];
     nationalities: Nationality[];
+    visaTypes: VisaType[];
+    employeeStatuses: EmployeeStatusMaster[];
+    leavePlans: LeavePlan[];
     roles: Role[];
     leaveTypes: LeaveType[];
     shiftTimings: ShiftTiming[];
@@ -37,7 +40,7 @@ interface EmployeeFormModalProps {
 export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
     initialData, onClose, refreshData,
     departments, locations, designations, grades, employmentTypes,
-    payGroups, faiths, maritalStatuses, bloodGroups, nationalities, roles,
+    payGroups, faiths, maritalStatuses, bloodGroups, nationalities, visaTypes, employeeStatuses, leavePlans, roles,
     shiftTimings, weekoffRules, salaryComponents, employees
 }) => {
     // Split name for UI if needed, but keeping single name field in DB for simplicity unless requested split
@@ -72,7 +75,8 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         account_number: initialData?.account_number || '',
         ifsc_code: initialData?.ifsc_code || '',
         role_id: initialData?.role_id?.toString() || '',
-        status: initialData?.status || 'Active',
+        status: (initialData as any)?.status || 'Active',
+        employee_status_id: (initialData as any)?.employee_status_id?.toString() || '',
         profile_photo_url: initialData?.profile_photo_url || '',
         // Immigration & Travel Documents
         passport_number: (initialData as any)?.passport_number || '',
@@ -81,10 +85,12 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         visa_expiry: (initialData as any)?.visa_expiry || '',
         visa_sponsor: (initialData as any)?.visa_sponsor || '',
         visa_type: (initialData as any)?.visa_type || '',
+        visa_type_id: (initialData as any)?.visa_type_id?.toString() || '',
         client_name: (initialData as any)?.client_name || '',
         // Additional fields
         nationality_id: (initialData as any)?.nationality_id?.toString() || '',
         annual_leave_duration_policy: (initialData as any)?.annual_leave_duration_policy || '',
+        leave_plan_id: (initialData as any)?.leave_plan_id?.toString() || '',
         memo: (initialData as any)?.memo || '',
         remarks: (initialData as any)?.remarks || '',
     });
@@ -314,8 +320,10 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                 visa_expiry: formData.visa_expiry || null,
                 visa_sponsor: formData.visa_sponsor || null,
                 visa_type: formData.visa_type || null,
+                visa_type_id: formData.visa_type_id ? parseInt(formData.visa_type_id) : null,
                 client_name: formData.client_name || null,
                 nationality_id: formData.nationality_id ? parseInt(formData.nationality_id) : null,
+                leave_plan_id: formData.leave_plan_id ? parseInt(formData.leave_plan_id) : null,
                 annual_leave_duration_policy: formData.annual_leave_duration_policy || null,
                 memo: formData.memo || null,
                 remarks: formData.remarks || null,
@@ -500,15 +508,13 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                                 <div className="space-y-2">
                                                     <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Status</label>
                                                     <select
-                                                        name="status"
-                                                        value={formData.status}
+                                                        name="employee_status_id"
+                                                        value={formData.employee_status_id}
                                                         onChange={handleChange}
                                                         className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-800 dark:text-white"
                                                     >
-                                                        <option>Active</option>
-                                                        <option>Probation</option>
-                                                        <option>Notice Period</option>
-                                                        <option>Inactive</option>
+                                                        <option value="">Select Status</option>
+                                                        {employeeStatuses.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                                                     </select>
                                                 </div>
                                                 <div className="space-y-2">
@@ -519,6 +525,26 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                                         value={formData.join_date}
                                                         onChange={handleChange}
                                                         className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-800 dark:text-white"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date of Birth <span className="text-rose-500">*</span></label>
+                                                    <input
+                                                        type="date"
+                                                        name="date_of_birth"
+                                                        value={formData.date_of_birth}
+                                                        onChange={handleChange}
+                                                        className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 outline-none text-slate-800 dark:text-white"
+                                                    />
+                                                </div>
+                                                <div className="space-y-2">
+                                                    <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Age</label>
+                                                    <input
+                                                        type="text"
+                                                        readOnly
+                                                        value={formData.date_of_birth ? Math.floor((Date.now() - new Date(formData.date_of_birth).getTime()) / (365.25 * 24 * 60 * 60 * 1000)) + " yrs" : ''}
+                                                        className="w-full bg-slate-100 dark:bg-zinc-800/50 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-bold text-slate-500 outline-none cursor-not-allowed"
+                                                        placeholder="Auto"
                                                     />
                                                 </div>
                                             </div>
@@ -624,13 +650,47 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                         <textarea name="current_address" value={formData.current_address} onChange={handleChange} className="w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none min-h-[100px] text-slate-900 dark:text-white" />
                                     </div>
 
-                                    {/* Nationality */}
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {/* Demographics & Origin */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 pt-6 border-t border-slate-100 dark:border-zinc-800">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date of Birth</label>
+                                            <input type="date" name="date_of_birth" value={formData.date_of_birth} onChange={handleChange} className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none text-slate-900 dark:text-white" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Gender</label>
+                                            <select name="gender" value={formData.gender} onChange={handleChange} className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none text-slate-900 dark:text-white">
+                                                <option value="">Select Gender</option>
+                                                <option value="Male">Male</option>
+                                                <option value="Female">Female</option>
+                                                <option value="Other">Other</option>
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Civil Status</label>
+                                            <select name="marital_status_id" value={formData.marital_status_id} onChange={handleChange} className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none text-slate-900 dark:text-white">
+                                                <option value="">Select Status</option>
+                                                {maritalStatuses.map(m => <option key={m.id} value={m.id}>{m.name}</option>)}
+                                            </select>
+                                        </div>
                                         <div className="space-y-2">
                                             <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Nationality</label>
-                                            <select name="nationality_id" value={formData.nationality_id} onChange={handleChange} className="w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none text-slate-900 dark:text-white">
+                                            <select name="nationality_id" value={formData.nationality_id} onChange={handleChange} className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none text-slate-900 dark:text-white">
                                                 <option value="">Select Nationality</option>
                                                 {nationalities.map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Blood Group</label>
+                                            <select name="blood_group_id" value={formData.blood_group_id} onChange={handleChange} className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none text-slate-900 dark:text-white">
+                                                <option value="">Select Blood Group</option>
+                                                {bloodGroups.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Faith / Religion</label>
+                                            <select name="faith_id" value={formData.faith_id} onChange={handleChange} className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none text-slate-900 dark:text-white">
+                                                <option value="">Select Faith</option>
+                                                {faiths.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                                             </select>
                                         </div>
                                     </div>
@@ -640,8 +700,11 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                         <h4 className="font-bold text-slate-800 dark:text-white mb-4 text-sm">Additional Information</h4>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                             <div className="space-y-2">
-                                                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Annual Leave Duration Policy</label>
-                                                <input name="annual_leave_duration_policy" value={formData.annual_leave_duration_policy} onChange={handleChange} placeholder="e.g. 21 days, 30 days..." className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none text-slate-900 dark:text-white" />
+                                                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Leave Plan</label>
+                                                <select name="leave_plan_id" value={formData.leave_plan_id} onChange={handleChange} className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none text-slate-900 dark:text-white">
+                                                    <option value="">Select Leave Plan</option>
+                                                    {leavePlans.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                </select>
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Memo</label>
@@ -704,15 +767,9 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                             </div>
                                             <div className="space-y-2">
                                                 <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Visa Type</label>
-                                                <select name="visa_type" value={formData.visa_type} onChange={handleChange} className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-slate-800 dark:text-white">
+                                                <select name="visa_type_id" value={formData.visa_type_id} onChange={handleChange} className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm font-medium focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 outline-none text-slate-800 dark:text-white">
                                                     <option value="">Select Visa Type</option>
-                                                    <option>Working Visa</option>
-                                                    <option>OD</option>
-                                                    <option>Tourist Visa</option>
-                                                    <option>Resident Permit</option>
-                                                    <option>Business Visa</option>
-                                                    <option>Student Visa</option>
-                                                    <option>Other</option>
+                                                    {visaTypes.map(v => <option key={v.id} value={v.id}>{v.name}</option>)}
                                                 </select>
                                             </div>
                                         </div>

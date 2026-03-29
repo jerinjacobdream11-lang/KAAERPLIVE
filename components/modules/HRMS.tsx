@@ -83,6 +83,9 @@ export const HRMS: React.FC = () => {
     const [roles, setRoles] = useState<Role[]>([]);
     const [leaveTypes, setLeaveTypes] = useState<LeaveType[]>([]);
     const [salaryComponents, setSalaryComponents] = useState<SalaryComponent[]>([]);
+    const [visaTypes, setVisaTypes] = useState<VisaType[]>([]);
+    const [employeeStatuses, setEmployeeStatuses] = useState<EmployeeStatusMaster[]>([]);
+    const [leavePlans, setLeavePlans] = useState<LeavePlan[]>([]);
     const [shiftTimings, setShiftTimings] = useState<ShiftTiming[]>([]);
     const [attendanceStatuses, setAttendanceStatuses] = useState<AttendanceStatusMaster[]>([]);
     const [weekoffRules, setWeekoffRules] = useState<WeekoffRule[]>([]);
@@ -228,7 +231,18 @@ export const HRMS: React.FC = () => {
         if (nation.data) setNationalities(nation.data as any);
         if (role.data) setRoles(role.data as any);
 
-        // Batch 3: HRMS Specifics
+        // Batch 3: HRMS Specific
+        const [visa, status, plan] = await Promise.all([
+            supabase.from('org_visa_types').select('*').eq('company_id', profile.company_id),
+            supabase.from('org_employee_statuses').select('*').eq('company_id', profile.company_id),
+            supabase.from('org_leave_plans').select('*').eq('company_id', profile.company_id)
+        ]);
+
+        if (visa.data) setVisaTypes(visa.data as any);
+        if (status.data) setEmployeeStatuses(status.data as any);
+        if (plan.data) setLeavePlans(plan.data as any);
+
+        // Batch 4: HRMS Specifics
         const [lvType, salComp, shifts, attStatus, weekoff] = await Promise.all([
             supabase.from('org_leave_types').select('*').eq('company_id', profile.company_id),
             supabase.from('org_salary_components').select('*').eq('company_id', profile.company_id),
@@ -453,6 +467,9 @@ export const HRMS: React.FC = () => {
                     salaryComponents={salaryComponents}
                     maritalStatuses={maritalStatuses}
                     nationalities={nationalities}
+                    visaTypes={visaTypes}
+                    employeeStatuses={employeeStatuses}
+                    leavePlans={leavePlans}
                 />
             )}
             {showAttendanceEditModal && selectedAttendanceId && (
@@ -477,6 +494,9 @@ export const HRMS: React.FC = () => {
                     maritalStatuses={maritalStatuses}
                     bloodGroups={bloodGroups}
                     nationalities={nationalities}
+                    visaTypes={visaTypes}
+                    employeeStatuses={employeeStatuses}
+                    leavePlans={leavePlans}
                     roles={roles}
                     leaveTypes={leaveTypes}
                     shiftTimings={shiftTimings}

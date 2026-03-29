@@ -28,11 +28,15 @@ interface EmployeeDetailModalProps {
     salaryComponents: any[]; // New prop for mapping
     maritalStatuses?: any[];
     nationalities?: any[];
+    visaTypes?: any[];
+    employeeStatuses?: any[];
+    leavePlans?: any[];
 }
 
 export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
     emp, onClose, onEdit, refreshData,
-    departments, locations, designations, grades, employmentTypes, payGroups, roles, employees, salaryComponents, maritalStatuses, nationalities
+    departments, locations, designations, grades, employmentTypes, payGroups, roles, employees, salaryComponents, maritalStatuses, nationalities,
+    visaTypes, employeeStatuses, leavePlans
 }) => {
     const [tab, setTab] = useState<'PROFILE' | 'JOB' | 'CONTACT' | 'FINANCIAL' | 'DOCUMENTS' | 'TIMELINE'>('PROFILE');
 
@@ -200,7 +204,7 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
                                     <ViewField label="Location" value={locations.find(l => l.id === emp.location_id)?.name || emp.location || '-'} />
                                     <ViewField label="Reporting Manager" value={employees.find(e => e.id === (emp as any).manager_id || e.id === emp.reporting_manager_id)?.name || '-'} />
                                     <ViewField label="Client" value={emp.client_name || '-'} />
-                                    <ViewField label="Status" value={emp.status || '-'} />
+                                    <ViewField label="Status" value={employeeStatuses?.find(s => s.id === (emp as any).employee_status_id)?.name || emp.status || '-'} />
                                 </div>
                             </div>
 
@@ -225,7 +229,7 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
                                     <ViewField label="QID / Visa Number" value={emp.visa_number || '-'} />
                                     <ViewField label="Visa / QID Validity" value={formatDate(emp.visa_expiry)} />
                                     <ViewField label="Visa Sponsor" value={emp.visa_sponsor || '-'} />
-                                    <ViewField label="Visa Type" value={emp.visa_type || '-'} />
+                                    <ViewField label="Visa Type" value={visaTypes?.find(v => v.id === (emp as any).visa_type_id)?.name || emp.visa_type || '-'} />
                                 </div>
                             </div>
 
@@ -244,7 +248,7 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
                             <div>
                                 <h3 className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-4">Additional Information</h3>
                                 <div className="grid grid-cols-2 gap-4">
-                                    <ViewField label="Annual Leave Policy" value={emp.annual_leave_duration_policy || '-'} />
+                                    <ViewField label="Annual Leave Duration Policy" value={leavePlans?.find(p => p.id === (emp as any).leave_plan_id)?.name || emp.annual_leave_duration_policy || '-'} />
                                     <ViewField label="Memo" value={emp.memo || '-'} />
                                     <ViewField label="Remarks" value={emp.remarks || '-'} FullWidth />
                                 </div>

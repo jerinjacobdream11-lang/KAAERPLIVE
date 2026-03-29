@@ -771,6 +771,37 @@ export const MASTER_CONFIG: Record<string, MasterTableConfig> = {
         ],
         columns: [{ key: 'name', label: 'Name' }, { key: 'code', label: 'Code' }]
     },
+    'VISA_TYPES': {
+        tableName: 'org_visa_types',
+        displayName: 'Visa Type',
+        description: 'Employee visa categories (e.g., Working, Resident)',
+        fields: [
+            { key: 'name', label: 'Visa Type', type: 'text', required: true },
+            { key: 'code', label: 'Code', type: 'text', required: true }
+        ],
+        columns: [{ key: 'name', label: 'Name' }, { key: 'code', label: 'Code' }]
+    },
+    'EMPLOYEE_STATUSES': {
+        tableName: 'org_employee_statuses',
+        displayName: 'Employee Status',
+        description: 'Contractual status (e.g., Active, Probation)',
+        fields: [
+            { key: 'name', label: 'Status Name', type: 'text', required: true },
+            { key: 'code', label: 'Code', type: 'text', required: true }
+        ],
+        columns: [{ key: 'name', label: 'Name' }, { key: 'code', label: 'Code' }]
+    },
+    'LEAVE_PLANS': {
+        tableName: 'org_leave_plans',
+        displayName: 'Leave Plan',
+        description: 'Annual leave duration policies',
+        fields: [
+            { key: 'name', label: 'Plan Name', type: 'text', required: true },
+            { key: 'code', label: 'Code', type: 'text', required: true },
+            { key: 'description', label: 'Description', type: 'textarea' }
+        ],
+        columns: [{ key: 'name', label: 'Name' }, { key: 'code', label: 'Code' }]
+    },
     'KUDOS_CATEGORIES': {
         tableName: 'master_kudos_categories',
         displayName: 'Kudos Category',
@@ -1089,6 +1120,9 @@ const GenericMastersView = ({
                             { id: 'MARITAL_STATUS', label: 'Marital Status' },
                             { id: 'BLOOD_GROUPS', label: 'Blood Groups' },
                             { id: 'NATIONALITIES', label: 'Nationalities' },
+                            { id: 'VISA_TYPES', label: 'Visa Types' },
+                            { id: 'EMPLOYEE_STATUSES', label: 'Employee Statuses' },
+                            { id: 'LEAVE_PLANS', label: 'Leave Plans' },
                         ].map(tab => (
                             <button
                                 key={tab.id}
