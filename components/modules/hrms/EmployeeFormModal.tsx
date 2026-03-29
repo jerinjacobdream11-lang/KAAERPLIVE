@@ -81,6 +81,11 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
         visa_sponsor: (initialData as any)?.visa_sponsor || '',
         visa_type: (initialData as any)?.visa_type || '',
         client_name: (initialData as any)?.client_name || '',
+        // Additional fields
+        nationality: (initialData as any)?.nationality || '',
+        annual_leave_duration_policy: (initialData as any)?.annual_leave_duration_policy || '',
+        memo: (initialData as any)?.memo || '',
+        remarks: (initialData as any)?.remarks || '',
     });
 
     const [activeSection, setActiveSection] = useState<'OVERVIEW' | 'PROFESSIONAL' | 'CONTACT' | 'IMMIGRATION' | 'FINANCIAL' | 'DOCUMENTS' | 'LEAVE'>('OVERVIEW');
@@ -309,6 +314,10 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                 visa_sponsor: formData.visa_sponsor || null,
                 visa_type: formData.visa_type || null,
                 client_name: formData.client_name || null,
+                nationality: formData.nationality || null,
+                annual_leave_duration_policy: formData.annual_leave_duration_policy || null,
+                memo: formData.memo || null,
+                remarks: formData.remarks || null,
             };
 
             let employeeId = initialData?.id;
@@ -612,6 +621,33 @@ export const EmployeeFormModal: React.FC<EmployeeFormModalProps> = ({
                                     <div className="space-y-2">
                                         <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Current Address</label>
                                         <textarea name="current_address" value={formData.current_address} onChange={handleChange} className="w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none min-h-[100px] text-slate-900 dark:text-white" />
+                                    </div>
+
+                                    {/* Nationality */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Nationality</label>
+                                            <input name="nationality" value={formData.nationality} onChange={handleChange} placeholder="e.g. Indian, Filipino, Nepali..." className="w-full bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none text-slate-900 dark:text-white" />
+                                        </div>
+                                    </div>
+
+                                    {/* Additional Info */}
+                                    <div className="mt-4 bg-white dark:bg-[#18181b] border border-slate-200 dark:border-zinc-800 rounded-2xl p-6">
+                                        <h4 className="font-bold text-slate-800 dark:text-white mb-4 text-sm">Additional Information</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Annual Leave Duration Policy</label>
+                                                <input name="annual_leave_duration_policy" value={formData.annual_leave_duration_policy} onChange={handleChange} placeholder="e.g. 21 days, 30 days..." className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none text-slate-900 dark:text-white" />
+                                            </div>
+                                            <div className="space-y-2">
+                                                <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Memo</label>
+                                                <input name="memo" value={formData.memo} onChange={handleChange} placeholder="Internal memo..." className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none text-slate-900 dark:text-white" />
+                                            </div>
+                                        </div>
+                                        <div className="mt-4 space-y-2">
+                                            <label className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Remarks</label>
+                                            <textarea name="remarks" value={formData.remarks} onChange={handleChange} placeholder="Additional notes..." className="w-full bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-3 text-sm outline-none min-h-[80px] text-slate-900 dark:text-white" />
+                                        </div>
                                     </div>
                                 </div>
                             )}

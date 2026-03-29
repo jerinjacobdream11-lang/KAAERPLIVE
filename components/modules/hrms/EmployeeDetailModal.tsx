@@ -225,8 +225,6 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
                                     <ViewField label="Visa / QID Validity" value={formatDate(emp.visa_expiry)} />
                                     <ViewField label="Visa Sponsor" value={emp.visa_sponsor || '-'} />
                                     <ViewField label="Visa Type" value={emp.visa_type || '-'} />
-                                    <ViewField label="Hamad Card Expiry" value={formatDate(emp.hamad_card_expiry)} />
-                                    <ViewField label="Air Ticket" value={emp.air_ticket || '-'} />
                                 </div>
                             </div>
 
