@@ -188,6 +188,7 @@ export interface Employee {
   leave_plan_id?: number | null;
   annual_leave_duration_policy?: string;
   air_ticket?: string;
+  ticket_frequency?: string;
   memo?: string;
   remarks?: string;
   client_name?: string;

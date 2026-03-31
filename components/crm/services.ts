@@ -602,6 +602,15 @@ export const updateItem = async (id: string, updates: Partial<CRMItem>): Promise
   return data;
 };
 
+export const importItems = async (itemsList: Partial<CRMItem>[]): Promise<boolean> => {
+  const { error } = await (supabase as any).from('item_master').insert(itemsList);
+  if (error) {
+    console.error('Error importing items:', error);
+    return false;
+  }
+  return true;
+};
+
 // --- QUOTATIONS ---
 export const getQuotations = async (): Promise<CRMQuotation[]> => {
   const { data, error } = await (supabase as any).from('crm_quotations')

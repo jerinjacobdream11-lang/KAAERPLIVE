@@ -35,6 +35,8 @@ interface LowStockItem {
     net_qty: number;
     reorder_level?: number;
     warehouse?: string;
+    weight?: number;
+    expiry_date?: string;
 }
 
 interface BinStockRow {
@@ -43,6 +45,8 @@ interface BinStockRow {
     item_code: string;
     net_qty: number;
     uom: string;
+    weight?: number;
+    expiry_date?: string;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -129,7 +133,7 @@ export const InventoryOverview: React.FC = () => {
                 // Low stock: items with net_qty <= reorder_level or very low
                 supabase
                     .from('inventory_transactions')
-                    .select('item_id, item_master!inner(id, item_code, name, uom, reorder_level)')
+                    .select('item_id, item_master!inner(id, code, name, uom, weight, expiry_date)')
                     .eq('company_id', currentCompanyId),
                 // Bin-wise: aggregate by warehouse + item
                 supabase
@@ -138,7 +142,7 @@ export const InventoryOverview: React.FC = () => {
                         item_id,
                         warehouse_id,
                         quantity,
-                        item_master!inner(id, item_code, name, uom),
+                        item_master!inner(id, code, name, uom, weight, expiry_date),
                         warehouses!inner(id, name)
                     `)
                     .eq('company_id', currentCompanyId)
@@ -172,10 +176,12 @@ export const InventoryOverview: React.FC = () => {
                     .slice(0, 10)
                     .map(({ item, qty }) => ({
                         id: item.id,
-                        item_code: item.item_code,
+                        item_code: item.code,
                         name: item.name,
                         uom: item.uom,
                         net_qty: qty,
+                        weight: item.weight,
+                        expiry_date: item.expiry_date,
                         reorder_level: item.reorder_level ?? 10,
                     }));
                 setLowStock(lowItems);
@@ -191,7 +197,7 @@ export const InventoryOverview: React.FC = () => {
                         binMap[key] = {
                             warehouse_name: row.warehouses?.name ?? '—',
                             item_name: row.item_master?.name ?? '—',
-                            item_code: row.item_master?.item_code ?? '—',
+                            item_code: row.item_master?.code ?? '—',
                             uom: row.item_master?.uom ?? '',
                             net_qty: 0,
                             _qty: 0,
@@ -332,6 +338,15 @@ export const InventoryOverview: React.FC = () => {
                                                     {fmtQty(item.net_qty, item.uom)}
                                                 </span>
                                             </div>
+                                            {item.expiry_date && (
+                                                <p className={`text-[10px] mt-1 font-medium ${
+                                                    new Date(item.expiry_date).getTime() < Date.now() + 30 * 24 * 60 * 60 * 1000 
+                                                        ? 'text-rose-500' 
+                                                        : 'text-slate-400'
+                                                }`}>
+                                                    Expires: {new Date(item.expiry_date).toLocaleDateString()}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                 );
@@ -377,7 +392,7 @@ export const InventoryOverview: React.FC = () => {
                             <thead className="sticky top-0">
                                 <tr className="text-left text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider bg-slate-50 dark:bg-zinc-800/50">
                                     <th className="px-5 py-3">Warehouse</th>
-                                    <th className="px-5 py-3">Item Code</th>
+                                    <th className="px-5 py-3">LAT Code</th>
                                     <th className="px-5 py-3">Item Name</th>
                                     <th className="px-5 py-3 text-right">Net Qty</th>
                                 </tr>
