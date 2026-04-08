@@ -2357,6 +2357,7 @@ export type Database = {
       }
       item_master: {
         Row: {
+          barcode: string | null
           category: string | null
           code: string
           company_id: string
@@ -2364,6 +2365,7 @@ export type Database = {
           default_bom_id: string | null
           description: string | null
           expense_account_id: string | null
+          expiry_date: string | null
           id: string
           income_account_id: string | null
           is_batch_tracked: boolean | null
@@ -2374,12 +2376,16 @@ export type Database = {
           name: string
           picking_method: string | null
           putaway_strategy: string | null
+          reorder_level: number | null
+          reorder_qty: number | null
           status: string | null
           storage_category_id: string | null
           uom: string
           valuation_method: string | null
+          weight: number | null
         }
         Insert: {
+          barcode?: string | null
           category?: string | null
           code: string
           company_id?: string
@@ -2387,6 +2393,7 @@ export type Database = {
           default_bom_id?: string | null
           description?: string | null
           expense_account_id?: string | null
+          expiry_date?: string | null
           id?: string
           income_account_id?: string | null
           is_batch_tracked?: boolean | null
@@ -2397,12 +2404,16 @@ export type Database = {
           name: string
           picking_method?: string | null
           putaway_strategy?: string | null
+          reorder_level?: number | null
+          reorder_qty?: number | null
           status?: string | null
           storage_category_id?: string | null
           uom: string
           valuation_method?: string | null
+          weight?: number | null
         }
         Update: {
+          barcode?: string | null
           category?: string | null
           code?: string
           company_id?: string
@@ -2410,6 +2421,7 @@ export type Database = {
           default_bom_id?: string | null
           description?: string | null
           expense_account_id?: string | null
+          expiry_date?: string | null
           id?: string
           income_account_id?: string | null
           is_batch_tracked?: boolean | null
@@ -2420,10 +2432,13 @@ export type Database = {
           name?: string
           picking_method?: string | null
           putaway_strategy?: string | null
+          reorder_level?: number | null
+          reorder_qty?: number | null
           status?: string | null
           storage_category_id?: string | null
           uom?: string
           valuation_method?: string | null
+          weight?: number | null
         }
         Relationships: [
           {
@@ -4848,6 +4863,69 @@ export type Database = {
           },
         ]
       }
+      stock_alerts: {
+        Row: {
+          alert_type: string
+          company_id: string
+          created_at: string
+          current_qty: number | null
+          id: string
+          is_resolved: boolean | null
+          item_id: string | null
+          message: string
+          metadata: Json | null
+          reorder_level: number | null
+          resolved_at: string | null
+          severity: string | null
+          warehouse_id: string | null
+        }
+        Insert: {
+          alert_type: string
+          company_id?: string
+          created_at?: string
+          current_qty?: number | null
+          id?: string
+          is_resolved?: boolean | null
+          item_id?: string | null
+          message: string
+          metadata?: Json | null
+          reorder_level?: number | null
+          resolved_at?: string | null
+          severity?: string | null
+          warehouse_id?: string | null
+        }
+        Update: {
+          alert_type?: string
+          company_id?: string
+          created_at?: string
+          current_qty?: number | null
+          id?: string
+          is_resolved?: boolean | null
+          item_id?: string | null
+          message?: string
+          metadata?: Json | null
+          reorder_level?: number | null
+          resolved_at?: string | null
+          severity?: string | null
+          warehouse_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_alerts_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "item_master"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_alerts_warehouse_id_fkey"
+            columns: ["warehouse_id"]
+            isOneToOne: false
+            referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_movements: {
         Row: {
           company_id: string
@@ -5764,6 +5842,18 @@ export type Database = {
         Returns: Json
       }
       rpc_stock_movement_trend: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
+      rpc_generate_stock_alerts: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
+      rpc_bulk_import_items: {
+        Args: { p_company_id: string; p_items: Json }
+        Returns: Json
+      }
+      rpc_get_stock_level: {
         Args: { p_company_id: string }
         Returns: Json
       }
