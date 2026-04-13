@@ -406,40 +406,7 @@ export const HRMS: React.FC = () => {
                     onAddEmployee={hasPermission('hrms.employees.manage') ? () => { setShowEmployeeForm(true); setEditingEmployee(null); } : undefined}
                 />}
                 {activeTab === 'APPROVALS' && <ApprovalsModule currentEmployee={currentEmployee} />}
-                {activeTab === 'ATTENDANCE' && <AttendanceModule
-                    viewMode={attendanceViewMode}
-                    setViewMode={setAttendanceViewMode}
-                    attendanceDate={attendanceDate}
-                    setAttendanceDate={setAttendanceDate}
-                    refreshData={refreshData}
-                    attendance={attendance}
-                    employees={employees}
-                    onEditAttendance={(id) => { setSelectedAttendanceId(id); setShowAttendanceEditModal(true); }}
-                    onExportCSV={() => {
-                        const headers = ['Employee', 'Date', 'Check In', 'Check Out', 'Status', 'Duration'];
-                        const rows = attendance.map(r => {
-                            const emp = employees.find(e => e.id.toString() === r.employeeId.toString());
-                            return [`"${emp?.name || ''}"`, r.date, formatTime(r.checkIn), formatTime(r.checkOut), r.status, r.duration].join(',');
-                        });
-                        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...rows].join('\n');
-                        const link = document.createElement("a");
-                        link.setAttribute("href", encodeURI(csvContent));
-                        link.setAttribute("download", `attendance_${attendanceDate}.csv`);
-                        document.body.appendChild(link);
-                        link.click();
-                        document.body.removeChild(link);
-                    }}
-                    onMarkAllPresent={async () => {
-                        if (!user) return;
-                        const { data: profile } = await supabase.from('profiles').select('company_id').eq('id', user.id).maybeSingle();
-                        if (profile) {
-                            const { data, error } = await supabase.rpc('rpc_mark_all_present', { p_date: attendanceDate, p_company_id: profile.company_id });
-                            if (error) alert("Error: " + error.message);
-                            else { alert(data); refreshData(); }
-                        }
-                    }}
-                    formatTime={formatTime}
-                />}
+                {activeTab === 'ATTENDANCE' && <AttendanceModule employees={employees} />}
                 {activeTab === 'LEAVES' && <LeaveModule leaves={leaves} leaveTypes={leaveTypes} setShowLeaveModal={setShowLeaveModal} onUpdateStatus={handleUpdateLeaveStatus} formatDate={formatDate} />}
                 {activeTab === 'ASSETS' && <AssetModule assets={assets} employees={employees} refreshData={refreshData} />}
                 {activeTab === 'HELPDESK' && <HelpDeskModule employees={employees} currentEmployee={currentEmployee} />}

@@ -218,6 +218,29 @@ export interface AttendanceRecord {
   status: string; // Mapped name
   attendanceStatusId?: number;
   duration: number;
+  source?: string; // 'punch' | 'manual' | 'missed_punch_approval' | 'bulk_import'
+  edited_by?: string;
+  edited_at?: string;
+  edit_reason?: string;
+  notes?: string;
+}
+
+export interface MissedPunchRequest {
+  id: string;
+  created_at: string;
+  company_id: string;
+  employee_id: string;
+  request_date: string;
+  punch_type: 'check_in' | 'check_out';
+  requested_time: string;
+  reason: string;
+  status: 'Pending' | 'Approved' | 'Rejected';
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_notes?: string;
+  is_active: boolean;
+  // Joined fields
+  employee?: { name: string; employee_code?: string; profile_photo_url?: string };
 }
 
 export interface LeaveRequest {

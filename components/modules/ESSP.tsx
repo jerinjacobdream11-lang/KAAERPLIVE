@@ -24,7 +24,8 @@ import {
     Sparkles, // [NEW] For Assistant
     TrendingUp, // [NEW] For Skills
     Zap, // [NEW] For Insights
-    Landmark
+    Landmark,
+    X
 } from 'lucide-react';
 import { Employee, AttendanceRecord, LeaveRequest } from '../hrms/types';
 import { KAA_LOGO_URL } from '../../constants';
@@ -137,7 +138,7 @@ export const ESSP: React.FC = () => {
 
         const now = new Date();
         const today = now.toISOString().split('T')[0];
-        const timeString = now.toLocaleTimeString('en-GB', { hour12: false }); // HH:mm:ss
+        const isoNow = now.toISOString(); // Full ISO timestamp for DB
 
         if (punchStatus === 'Out') {
             // PUNCH IN
@@ -145,9 +146,10 @@ export const ESSP: React.FC = () => {
                 employee_id: currentEmployee.id,
                 company_id: currentEmployee.company_id,
                 date: today,
-                check_in: timeString,
+                check_in: isoNow,
                 status: 'Present',
-                duration: 0
+                total_hours: 0,
+                source: 'punch'
             }]).select().single();
 
             if (error) {
@@ -177,12 +179,12 @@ export const ESSP: React.FC = () => {
                 }
 
                 // Use found ID
-                await performPunchOut(activePunch.id, activePunch.check_in, timeString);
+                await performPunchOut(activePunch.id, activePunch.check_in, isoNow);
             } else {
                 // Fetch check_in time to calculate duration
                 const { data: currentRecord } = await supabase.from('attendance').select('check_in').eq('id', lastAttendanceId).single();
                 if (currentRecord) {
-                    await performPunchOut(lastAttendanceId, currentRecord.check_in, timeString);
+                    await performPunchOut(lastAttendanceId, currentRecord.check_in, isoNow);
                 }
             }
         }
@@ -193,15 +195,15 @@ export const ESSP: React.FC = () => {
     };
 
     const performPunchOut = async (recordId: string, checkInTime: string, checkOutTime: string) => {
-        // Calculate Duration
-        const d1 = new Date(`2000-01-01T${checkInTime}`);
-        const d2 = new Date(`2000-01-01T${checkOutTime}`);
+        // Calculate Duration from full ISO timestamps
+        const d1 = new Date(checkInTime);
+        const d2 = new Date(checkOutTime);
         const diffMs = d2.getTime() - d1.getTime();
         const durationHours = Math.max(0, parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2)));
 
         const { error } = await supabase.from('attendance').update({
             check_out: checkOutTime,
-            duration: durationHours
+            total_hours: durationHours
         }).eq('id', recordId);
 
         if (error) {
@@ -875,14 +877,28 @@ export const ESSP: React.FC = () => {
         const [filterDate, setFilterDate] = useState(new Date().toISOString().slice(0, 7)); // YYYY-MM
         const [stats, setStats] = useState({ present: 0, absent: 0, late: 0, halfDay: 0 });
 
+        // Missed Punch Request
+        const [showMissedPunch, setShowMissedPunch] = useState(false);
+        const [missedPunchForm, setMissedPunchForm] = useState({
+            request_date: new Date().toISOString().split('T')[0],
+            punch_type: 'check_in' as 'check_in' | 'check_out',
+            requested_time: '',
+            reason: ''
+        });
+        const [submittingMissed, setSubmittingMissed] = useState(false);
+        const [missedRequests, setMissedRequests] = useState<any[]>([]);
+
         useEffect(() => {
-            if (currentEmployee) fetchAttendance();
+            if (currentEmployee) {
+                fetchAttendance();
+                fetchMissedRequests();
+            }
         }, [currentEmployee, filterDate]);
 
         const fetchAttendance = async () => {
             setLoading(true);
             const startOfMonth = `${filterDate}-01`;
-            const endOfMonth = `${filterDate}-31`; // Loose end date, DB handles valid dates
+            const endOfMonth = `${filterDate}-31`;
 
             const { data } = await supabase.from('attendance')
                 .select('*')
@@ -893,12 +909,10 @@ export const ESSP: React.FC = () => {
 
             if (data) {
                 setRecords(data);
-                // Calculate Stats
                 const stats = data.reduce((acc, curr) => {
                     if (curr.status === 'Present') acc.present++;
                     else if (curr.status === 'Absent') acc.absent++;
                     else if (curr.status === 'Half Day') acc.halfDay++;
-                    // Late logic could be added if 'check_in' vs shift start is compared
                     return acc;
                 }, { present: 0, absent: 0, late: 0, halfDay: 0 });
                 setStats(stats);
@@ -906,19 +920,83 @@ export const ESSP: React.FC = () => {
             setLoading(false);
         };
 
+        const fetchMissedRequests = async () => {
+            const { data } = await (supabase as any).from('missed_punch_requests')
+                .select('*')
+                .eq('employee_id', currentEmployee.id)
+                .order('created_at', { ascending: false })
+                .limit(10);
+            if (data) setMissedRequests(data);
+        };
+
+        const handleSubmitMissedPunch = async () => {
+            if (!missedPunchForm.requested_time || !missedPunchForm.reason.trim()) {
+                alert('Please fill in all fields including the reason.');
+                return;
+            }
+            setSubmittingMissed(true);
+
+            const requestedTimestamp = new Date(`${missedPunchForm.request_date}T${missedPunchForm.requested_time}:00`).toISOString();
+
+            const { error } = await (supabase as any).from('missed_punch_requests').insert([{
+                company_id: currentEmployee.company_id,
+                employee_id: currentEmployee.id,
+                request_date: missedPunchForm.request_date,
+                punch_type: missedPunchForm.punch_type,
+                requested_time: requestedTimestamp,
+                reason: missedPunchForm.reason,
+                status: 'Pending'
+            }]);
+
+            if (error) {
+                alert('Failed to submit request: ' + error.message);
+            } else {
+                setShowMissedPunch(false);
+                setMissedPunchForm({ request_date: new Date().toISOString().split('T')[0], punch_type: 'check_in', requested_time: '', reason: '' });
+                fetchMissedRequests();
+            }
+            setSubmittingMissed(false);
+        };
+
+        const fmtTime = (val: string | null) => {
+            if (!val) return '--:--';
+            try {
+                return new Date(val).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+            } catch {
+                if (val.includes(':')) {
+                    const [h, m] = val.split(':');
+                    const hour = parseInt(h);
+                    return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`;
+                }
+                return val;
+            }
+        };
+
+        const pendingCount = missedRequests.filter(r => r.status === 'Pending').length;
+
         return (
             <div className="p-8 h-full overflow-y-auto animate-page-enter">
                 <div className="flex flex-col md:flex-row justify-between items-end mb-8 gap-4">
                     <div>
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">My Attendance</h1>
-                        <p className="text-slate-500">Track your working hours and history.</p>
+                        <p className="text-slate-500">Track your working hours and request corrections.</p>
                     </div>
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        <button
+                            onClick={() => setShowMissedPunch(true)}
+                            className="px-4 py-2.5 bg-amber-500 text-white rounded-2xl text-sm font-bold shadow-lg shadow-amber-500/20 hover:bg-amber-600 transition-all flex items-center gap-2"
+                        >
+                            <Clock className="w-4 h-4" />
+                            Request Missed Punch
+                            {pendingCount > 0 && (
+                                <span className="ml-1 bg-white text-amber-600 text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center">{pendingCount}</span>
+                            )}
+                        </button>
                         <input
                             type="month"
                             value={filterDate}
                             onChange={(e) => setFilterDate(e.target.value)}
-                            className="bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-4 py-2 text-slate-700 dark:text-white font-bold outline-none ring-indigo-500/20 focus:ring-2"
+                            className="bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-4 py-2.5 text-slate-700 dark:text-white font-bold outline-none ring-indigo-500/20 focus:ring-2"
                         />
                     </div>
                 </div>
@@ -937,6 +1015,37 @@ export const ESSP: React.FC = () => {
                         </div>
                     ))}
                 </div>
+
+                {/* Pending Missed Punch Requests */}
+                {missedRequests.length > 0 && (
+                    <div className="mb-8 bg-amber-50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-900/30 overflow-hidden">
+                        <div className="px-6 py-3 border-b border-amber-100 dark:border-amber-800/30 flex items-center gap-2">
+                            <Clock className="w-4 h-4 text-amber-600" />
+                            <h3 className="text-sm font-bold text-amber-800 dark:text-amber-400">Missed Punch Requests</h3>
+                        </div>
+                        <div className="divide-y divide-amber-100 dark:divide-amber-800/20">
+                            {missedRequests.slice(0, 5).map(req => (
+                                <div key={req.id} className="px-6 py-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-4">
+                                        <div>
+                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                                                {req.punch_type === 'check_in' ? 'Check In' : 'Check Out'} — {new Date(req.request_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                            </p>
+                                            <p className="text-xs text-slate-500">
+                                                Requested: {fmtTime(req.requested_time)} · "{req.reason}"
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <span className={`px-3 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wide ${
+                                        req.status === 'Pending' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' :
+                                        req.status === 'Approved' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' :
+                                        'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'
+                                    }`}>{req.status}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {/* Attendance Table */}
                 <div className="bg-white dark:bg-zinc-900/50 rounded-[2rem] border border-slate-200 dark:border-zinc-800 shadow-sm overflow-hidden">
@@ -969,15 +1078,90 @@ export const ESSP: React.FC = () => {
                                                 {record.status}
                                             </span>
                                         </td>
-                                        <td className="p-6 font-mono text-sm text-slate-600 dark:text-slate-400">{record.check_in || '--:--'}</td>
-                                        <td className="p-6 font-mono text-sm text-slate-600 dark:text-slate-400">{record.check_out || '--:--'}</td>
-                                        <td className="p-6 font-mono text-sm text-slate-600 dark:text-slate-400">{record.duration ? `${record.duration}h` : '-'}</td>
+                                        <td className="p-6 font-mono text-sm text-slate-600 dark:text-slate-400">{fmtTime(record.check_in)}</td>
+                                        <td className="p-6 font-mono text-sm text-slate-600 dark:text-slate-400">{fmtTime(record.check_out)}</td>
+                                        <td className="p-6 font-mono text-sm font-bold text-slate-700 dark:text-slate-300">{record.total_hours ? `${record.total_hours}h` : '-'}</td>
                                     </tr>
                                 ))
                             )}
                         </tbody>
                     </table>
                 </div>
+
+                {/* Missed Punch Request Modal */}
+                {showMissedPunch && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-md animate-fade-in" onClick={() => setShowMissedPunch(false)}>
+                        <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden border border-white/50 dark:border-zinc-800 animate-slide-up" onClick={e => e.stopPropagation()}>
+                            <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-center">
+                                <div>
+                                    <h3 className="text-lg font-bold text-slate-900 dark:text-white">Request Missed Punch</h3>
+                                    <p className="text-xs text-slate-500 mt-1">Submit a correction for a missed check-in or check-out</p>
+                                </div>
+                                <button onClick={() => setShowMissedPunch(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl">
+                                    <X className="w-5 h-5 text-slate-500" />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-5">
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Date</label>
+                                    <input
+                                        type="date"
+                                        value={missedPunchForm.request_date}
+                                        onChange={e => setMissedPunchForm({ ...missedPunchForm, request_date: e.target.value })}
+                                        max={new Date().toISOString().split('T')[0]}
+                                        className="w-full p-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl text-sm outline-none text-slate-900 dark:text-white"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Punch Type</label>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        {(['check_in', 'check_out'] as const).map(type => (
+                                            <button
+                                                key={type}
+                                                onClick={() => setMissedPunchForm({ ...missedPunchForm, punch_type: type })}
+                                                className={`p-3 rounded-xl text-sm font-bold border-2 transition-all ${
+                                                    missedPunchForm.punch_type === type
+                                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400'
+                                                        : 'border-slate-200 dark:border-zinc-700 text-slate-500 hover:border-slate-300'
+                                                }`}
+                                            >
+                                                {type === 'check_in' ? '🟢 Check In' : '🔴 Check Out'}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Time</label>
+                                    <input
+                                        type="time"
+                                        value={missedPunchForm.requested_time}
+                                        onChange={e => setMissedPunchForm({ ...missedPunchForm, requested_time: e.target.value })}
+                                        className="w-full p-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl font-mono text-sm outline-none text-slate-900 dark:text-white"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                        Reason <span className="text-rose-500">*</span>
+                                    </label>
+                                    <textarea
+                                        required
+                                        value={missedPunchForm.reason}
+                                        onChange={e => setMissedPunchForm({ ...missedPunchForm, reason: e.target.value })}
+                                        placeholder="e.g., Forgot to punch in, system was down..."
+                                        className="w-full p-3 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl text-sm outline-none h-24 resize-none text-slate-900 dark:text-white"
+                                    />
+                                </div>
+                                <button
+                                    onClick={handleSubmitMissedPunch}
+                                    disabled={submittingMissed}
+                                    className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg shadow-indigo-500/30 hover:bg-indigo-700 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
+                                >
+                                    {submittingMissed ? 'Submitting...' : <><Calendar className="w-5 h-5" /> Submit Request</>}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         );
     };
