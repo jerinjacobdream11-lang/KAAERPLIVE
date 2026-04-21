@@ -46,7 +46,10 @@ export const Invoices: React.FC = () => {
     };
 
     const fetchMasters = async () => {
-        const { data: pData } = await supabase.from('accounting_partners').select('id, name').or('partner_type.eq.Customer,partner_type.eq.Both');
+        const { data: pData } = await supabase
+            .from('accounting_partners')
+            .select('id, name, credit_limit, property_account_receivable_id')
+            .or('partner_type.eq.Customer,partner_type.eq.Both');
         setPartners(pData || []);
 
         const { data: iData } = await supabase.from('item_master').select('id, name, code, income_account_id'); // We might need price later
@@ -71,6 +74,25 @@ export const Invoices: React.FC = () => {
         e.preventDefault();
         try {
             if (!selectedPartner || !selectedJournal) throw new Error('Missing required fields');
+
+            // Credit Limit Check
+            const partner = partners.find(p => p.id === selectedPartner);
+            if (partner && partner.credit_limit > 0) {
+                // Get current balance
+                const { data: balanceData } = await supabase.rpc('rpc_get_account_balance', {
+                    p_account_id: partner.property_account_receivable_id, // We need this account ID
+                    p_date: new Date().toISOString().split('T')[0]
+                });
+                
+                const currentBalance = Number(balanceData || 0);
+                const invoiceTotal = lines.reduce((acc, l) => acc + (Number(l.quantity) * Number(l.unit_price)), 0);
+                
+                if (currentBalance + invoiceTotal > partner.credit_limit) {
+                    if (!confirm(`Warning: This invoice will put the customer over their credit limit of $${partner.credit_limit}. Current Balance: $${currentBalance}. Proceed?`)) {
+                        return;
+                    }
+                }
+            }
 
             const payload = {
                 p_partner_id: selectedPartner,

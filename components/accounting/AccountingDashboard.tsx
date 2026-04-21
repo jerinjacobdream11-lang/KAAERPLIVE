@@ -10,6 +10,7 @@ import { Bills } from './operations/Bills';
 import { Partners } from './masters/Partners';
 import { Payments } from './operations/Payments';
 import { BankStatements } from './operations/BankStatements';
+import { CashBook } from './operations/CashBook';
 import { FinancialReports } from './reporting/FinancialReports';
 import { FinanceDashboard } from './FinanceDashboard';
 
@@ -31,7 +32,13 @@ export const AccountingDashboard: React.FC = () => {
                     {['overview', 'customers', 'vendors', 'payments', 'journal', 'banking', 'reporting', 'settings'].map(tab => (
                         <button
                             key={tab}
-                            onClick={() => { setActiveTab(tab as any); setSubTab(tab === 'customers' ? 'invoices' : tab === 'vendors' ? 'bills' : ''); }}
+                            onClick={() => { 
+                                setActiveTab(tab as any); 
+                                if (tab === 'customers') setSubTab('invoices');
+                                else if (tab === 'vendors') setSubTab('bills');
+                                else if (tab === 'banking') setSubTab('statements');
+                                else setSubTab('');
+                            }}
                             className={`px-3 py-1.5 rounded-md text-sm font-bold capitalize transition-all whitespace-nowrap ${activeTab === tab
                                 ? 'bg-white dark:bg-zinc-700 text-violet-600 dark:text-violet-400 shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
@@ -60,6 +67,14 @@ export const AccountingDashboard: React.FC = () => {
                 </div>
             )}
 
+            {/* Sub-Header for Banking */}
+            {activeTab === 'banking' && (
+                <div className="px-6 py-2 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex gap-4">
+                    <button onClick={() => setSubTab('statements')} className={`text-sm font-medium ${subTab === 'statements' ? 'text-blue-600' : 'text-slate-500'}`}>Bank Statements</button>
+                    <button onClick={() => setSubTab('cashbook')} className={`text-sm font-medium ${subTab === 'cashbook' ? 'text-blue-600' : 'text-slate-500'}`}>Cash Book</button>
+                </div>
+            )}
+
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto p-6">
                 {activeTab === 'overview' && <FinanceDashboard />}
@@ -73,7 +88,10 @@ export const AccountingDashboard: React.FC = () => {
                 {activeTab === 'payments' && <Payments />}
 
                 {activeTab === 'journal' && <JournalEntries />}
-                {activeTab === 'banking' && <BankStatements />}
+                
+                {activeTab === 'banking' && subTab === 'statements' && <BankStatements />}
+                {activeTab === 'banking' && subTab === 'cashbook' && <CashBook />}
+
                 {activeTab === 'reporting' && <FinancialReports />}
                 {activeTab === 'settings' && <AccountingSettings />}
             </div>

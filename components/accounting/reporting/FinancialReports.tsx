@@ -3,10 +3,11 @@ import { supabase } from '../../../lib/supabase';
 import { Calendar, Filter, Download } from 'lucide-react';
 
 export const FinancialReports: React.FC = () => {
-    const [activeReport, setActiveReport] = useState<'bs' | 'pl'>('bs');
+    const [activeReport, setActiveReport] = useState<'bs' | 'pl' | 'tb' | 'aging'>('bs');
     const [loading, setLoading] = useState(false);
     const [reportData, setReportData] = useState<any>(null);
     const [companyCurrency, setCompanyCurrency] = useState('USD');
+    const [partnerType, setPartnerType] = useState<'Customer' | 'Vendor'>('Customer');
 
     // Filters
     const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), 0, 1).toISOString().split('T')[0]);
@@ -18,7 +19,7 @@ export const FinancialReports: React.FC = () => {
 
     useEffect(() => {
         fetchReport();
-    }, [activeReport, startDate, endDate]);
+    }, [activeReport, startDate, endDate, partnerType]);
 
     const fetchCompanyCurrency = async () => {
         try {
@@ -42,8 +43,16 @@ export const FinancialReports: React.FC = () => {
                 const { data, error } = await supabase.rpc('rpc_get_balance_sheet', { p_date: endDate });
                 if (error) throw error;
                 setReportData(data);
-            } else {
+            } else if (activeReport === 'pl') {
                 const { data, error } = await supabase.rpc('rpc_get_profit_loss', { p_start_date: startDate, p_end_date: endDate });
+                if (error) throw error;
+                setReportData(data);
+            } else if (activeReport === 'tb') {
+                const { data, error } = await supabase.rpc('rpc_get_trial_balance', { p_date: endDate });
+                if (error) throw error;
+                setReportData(data);
+            } else if (activeReport === 'aging') {
+                const { data, error } = await supabase.rpc('rpc_get_partner_aging', { p_partner_type: partnerType, p_date: endDate });
                 if (error) throw error;
                 setReportData(data);
             }
@@ -109,9 +118,37 @@ export const FinancialReports: React.FC = () => {
                     >
                         Profit & Loss
                     </button>
+                    <button
+                        onClick={() => setActiveReport('tb')}
+                        className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${activeReport === 'tb'
+                            ? 'bg-indigo-600 text-white shadow-md'
+                            : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                            }`}
+                    >
+                        Trial Balance
+                    </button>
+                    <button
+                        onClick={() => setActiveReport('aging')}
+                        className={`px-4 py-2 rounded-lg font-bold text-sm transition-all ${activeReport === 'aging'
+                            ? 'bg-indigo-600 text-white shadow-md'
+                            : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400 hover:bg-slate-200'
+                            }`}
+                    >
+                        Aging Report
+                    </button>
                 </div>
 
                 <div className="flex items-center gap-3">
+                    {activeReport === 'aging' && (
+                        <select 
+                            value={partnerType} 
+                            onChange={e => setPartnerType(e.target.value as any)}
+                            className="p-2 border rounded-lg text-sm bg-slate-50 font-bold"
+                        >
+                            <option value="Customer">Receivables</option>
+                            <option value="Vendor">Payables</option>
+                        </select>
+                    )}
                     {activeReport === 'pl' && (
                         <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="p-2 border rounded-lg text-sm" />
                     )}
@@ -175,24 +212,86 @@ export const FinancialReports: React.FC = () => {
 
                         {activeReport === 'pl' && (
                             <div className="space-y-8">
-                                <AccountSection
-                                    title="Income"
-                                    accounts={reportData.income}
-                                    total={reportData.income?.reduce((sum: number, a: any) => sum + a.balance, 0)}
-                                    color="text-emerald-600"
-                                />
-                                <AccountSection
-                                    title="Expenses"
-                                    accounts={reportData.expense}
-                                    total={reportData.expense?.reduce((sum: number, a: any) => sum + a.balance, 0)}
-                                    color="text-rose-600"
-                                />
-                                <div className="mt-8 p-4 bg-slate-50 dark:bg-zinc-800 rounded-xl flex justify-between items-center text-xl font-bold border border-slate-200 dark:border-zinc-700">
-                                    <span>Net Profit / (Loss)</span>
-                                    <span className={reportData.net_profit >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
-                                        {formatCurrency(reportData.net_profit)}
-                                    </span>
                                 </div>
+                            </div>
+                        )}
+
+                        {activeReport === 'tb' && (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left border-collapse">
+                                    <thead className="bg-slate-50 dark:bg-zinc-800 border-b-2">
+                                        <tr>
+                                            <th className="px-4 py-3">Account</th>
+                                            <th className="px-4 py-3 text-right">Debit</th>
+                                            <th className="px-4 py-3 text-right">Credit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                                        {reportData.map((row: any, idx: number) => (
+                                            <tr key={idx} className="hover:bg-slate-50">
+                                                <td className="px-4 py-3 font-medium">
+                                                    {row.code} - {row.name}
+                                                    <span className="ml-2 text-[10px] uppercase text-slate-400">({row.type})</span>
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-mono">{row.total_debit > 0 ? formatCurrency(row.total_debit) : '-'}</td>
+                                                <td className="px-4 py-3 text-right font-mono">{row.total_credit > 0 ? formatCurrency(row.total_credit) : '-'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="bg-slate-100 font-bold border-t-2">
+                                        <tr>
+                                            <td className="px-4 py-3 text-right uppercase tracking-wider">Total</td>
+                                            <td className="px-4 py-3 text-right font-mono">
+                                                {formatCurrency(reportData.reduce((s: number, r: any) => s + Number(r.total_debit), 0))}
+                                            </td>
+                                            <td className="px-4 py-3 text-right font-mono">
+                                                {formatCurrency(reportData.reduce((s: number, r: any) => s + Number(r.total_credit), 0))}
+                                            </td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        )}
+
+                        {activeReport === 'aging' && (
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm text-left border-collapse">
+                                    <thead className="bg-slate-50 dark:bg-zinc-800 border-b-2 font-bold uppercase text-[10px] text-slate-500">
+                                        <tr>
+                                            <th className="px-4 py-3">Partner</th>
+                                            <th className="px-4 py-3 text-right">Current</th>
+                                            <th className="px-4 py-3 text-right">1-30 Days</th>
+                                            <th className="px-4 py-3 text-right">31-60 Days</th>
+                                            <th className="px-4 py-3 text-right">61-90 Days</th>
+                                            <th className="px-4 py-3 text-right">90+ Days</th>
+                                            <th className="px-4 py-3 text-right">Total</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100 dark:divide-zinc-800">
+                                        {reportData.map((row: any, idx: number) => (
+                                            <tr key={idx} className="hover:bg-slate-50">
+                                                <td className="px-4 py-3 font-bold text-indigo-600 underline cursor-pointer">{row.partner_name}</td>
+                                                <td className="px-4 py-3 text-right font-mono">{formatCurrency(row.current)}</td>
+                                                <td className="px-4 py-3 text-right font-mono">{formatCurrency(row.bucket_30)}</td>
+                                                <td className="px-4 py-3 text-right font-mono">{formatCurrency(row.bucket_60)}</td>
+                                                <td className="px-4 py-3 text-right font-mono">{formatCurrency(row.bucket_90)}</td>
+                                                <td className="px-4 py-3 text-right font-mono">{formatCurrency(row.bucket_90_plus)}</td>
+                                                <td className="px-4 py-3 text-right font-bold font-mono">{formatCurrency(row.total_overdue)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="bg-slate-100 font-bold border-t-2">
+                                        <tr>
+                                            <td className="px-4 py-3">Total</td>
+                                            <td className="px-4 py-3 text-right font-mono">{formatCurrency(reportData.reduce((s: number, r: any) => s + r.current, 0))}</td>
+                                            <td className="px-4 py-3 text-right font-mono">{formatCurrency(reportData.reduce((s: number, r: any) => s + r.bucket_30, 0))}</td>
+                                            <td className="px-4 py-3 text-right font-mono">{formatCurrency(reportData.reduce((s: number, r: any) => s + r.bucket_60, 0))}</td>
+                                            <td className="px-4 py-3 text-right font-mono">{formatCurrency(reportData.reduce((s: number, r: any) => s + r.bucket_90, 0))}</td>
+                                            <td className="px-4 py-3 text-right font-mono">{formatCurrency(reportData.reduce((s: number, r: any) => s + r.bucket_90_plus, 0))}</td>
+                                            <td className="px-4 py-3 text-right font-mono">{formatCurrency(reportData.reduce((s: number, r: any) => s + r.total_overdue, 0))}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
                             </div>
                         )}
                     </div>

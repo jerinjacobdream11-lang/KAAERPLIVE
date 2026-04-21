@@ -25,9 +25,20 @@ export const PayrollDashboard: React.FC = () => {
     const [editRecord, setEditRecord] = useState<PayrollRecord | null>(null);
     const [editForm, setEditForm] = useState({ gross_earning: 0, total_deduction: 0 });
 
+    // Final Settlement Modal
+    const [showSettlementModal, setShowSettlementModal] = useState(false);
+    const [settlementForm, setSettlementForm] = useState({ employee_id: '', notice_pay: 0, leave_encashment: 0, gratuity: 0, loan_deduction: 0 });
+    const [activeEmployees, setActiveEmployees] = useState<any[]>([]);
+
     useEffect(() => {
         fetchCompanyLogo();
+        fetchActiveEmployees();
     }, []);
+
+    const fetchActiveEmployees = async () => {
+        const { data } = await supabase.from('employees').select('id, name, employee_code').eq('status', 'Active');
+        if (data) setActiveEmployees(data);
+    };
 
     const fetchCompanyLogo = async () => {
         try {
@@ -144,6 +155,35 @@ export const PayrollDashboard: React.FC = () => {
         }
     };
 
+    const handleProcessSettlement = async () => {
+        if (!settlementForm.employee_id) return alert("Select an employee");
+        if (!selectedRun) return alert("Please select or generate a Draft Payroll Run for the current month first.");
+        
+        const totEarn = Number(settlementForm.notice_pay) + Number(settlementForm.leave_encashment) + Number(settlementForm.gratuity);
+        const totDed = Number(settlementForm.loan_deduction);
+        const netPay = totEarn - totDed;
+
+        // Upsert settlement into the active payroll batch
+        const insertData = {
+            run_id: selectedRun.id,
+            employee_id: settlementForm.employee_id,
+            base_salary: 0, // already separated from standard
+            payable_days: 0,
+            gross_earning: totEarn,
+            total_deduction: totDed,
+            net_pay: netPay
+        };
+
+        const { error } = await supabase.from('payroll_records').insert([insertData]);
+        if (error) {
+            alert('Error creating settlement: ' + error.message);
+        } else {
+            alert('Full & Final Settlement added to current ' + selectedRun.month_year + ' batch.');
+            setShowSettlementModal(false);
+            handleViewDetails(selectedRun);
+        }
+    };
+
     const formatCurrency = (amount: number) => {
         try {
             return new Intl.NumberFormat('en-US', { style: 'currency', currency: companyCurrency }).format(amount);
@@ -209,6 +249,13 @@ export const PayrollDashboard: React.FC = () => {
                         />
                         <Calendar className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
                     </div>
+
+                    <button
+                        onClick={() => setShowSettlementModal(true)}
+                        className="px-6 py-2.5 bg-rose-50 text-rose-600 dark:bg-rose-500/10 dark:text-rose-400 border border-rose-200 dark:border-rose-900/50 rounded-2xl text-sm font-bold hover:bg-rose-100 dark:hover:bg-rose-500/20 transition-all shadow-sm"
+                    >
+                        Process Settlement
+                    </button>
 
                     <button
                         onClick={handleGeneratePayroll}
@@ -501,6 +548,69 @@ export const PayrollDashboard: React.FC = () => {
                         </div>
                         <div className="p-6 bg-slate-50 dark:bg-zinc-800/50 border-t border-slate-100 dark:border-zinc-800 flex justify-end gap-3">
                             <button onClick={handleSaveEdit} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 w-full text-center">Save Adjustments</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Final Settlement Modal */}
+            {showSettlementModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
+                    <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
+                        <div className="p-6 border-b border-rose-100 dark:border-rose-900/30 flex justify-between items-center bg-rose-50/50 dark:bg-rose-900/10">
+                            <h3 className="text-xl font-bold text-slate-900 dark:text-white">Full & Final Settlement</h3>
+                            <button onClick={() => setShowSettlementModal(false)} className="p-2 bg-white dark:bg-zinc-800 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors">
+                                <X className="h-5 w-5 text-slate-500" />
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                            <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 text-sm font-medium rounded-xl border border-amber-200 dark:border-amber-900/50 flex items-start gap-3">
+                                <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
+                                <p>Ensure a Draft Payroll batch is selected or generated for the current month. The settlement will be attached to it.</p>
+                            </div>
+                            
+                            <div>
+                                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Select Employee</label>
+                                <select 
+                                    className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-3 text-sm font-medium outline-none focus:ring-2 focus:ring-rose-500/20"
+                                    value={settlementForm.employee_id}
+                                    onChange={e => setSettlementForm(prev => ({...prev, employee_id: e.target.value}))}
+                                >
+                                    <option value="">-- Choose Employee --</option>
+                                    {activeEmployees.map(emp => (
+                                        <option key={emp.id} value={emp.id}>{emp.name} ({emp.employee_code})</option>
+                                    ))}
+                                </select>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Notice Period Pay</label>
+                                    <input type="number" value={settlementForm.notice_pay} onChange={e => setSettlementForm(prev => ({...prev, notice_pay: Number(e.target.value)}))} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Leave Encashment</label>
+                                    <input type="number" value={settlementForm.leave_encashment} onChange={e => setSettlementForm(prev => ({...prev, leave_encashment: Number(e.target.value)}))} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Gratuity Amount</label>
+                                    <input type="number" value={settlementForm.gratuity} onChange={e => setSettlementForm(prev => ({...prev, gratuity: Number(e.target.value)}))} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 mb-1">Loan Recovery / Dues</label>
+                                    <input type="number" value={settlementForm.loan_deduction} onChange={e => setSettlementForm(prev => ({...prev, loan_deduction: Number(e.target.value)}))} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-rose-200 dark:border-rose-900/50 outline-none text-rose-600" />
+                                </div>
+                            </div>
+
+                            <div className="pt-4 border-t border-slate-100 dark:border-zinc-800 flex justify-between items-center text-lg">
+                                <span className="font-bold text-slate-700 dark:text-slate-300">Final Net Payout</span>
+                                <span className="font-black text-rose-600 dark:text-rose-400">
+                                    {formatCurrency(Number(settlementForm.notice_pay) + Number(settlementForm.leave_encashment) + Number(settlementForm.gratuity) - Number(settlementForm.loan_deduction))}
+                                </span>
+                            </div>
+                        </div>
+                        <div className="p-6 bg-slate-50 dark:bg-zinc-800/50 border-t border-slate-100 dark:border-zinc-800 flex justify-end gap-3">
+                            <button onClick={handleProcessSettlement} className="px-6 py-3 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-colors shadow-lg shadow-rose-500/20 w-full">Finalize Offboarding Pay</button>
                         </div>
                     </div>
                 </div>
