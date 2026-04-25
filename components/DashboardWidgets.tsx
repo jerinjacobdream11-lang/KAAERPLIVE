@@ -2,7 +2,7 @@ import React from 'react';
 import {
     Users, Building2, TrendingUp, TrendingDown, Calendar, Briefcase,
     ChevronRight, PieChart, Activity, UserPlus, Package, Boxes,
-    AlertTriangle, DollarSign, Landmark, Clock, Bell
+    AlertTriangle, DollarSign, Landmark, Clock, Bell, FileText
 } from 'lucide-react';
 
 interface WidgetProps {
@@ -138,6 +138,53 @@ export const ESSPWidget: React.FC<WidgetProps> = ({ onClick, className }) => (
                 </li>
             ))}
         </ul>
+    </WidgetCard>
+);
+
+// ─── Projects Widget ──────────────────────────────────────────────────────────
+
+export const ProjectsWidget: React.FC<WidgetProps & { count?: number }> = ({ onClick, className, count = 0 }) => (
+    <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-cyan-400 to-blue-600">
+        <div className="flex justify-between items-start mb-4">
+            <div className="p-3 rounded-2xl bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400">
+                <Briefcase className="w-6 h-6" />
+            </div>
+            <div className="flex items-center gap-1 bg-white/30 dark:bg-black/20 px-2 py-1 rounded-full">
+                <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                <span className="text-[10px] font-bold text-slate-600 dark:text-slate-300">Active</span>
+            </div>
+        </div>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Projects</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Tasks, Timesheets & Planning</p>
+        <div className="mt-auto">
+            <div className="flex items-end gap-2">
+                <span className="text-3xl font-light text-slate-700 dark:text-slate-200">{count}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-bold uppercase tracking-wider">Ongoing Projects</span>
+            </div>
+        </div>
+    </WidgetCard>
+);
+
+// ─── Documents Widget ─────────────────────────────────────────────────────────
+
+export const DocumentsWidget: React.FC<WidgetProps & { count?: number }> = ({ onClick, className, count = 0 }) => (
+    <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-blue-400 to-indigo-600">
+        <div className="flex justify-between items-start mb-4">
+            <div className="p-3 rounded-2xl bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                <FileText className="w-6 h-6" />
+            </div>
+            <span className="px-2 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-[10px] font-bold uppercase">
+                Repository
+            </span>
+        </div>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Documents</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Policies, Contracts & Records</p>
+        <div className="mt-auto">
+            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400 font-bold text-sm">
+                <span>{count} Total Documents</span>
+                <ChevronRight className="w-4 h-4" />
+            </div>
+        </div>
     </WidgetCard>
 );
 

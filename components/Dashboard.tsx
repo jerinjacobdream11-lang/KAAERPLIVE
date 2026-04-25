@@ -5,7 +5,8 @@ import { Search, Command, Bell, Settings, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   HRMSWidget, CRMWidget, OrganisationWidget, ESSPWidget, UpcomingWidget,
-  AccountingWidget, InventoryWidget, ManufacturingWidget, ProcurementWidget
+  AccountingWidget, InventoryWidget, ManufacturingWidget, ProcurementWidget,
+  ProjectsWidget, DocumentsWidget
 } from './DashboardWidgets';
 import { useUI } from '../contexts/UIContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -31,6 +32,8 @@ interface GlobalStats {
   // CRM
   pipelineValue: string;
   dealCount: number;
+  projectCount: number;
+  documentCount: number;
 }
 
 const INITIAL_STATS: GlobalStats = {
@@ -45,6 +48,8 @@ const INITIAL_STATS: GlobalStats = {
   pendingTransitions: 0,
   pipelineValue: 'QAR 0',
   dealCount: 0,
+  projectCount: 0,
+  documentCount: 0,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -118,6 +123,23 @@ export const Dashboard: React.FC = () => {
           setStats(prev => ({ ...prev, pipelineValue, dealCount }));
         } catch (e) {
           console.warn('[Dashboard] CRM data unavailable:', e);
+        }
+
+        // Projects & Documents counts
+        try {
+          if (currentCompanyId) {
+            const [projCount, docCount] = await Promise.all([
+              supabase.from('pm_projects').select('*', { count: 'exact', head: true }).eq('company_id', currentCompanyId).neq('status', 'Completed'),
+              supabase.from('doc_documents').select('*', { count: 'exact', head: true }).eq('company_id', currentCompanyId)
+            ]);
+            setStats(prev => ({
+              ...prev,
+              projectCount: projCount.status === 'fulfilled' ? ((projCount as any).value?.count ?? 0) : 0,
+              documentCount: docCount.status === 'fulfilled' ? ((docCount as any).value?.count ?? 0) : 0
+            }));
+          }
+        } catch (e) {
+          console.warn('[Dashboard] Projects/Docs counts unavailable:', e);
         }
 
       } catch (error) {
@@ -211,6 +233,12 @@ export const Dashboard: React.FC = () => {
       case AppView.PROCUREMENT:
         if (!hasPermission('procurement.view') && !hasPermission('*')) return null;
         return <ProcurementWidget onClick={() => handleNavigate(AppView.PROCUREMENT)} className="md:col-span-1 min-h-[180px]" />;
+
+      case AppView.PROJECTS:
+        return <ProjectsWidget onClick={() => handleNavigate(AppView.PROJECTS)} count={stats.projectCount} className="md:col-span-1 min-h-[200px]" />;
+
+      case AppView.DOCUMENTS:
+        return <DocumentsWidget onClick={() => handleNavigate(AppView.DOCUMENTS)} count={stats.documentCount} className="md:col-span-1 min-h-[200px]" />;
 
       default: {
         const config = MODULES.find(m => m.id === moduleId);
@@ -309,7 +337,7 @@ export const Dashboard: React.FC = () => {
 
           {/* Render All Other Modules */}
           {MODULES
-            .filter(m => ![AppView.HRMS, AppView.CRM, AppView.SALES, AppView.ESSP, AppView.ORGANISATION, AppView.DASHBOARD].includes(m.id))
+            .filter(m => ![AppView.HRMS, AppView.CRM, AppView.SALES, AppView.ESSP, AppView.ORGANISATION, AppView.DASHBOARD, AppView.PROJECTS, AppView.DOCUMENTS].includes(m.id))
             .map(m => renderModuleWidget(m.id))
           }
 
