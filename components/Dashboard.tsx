@@ -332,8 +332,8 @@ export const Dashboard: React.FC = () => {
 
           {/* Secondary Modules */}
           {renderModuleWidget(AppView.ESSP)}
-
-
+          {renderModuleWidget(AppView.PROJECTS)}
+          {renderModuleWidget(AppView.DOCUMENTS)}
 
           {/* Render All Other Modules */}
           {MODULES
