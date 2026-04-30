@@ -1,7 +1,8 @@
 import React, { useRef, useState } from 'react';
-import { Moon, Sun, Download, Upload, LogOut, Database, Shield, Monitor, Server } from 'lucide-react';
+import { Moon, Sun, Download, Upload, LogOut, Database, Shield, Monitor, Server, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { DeviceIntegrationHub } from './settings/DeviceIntegrationHub';
+import { createFullBackup, restoreFullBackup } from '../lib/backupRestore';
 
 interface SettingsProps {
   isDarkMode: boolean;
@@ -14,11 +15,18 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, toggleTheme, onL
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showDeviceHub, setShowDeviceHub] = useState(false);
 
-  const handleBackup = () => {
+  const [progressStatus, setProgressStatus] = useState<string | null>(null);
+
+  const handleBackup = async () => {
     try {
-      // Get all local storage data
-      const data = JSON.stringify(localStorage);
-      const blob = new Blob([data], { type: 'application/json' });
+      setProgressStatus('Initializing backup...');
+      const backupData = await createFullBackup((status) => {
+        setProgressStatus(status);
+      });
+      
+      setProgressStatus('Generating file...');
+      const dataStr = JSON.stringify(backupData);
+      const blob = new Blob([dataStr], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
 
       const link = document.createElement('a');
@@ -30,7 +38,9 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, toggleTheme, onL
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Backup failed:', err);
-      alert('Failed to create backup.');
+      alert('Failed to create backup: ' + (err as Error).message);
+    } finally {
+      setProgressStatus(null);
     }
   };
 
@@ -38,30 +48,48 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, toggleTheme, onL
     const file = event.target.files?.[0];
     if (!file) return;
 
+    if (!confirm('WARNING: Restoring from a backup will OVERWRITE all your existing ERP data for this company. Are you absolutely sure you want to proceed?')) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const result = e.target?.result as string;
-        const data = JSON.parse(result);
+        setProgressStatus('Parsing backup file...');
+        const backupData = JSON.parse(result);
 
-        if (confirm('This will overwrite all current data. Are you sure you want to restore?')) {
-          localStorage.clear();
-          Object.keys(data).forEach((key) => {
-            localStorage.setItem(key, data[key]);
-          });
-          alert('Data restored successfully. The page will now reload.');
-          window.location.reload();
-        }
+        await restoreFullBackup(backupData, (status) => {
+          setProgressStatus(status);
+        });
+
+        alert('Data restored successfully! The application will now reload to apply the restored state.');
+        window.location.reload();
       } catch (err) {
         console.error('Restore failed:', err);
-        alert('Invalid backup file.');
+        alert('Restore failed: ' + (err as Error).message);
+        setProgressStatus(null);
+      } finally {
+        if (fileInputRef.current) fileInputRef.current.value = '';
       }
+    };
+    reader.onerror = () => {
+      alert('Failed to read backup file.');
     };
     reader.readAsText(file);
   };
 
   return (
-    <div className="p-8 md:p-12 h-full overflow-y-auto animate-page-enter">
+    <div className="p-8 md:p-12 h-full overflow-y-auto animate-page-enter relative">
+      {progressStatus && (
+        <div className="absolute inset-0 bg-white/80 dark:bg-zinc-900/80 backdrop-blur-sm z-50 flex items-center justify-center flex-col gap-4 rounded-xl">
+          <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
+          <h3 className="text-xl font-bold text-slate-800 dark:text-slate-200">Processing...</h3>
+          <p className="text-slate-600 dark:text-slate-400 max-w-md text-center">{progressStatus}</p>
+        </div>
+      )}
+
       <div className="max-w-4xl mx-auto">
         <h1 className="text-4xl font-extrabold text-slate-900 dark:text-white mb-2 tracking-tight">Settings</h1>
         <p className="text-slate-500 dark:text-slate-400 mb-12 text-lg">Manage your preferences and system data.</p>
@@ -143,7 +171,8 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, toggleTheme, onL
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <button
                   onClick={handleBackup}
-                  className="flex items-center justify-center gap-3 p-6 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all group"
+                  disabled={!!progressStatus}
+                  className="flex items-center justify-center gap-3 p-6 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 hover:border-emerald-500 dark:hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-all group disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <Download className="w-6 h-6 text-zinc-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400" />
                   <span className="font-bold text-zinc-600 dark:text-zinc-300 group-hover:text-emerald-700 dark:group-hover:text-emerald-400">Backup Data</span>
@@ -151,7 +180,8 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, toggleTheme, onL
 
                 <button
                   onClick={() => fileInputRef.current?.click()}
-                  className="flex items-center justify-center gap-3 p-6 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group relative"
+                  disabled={!!progressStatus}
+                  className="flex items-center justify-center gap-3 p-6 rounded-2xl border-2 border-dashed border-zinc-200 dark:border-zinc-700 hover:border-blue-500 dark:hover:border-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all group relative disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <input
                     type="file"
@@ -159,6 +189,7 @@ export const Settings: React.FC<SettingsProps> = ({ isDarkMode, toggleTheme, onL
                     onChange={handleRestore}
                     accept=".json"
                     className="hidden"
+                    disabled={!!progressStatus}
                   />
                   <Upload className="w-6 h-6 text-zinc-400 group-hover:text-blue-600 dark:group-hover:text-blue-400" />
                   <span className="font-bold text-zinc-600 dark:text-zinc-300 group-hover:text-blue-700 dark:group-hover:text-blue-400">Restore Data</span>
