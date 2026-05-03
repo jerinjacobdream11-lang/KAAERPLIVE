@@ -25,7 +25,7 @@ export const LeaveAnalyticsReport: React.FC = () => {
             const { data: leaves, error } = await supabase
                 .from('leaves')
                 .select(`
-                    id, type, status, start_date, end_date, days,
+                    id, type, status, start_date, end_date,
                     employee:employees(name, department_id, department:departments(name))
                 `)
                 .eq('company_id', currentCompanyId);

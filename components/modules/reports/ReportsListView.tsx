@@ -3,7 +3,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import {
     Plus, FileText, Download, Trash2, Search, Play, Clock,
-    BarChart3, Loader2, ChevronRight, Columns
+    BarChart3, Loader2, ChevronRight, Columns, DollarSign
 } from 'lucide-react';
 import { ReportBuilder } from './ReportBuilder';
 import { LeaveAnalyticsReport } from '../hrms/reports/LeaveAnalyticsReport';

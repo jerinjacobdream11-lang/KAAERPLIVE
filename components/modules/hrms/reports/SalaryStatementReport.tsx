@@ -20,9 +20,9 @@ export const SalaryStatementReport: React.FC = () => {
             // 1. Fetch completed payroll runs for the selected month
             const { data: runs } = await supabase
                 .from('payroll_runs')
-                .select('id, month_year, status')
+                .select('id, period_start, status')
                 .eq('company_id', currentCompanyId)
-                .eq('month_year', `${selectedMonth}-01`);
+                .eq('period_start', `${selectedMonth}-01`);
 
             if (!runs || runs.length === 0) {
                 setStatements([]);
@@ -30,7 +30,10 @@ export const SalaryStatementReport: React.FC = () => {
                 return;
             }
 
-            const runIds = runs.map(r => r.id);
+            const dateObj = new Date(`${selectedMonth}-01`);
+            const monthStr = dateObj.toLocaleString('en-US', { month: 'short' });
+            const yearStr = dateObj.getFullYear();
+            const formattedMonthYear = `${monthStr} ${yearStr}`;
 
             // 2. Fetch records for these runs
             const { data: records, error } = await supabase
@@ -39,7 +42,8 @@ export const SalaryStatementReport: React.FC = () => {
                     id, gross_earning, total_deduction, net_pay, ot_amount, loan_deduction,
                     employee:employees(name, employee_code, department:departments(name), bank_name, account_number)
                 `)
-                .in('payroll_run_id', runIds);
+                .eq('month_year', formattedMonthYear)
+                .eq('company_id', currentCompanyId);
 
             if (error) throw error;
 
