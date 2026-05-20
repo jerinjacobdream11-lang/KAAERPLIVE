@@ -22,9 +22,10 @@ import { DailySalesReport } from './reporting/DailySalesReport';
 import { ExpenseReport } from './reporting/ExpenseReport';
 import { BudgetAnalysis } from './reporting/BudgetAnalysis';
 import { FinanceDashboard } from './FinanceDashboard';
+import { FixedAssets } from './operations/FixedAssets';
 
 export const AccountingDashboard: React.FC = () => {
-    const [activeTab, setActiveTab] = useState<'overview' | 'customers' | 'vendors' | 'payments' | 'journal' | 'banking' | 'reporting' | 'masters' | 'settings'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'customers' | 'vendors' | 'payments' | 'journal' | 'banking' | 'assets' | 'reporting' | 'masters' | 'settings'>('overview');
     const [subTab, setSubTab] = useState('invoices');
 
     return (
@@ -38,7 +39,7 @@ export const AccountingDashboard: React.FC = () => {
 
                 {/* Tabs */}
                 <div className="flex flex-wrap gap-0.5 bg-slate-100 dark:bg-zinc-800 p-1 rounded-lg overflow-x-auto">
-                    {['overview', 'customers', 'vendors', 'payments', 'journal', 'banking', 'reporting', 'masters', 'settings'].map(tab => (
+                    {['overview', 'customers', 'vendors', 'payments', 'journal', 'banking', 'assets', 'reporting', 'masters', 'settings'].map(tab => (
                         <button
                             key={tab}
                             onClick={() => { 
@@ -54,7 +55,7 @@ export const AccountingDashboard: React.FC = () => {
                                 ? 'bg-white dark:bg-zinc-700 text-violet-600 dark:text-violet-400 shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         >
-                            {tab === 'overview' ? '📊 Overview' : tab}
+                            {tab === 'overview' ? '📊 Overview' : tab === 'assets' ? '🏢 Assets' : tab}
                         </button>
                     ))}
                 </div>
@@ -136,6 +137,8 @@ export const AccountingDashboard: React.FC = () => {
                 {activeTab === 'masters' && subTab === 'taxes' && <Taxes />}
                 {activeTab === 'masters' && subTab === 'journals' && <Journals />}
                 {activeTab === 'masters' && subTab === 'fiscal' && <FiscalYears />}
+
+                {activeTab === 'assets' && <FixedAssets />}
 
                 {activeTab === 'settings' && <AccountingSettings />}
             </div>
