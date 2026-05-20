@@ -2,15 +2,16 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../lib/supabase';
 import {
-  Factory, ListChecks, Box, Cog,
+  Factory, ListChecks, Box, Cog, GitBranch,
   TrendingUp, ClipboardList, CheckCircle2, Play,
   AlertCircle, Loader
 } from 'lucide-react';
 import { ProductionOrders } from './ProductionOrders';
 import { BOMManager } from './BOMManager';
 import { WorkCenters } from './WorkCenters';
+import { Routings } from './Routings';
 
-type TabId = 'orders' | 'bom' | 'workcenters';
+type TabId = 'orders' | 'bom' | 'workcenters' | 'routings';
 
 interface Summary {
   total_orders: number;
@@ -21,12 +22,14 @@ interface Summary {
   cancelled: number;
   total_boms: number;
   total_workcenters: number;
+  total_routings: number;
 }
 
 const TABS: { id: TabId; label: string; icon: React.ElementType }[] = [
   { id: 'orders',      label: 'Production Orders', icon: ListChecks },
   { id: 'bom',         label: 'Bill of Materials',  icon: Box },
   { id: 'workcenters', label: 'Work Centers',        icon: Cog },
+  { id: 'routings',    label: 'Routings',            icon: GitBranch },
 ];
 
 const KPI_CARDS = (s: Summary) => [
@@ -78,6 +81,14 @@ const KPI_CARDS = (s: Summary) => [
     bg: 'bg-teal-50 dark:bg-teal-900/20',
     text: 'text-teal-600 dark:text-teal-400',
   },
+  {
+    label: 'Routings',
+    value: s.total_routings,
+    icon: GitBranch,
+    color: 'from-indigo-400 to-indigo-500',
+    bg: 'bg-indigo-50 dark:bg-indigo-900/20',
+    text: 'text-indigo-500 dark:text-indigo-400',
+  },
 ];
 
 export const ManufacturingDashboard: React.FC = () => {
@@ -102,7 +113,7 @@ export const ManufacturingDashboard: React.FC = () => {
 
   const EMPTY_SUMMARY: Summary = {
     total_orders: 0, draft: 0, confirmed: 0, in_progress: 0,
-    done: 0, cancelled: 0, total_boms: 0, total_workcenters: 0,
+    done: 0, cancelled: 0, total_boms: 0, total_workcenters: 0, total_routings: 0,
   };
 
   const s = summary ?? EMPTY_SUMMARY;
@@ -191,6 +202,7 @@ export const ManufacturingDashboard: React.FC = () => {
             {activeTab === 'orders'      && <ProductionOrders />}
             {activeTab === 'bom'         && <BOMManager />}
             {activeTab === 'workcenters' && <WorkCenters />}
+            {activeTab === 'routings'    && <Routings />}
           </div>
         </div>
 
