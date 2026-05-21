@@ -74,12 +74,12 @@ function computeTopologicalOrder(schema: SchemaInfo): string[] {
 }
 
 async function getOrderedTables(): Promise<string[]> {
-  const { data, error } = await supabase.rpc('get_database_schema_info');
+  const { data, error } = await (supabase.rpc as any)('get_database_schema_info');
   if (error || !data) {
     throw new Error('Failed to fetch database schema topology. ' + (error?.message || ''));
   }
   
-  const schemaInfo = data as SchemaInfo;
+  const schemaInfo = data as unknown as SchemaInfo;
   const orderedTables = computeTopologicalOrder(schemaInfo);
   
   return orderedTables.filter(t => !EXCLUDED_TABLES.includes(t));
@@ -114,8 +114,7 @@ export async function createFullBackup(onProgress: (status: string) => void): Pr
     let hasMore = true;
 
     while (hasMore) {
-      const { data, error } = await supabase
-        .from(table)
+      const { data, error } = await (supabase.from as any)(table)
         .select('*')
         .range(page * pageSize, (page + 1) * pageSize - 1);
 
@@ -166,8 +165,7 @@ export async function restoreFullBackup(data: BackupData, onProgress: (status: s
     if (!data.supabaseData[table]) continue;
 
     onProgress(`Clearing existing ${table}...`);
-    const { error } = await supabase
-      .from(table)
+    const { error } = await (supabase.from as any)(table)
       .delete()
       .neq('id', '00000000-0000-0000-0000-000000000000'); // Always true condition
     
@@ -187,8 +185,7 @@ export async function restoreFullBackup(data: BackupData, onProgress: (status: s
     for (let i = 0; i < rows.length; i += chunkSize) {
       const chunk = rows.slice(i, i + chunkSize);
       
-      const { error } = await supabase
-        .from(table)
+      const { error } = await (supabase.from as any)(table)
         .upsert(chunk, { onConflict: 'id' });
         
       if (error) {

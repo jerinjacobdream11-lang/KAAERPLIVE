@@ -34,11 +34,11 @@ export const SettingsModule: React.FC = () => {
     }, [currentCompanyId]);
 
     const fetchSettings = async () => {
-        const { data, error } = await supabase
+        const { data, error } = await (supabase
             .from('org_attendance_settings')
             .select('*')
             .eq('company_id', currentCompanyId)
-            .maybeSingle();
+            .maybeSingle() as any);
             
         if (data) {
             setGraceMinutes(data.grace_timing_minutes ?? 15);
@@ -70,9 +70,9 @@ export const SettingsModule: React.FC = () => {
             updated_at: new Date().toISOString()
         };
 
-        const { error } = await supabase
+        const { error } = await (supabase
             .from('org_attendance_settings')
-            .upsert(updates, { onConflict: 'company_id' });
+            .upsert(updates, { onConflict: 'company_id' }) as any);
 
         if (error) {
             alert("Error saving settings: " + error.message);

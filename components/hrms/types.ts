@@ -258,6 +258,8 @@ export interface LeaveRequest {
   // Helper for UI
   startDate?: string;
   endDate?: string;
+  level1_status?: string | null;
+  level2_status?: string | null;
 }
 
 export interface Announcement {

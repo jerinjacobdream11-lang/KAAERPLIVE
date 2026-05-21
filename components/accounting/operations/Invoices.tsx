@@ -79,7 +79,7 @@ export const Invoices: React.FC = () => {
             const partner = partners.find(p => p.id === selectedPartner);
             if (partner && partner.credit_limit > 0) {
                 // Get current balance
-                const { data: balanceData } = await supabase.rpc('rpc_get_account_balance', {
+                const { data: balanceData } = await (supabase.rpc as any)('rpc_get_account_balance', {
                     p_account_id: partner.property_account_receivable_id, // We need this account ID
                     p_date: new Date().toISOString().split('T')[0]
                 });

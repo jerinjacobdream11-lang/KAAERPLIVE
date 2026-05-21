@@ -17,7 +17,7 @@ interface LeaveModuleProps {
 // ─── Leave Policy Settings Panel ──────────────────────────────────────────────
 
 interface LeaveTypeRow {
-    id?: string;
+    id?: number;
     name: string;
     code: string;
     default_balance: number;

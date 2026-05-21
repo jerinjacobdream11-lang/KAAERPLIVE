@@ -174,7 +174,7 @@ export const PayrollDashboard: React.FC = () => {
             net_pay: netPay
         };
 
-        const { error } = await supabase.from('payroll_records').insert([insertData]);
+        const { error } = await (supabase.from('payroll_records') as any).insert([insertData]);
         if (error) {
             alert('Error creating settlement: ' + error.message);
         } else {

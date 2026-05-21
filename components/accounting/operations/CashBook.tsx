@@ -22,7 +22,7 @@ export const CashBook: React.FC = () => {
                 p_end_date: endDate
             });
             if (error) throw error;
-            setRecords(data || []);
+            setRecords((data as any) || []);
         } catch (err: any) {
             console.error('Error fetching cash book:', err);
         } finally {

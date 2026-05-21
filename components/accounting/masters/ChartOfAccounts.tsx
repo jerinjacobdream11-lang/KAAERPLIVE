@@ -34,7 +34,7 @@ export const ChartOfAccounts: React.FC = () => {
     const fetch_ = async () => {
         setLoading(true);
         const { data } = await supabase.from('chart_of_accounts').select('*').order('code');
-        setAccounts((data || []) as Account[]);
+        setAccounts((data || []) as unknown as Account[]);
         setLoading(false);
     };
 

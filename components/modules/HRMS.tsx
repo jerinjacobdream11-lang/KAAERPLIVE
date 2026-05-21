@@ -13,7 +13,8 @@ import {
     EmploymentType, PayGroup, Faith, MaritalStatus, BloodGroup,
     Nationality, LeaveType, SalaryComponent, ShiftTiming,
     AttendanceStatusMaster, WeekoffRule, AttendanceRecord,
-    LeaveRequest, Asset, Announcement, HRMSViewMode
+    LeaveRequest, Asset, Announcement, HRMSViewMode,
+    VisaType, EmployeeStatusMaster, LeavePlan
 } from '../hrms/types';
 import { EmployeeFormModal } from './hrms/EmployeeFormModal';
 import { EmployeeDetailModal } from './hrms/EmployeeDetailModal';

@@ -591,7 +591,9 @@ const DailyTab: React.FC<{ employees: Employee[]; companyId: string }> = ({ empl
                                         <div className="flex items-center gap-1 group relative">
                                             {formatTime(emp.attendance?.check_in)}
                                             {emp.attendance?.check_in_location && 
-                                                <MapPin className="w-3 h-3 text-indigo-500 cursor-pointer" title={`Location: ${emp.attendance.check_in_location}`} />
+                                                <span title={`Location: ${emp.attendance.check_in_location}`} className="cursor-pointer">
+                                                    <MapPin className="w-3 h-3 text-indigo-500" />
+                                                </span>
                                             }
                                         </div>
                                     </td>
@@ -599,7 +601,9 @@ const DailyTab: React.FC<{ employees: Employee[]; companyId: string }> = ({ empl
                                         <div className="flex items-center gap-1 group relative">
                                             {formatTime(emp.attendance?.check_out)}
                                             {emp.attendance?.check_out_location && 
-                                                <MapPin className="w-3 h-3 text-indigo-500 cursor-pointer" title={`Location: ${emp.attendance.check_out_location}`} />
+                                                <span title={`Location: ${emp.attendance.check_out_location}`} className="cursor-pointer">
+                                                    <MapPin className="w-3 h-3 text-indigo-500" />
+                                                </span>
                                             }
                                         </div>
                                     </td>
