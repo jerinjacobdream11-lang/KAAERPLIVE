@@ -300,17 +300,6 @@ export const Login: React.FC = () => {
                         </button>
                     </form>
 
-                    <div className="mt-8 text-center pt-6 border-t border-slate-200/50 dark:border-white/5">
-                        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                            {isSignUp ? "Already a partner?" : "New to Kaa ERP?"}
-                            <button
-                                onClick={() => setIsSignUp(!isSignUp)}
-                                className="text-indigo-600 dark:text-indigo-400 font-bold hover:text-indigo-700 dark:hover:text-indigo-300 ml-1.5 transition-all outline-none focus:underline"
-                            >
-                                {isSignUp ? "Log In Here" : "Create Account"}
-                            </button>
-                        </p>
-                    </div>
                 </div>
 
                 <div className="mt-8 text-center">
@@ -319,104 +308,6 @@ export const Login: React.FC = () => {
                     </p>
                 </div>
             </div>
-
-            {/* Dev Helper: Quick Seed */}
-            {
-                import.meta.env.DEV && (
-                    <button
-                        onClick={async () => {
-                            if (!confirm("This will create specific demo users (admin@kaa.com, staff@kaa.com). Continue?")) return;
-                            setIsLoading(true);
-                            try {
-                                const password = "kaa12345";
-
-                                // 0. Try Login First checking if already good
-                                const { data: loginData, error: loginErr } = await supabase.auth.signInWithPassword({
-                                    email: 'admin@kaa.com',
-                                    password: password
-                                });
-
-                                if (loginData.session) {
-                                    alert("Admin user (admin@kaa.com) already exists and password is correct! You can just log in.");
-                                    setIsLoading(false);
-                                    return;
-                                }
-
-                                // 1. Create Admin
-                                console.log("Creating admin...");
-                                const { data: adminAuth, error: adminErr } = await supabase.auth.signUp({
-                                    email: 'admin@kaa.com',
-                                    password: password,
-                                });
-
-                                if (adminErr) throw adminErr;
-
-                                // CHECK: Failed Session (User exists or Email Verify on)
-                                if (adminAuth.user && !adminAuth.session) {
-                                    alert("⚠️ User 'admin@kaa.com' already exists OR Email Confirmation is ON.\n\nSince you cannot log in, the password might be wrong or the user is unconfirmed.\n\nACTION REQUIRED:\n1. Go to Supabase Dashboard -> Authentication -> Users.\n2. DELETE 'admin@kaa.com' and 'staff@kaa.com'.\n3. Refresh this page and click this button again.");
-                                    setIsLoading(false);
-                                    return;
-                                }
-
-                                if (adminAuth.user) {
-                                    // Create Company
-                                    const { data: company } = await supabase.from('companies').insert([{ name: 'Kaa Tech Demo' }]).select().single();
-                                    if (company) {
-                                        // Admin Profile
-                                        await supabase.from('profiles').upsert({
-                                            id: adminAuth.user.id,
-                                            company_id: company.id,
-                                            full_name: 'Kaa Admin',
-                                            role: 'admin'
-                                        });
-
-                                        // 2. Create Employee User
-                                        await supabase.auth.signOut();
-
-                                        const { data: empAuth } = await supabase.auth.signUp({
-                                            email: 'staff@kaa.com',
-                                            password: password
-                                        });
-
-                                        if (empAuth.user) {
-                                            // Employee Profile
-                                            await supabase.from('profiles').upsert({
-                                                id: empAuth.user.id,
-                                                company_id: company.id, // Same company
-                                                full_name: 'Sarah Staff',
-                                                role: 'employee'
-                                            });
-
-                                            // Employee Record in HRMS table
-                                            await supabase.from('employees').insert({
-                                                company_id: company.id,
-                                                profile_id: empAuth.user.id, // Link to auth user
-                                                name: 'Sarah Staff',
-                                                email: 'staff@kaa.com',
-                                                role: 'Product Designer',
-                                                department: 'Design',
-                                                status: 'Active',
-                                                join_date: new Date().toISOString().split('T')[0],
-                                                salary_amount: 60000
-                                            });
-                                        }
-                                    }
-                                }
-                                await supabase.auth.signOut();
-                                alert(`Demo Users Created!\n\nAdmin: admin@kaa.com\nStaff: staff@kaa.com\nPassword: ${password}`);
-                            } catch (e: any) {
-                                console.error(e);
-                                alert("Seeding failed: " + e.message);
-                            } finally {
-                                setIsLoading(false);
-                            }
-                        }}
-                        className="absolute top-4 right-4 px-3 py-1 bg-white/50 backdrop-blur text-slate-500 text-xs font-bold rounded-lg border border-slate-200/50 hover:bg-white/80 transition-colors z-50"
-                    >
-                        ⚡ Seed Demo Data
-                    </button>
-                )
-            }
         </div >
     );
 };
