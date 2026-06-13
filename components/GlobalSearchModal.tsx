@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Command, X, ArrowRight, User, Building, FileText, Settings, LogOut, LayoutGrid, Clock, Calendar } from 'lucide-react';
+import { Search, Command, X, ArrowRight, User, Building, FileText, Settings, LogOut, LayoutGrid, Clock, Calendar, Headphones, Megaphone } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUI } from '../contexts/UIContext';
 import { supabase } from '../lib/supabase';
@@ -48,6 +48,9 @@ export const GlobalSearchModal: React.FC = () => {
         { id: 'nav-inventory', type: 'NAVIGATION', title: 'Inventory', subtitle: 'Stock, Logistics & Warehouse', icon: <FileText className="w-4 h-4" />, action: () => navigate('/inventory') },
         { id: 'nav-manufacturing', type: 'NAVIGATION', title: 'Manufacturing', subtitle: 'Work Orders, BOM & PLM', icon: <FileText className="w-4 h-4" />, action: () => navigate('/manufacturing') },
         { id: 'nav-procurement', type: 'NAVIGATION', title: 'Procurement', subtitle: 'Purchase Orders & Vendors', icon: <FileText className="w-4 h-4" />, action: () => navigate('/procurement') },
+        { id: 'nav-sales', type: 'NAVIGATION', title: 'Sales', subtitle: 'Sales Orders & Customers', icon: <FileText className="w-4 h-4" />, action: () => navigate('/sales') },
+        { id: 'nav-help-desk', type: 'NAVIGATION', title: 'Help Desk', subtitle: 'Tickets & Customer Support', icon: <Headphones className="w-4 h-4" />, action: () => navigate('/help_desk') },
+        { id: 'nav-marketing', type: 'NAVIGATION', title: 'Marketing', subtitle: 'Campaigns & Lead Generation', icon: <Megaphone className="w-4 h-4" />, action: () => navigate('/marketing') },
         { id: 'nav-settings', type: 'NAVIGATION', title: 'Settings', subtitle: 'App Preferences', icon: <Settings className="w-4 h-4" />, action: () => navigate('/settings') },
         { id: 'act-notifs', type: 'ACTION', title: 'Notifications', subtitle: 'View latest alerts', icon: <Settings className="w-4 h-4" />, action: () => { toggleSearch(false); toggleNotifications(true); } },
     ];

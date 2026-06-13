@@ -20,8 +20,18 @@ const TABS: {id:TabId; label:string; icon:React.ElementType; color:string}[] = [
   {id:'sales',    label:'Sales Orders',    icon:FileText,     color:'emerald'},
 ];
 
-export const ProcurementSalesDashboard: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<TabId>('purchase');
+interface ProcurementSalesDashboardProps {
+  defaultTab?: TabId;
+}
+
+export const ProcurementSalesDashboard: React.FC<ProcurementSalesDashboardProps> = ({ defaultTab }) => {
+  const [activeTab, setActiveTab] = useState<TabId>(defaultTab || 'purchase');
+
+  useEffect(() => {
+    if (defaultTab) {
+      setActiveTab(defaultTab);
+    }
+  }, [defaultTab]);
   const [summary, setSummary]     = useState<Summary|null>(null);
   const [sumLoading, setSumLoading] = useState(true);
 

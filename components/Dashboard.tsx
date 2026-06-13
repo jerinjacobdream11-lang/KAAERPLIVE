@@ -6,7 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   EmployeesWidget, AttendanceWidget, LeaveWidget, PayrollWidget, CRMWidget, OrganisationWidget, ESSPWidget, UpcomingWidget,
   AccountingWidget, InventoryWidget, ManufacturingWidget, ProcurementWidget,
-  ProjectsWidget, DocumentsWidget
+  ProjectsWidget, DocumentsWidget, SalesWidget, HelpDeskWidget, MarketingWidget
 } from './DashboardWidgets';
 import { useUI } from '../contexts/UIContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,6 +34,10 @@ interface GlobalStats {
   dealCount: number;
   projectCount: number;
   documentCount: number;
+  // Sales & Help Desk
+  totalSales: string;
+  pendingSalesOrders: number;
+  openTickets: number;
 }
 
 const INITIAL_STATS: GlobalStats = {
@@ -50,6 +54,9 @@ const INITIAL_STATS: GlobalStats = {
   dealCount: 0,
   projectCount: 0,
   documentCount: 0,
+  totalSales: 'QAR 0',
+  pendingSalesOrders: 0,
+  openTickets: 0,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -140,6 +147,50 @@ export const Dashboard: React.FC = () => {
           }
         } catch (e) {
           console.warn('[Dashboard] Projects/Docs counts unavailable:', e);
+        }
+
+        // Sales Orders Stats
+        try {
+          if (currentCompanyId) {
+            const { data: salesData } = await supabase
+              .from('sales_orders')
+              .select('total_amount, status')
+              .eq('company_id', currentCompanyId);
+            
+            if (salesData) {
+              const totalVal = salesData.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+              const pendingCount = salesData.filter(order => order.status === 'Draft' || order.status === 'Confirmed').length;
+              const totalSales = 'QAR ' + new Intl.NumberFormat('en-US', {
+                maximumFractionDigits: 0, notation: 'compact'
+              }).format(totalVal);
+              
+              setStats(prev => ({
+                ...prev,
+                totalSales,
+                pendingSalesOrders: pendingCount
+              }));
+            }
+          }
+        } catch (e) {
+          console.warn('[Dashboard] Sales data unavailable:', e);
+        }
+
+        // Help Desk Tickets Stats
+        try {
+          if (currentCompanyId) {
+            const { count: openTicketsCount } = await supabase
+              .from('tickets')
+              .select('*', { count: 'exact', head: true })
+              .eq('company_id', currentCompanyId)
+              .eq('status', 'Open');
+            
+            setStats(prev => ({
+              ...prev,
+              openTickets: openTicketsCount ?? 0
+            }));
+          }
+        } catch (e) {
+          console.warn('[Dashboard] Help Desk stats unavailable:', e);
         }
 
       } catch (error) {
@@ -266,6 +317,35 @@ export const Dashboard: React.FC = () => {
 
       case AppView.DOCUMENTS:
         return <DocumentsWidget onClick={() => handleNavigate(AppView.DOCUMENTS)} count={stats.documentCount} className="md:col-span-1 min-h-[200px]" />;
+
+      case AppView.SALES:
+        if (!hasPermission('procurement.view') && !hasPermission('*')) return null;
+        return (
+          <SalesWidget
+            onClick={() => handleNavigate(AppView.SALES)}
+            totalSales={stats.totalSales}
+            pendingOrders={stats.pendingSalesOrders}
+            className="md:col-span-1 min-h-[200px]"
+          />
+        );
+
+      case AppView.HELP_DESK:
+        if (!hasPermission('hrms.helpdesk.view') && !hasPermission('*')) return null;
+        return (
+          <HelpDeskWidget
+            onClick={() => handleNavigate(AppView.HELP_DESK)}
+            openTickets={stats.openTickets}
+            className="md:col-span-1 min-h-[180px]"
+          />
+        );
+
+      case AppView.MARKETING:
+        return (
+          <MarketingWidget
+            onClick={() => handleNavigate(AppView.MARKETING)}
+            className="md:col-span-1 min-h-[200px]"
+          />
+        );
 
       default: {
         const config = MODULES.find(m => m.id === moduleId);

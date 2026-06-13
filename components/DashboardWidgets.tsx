@@ -452,3 +452,81 @@ export const AlertsWidget: React.FC<WidgetProps & { alerts: Alert[] }> = ({ onCl
         </div>
     </WidgetCard>
 );
+
+// ─── Sales Widget ────────────────────────────────────────────────────────────
+export const SalesWidget: React.FC<WidgetProps & { totalSales?: string; pendingOrders?: number }> = ({ onClick, className, totalSales = "QAR 0", pendingOrders = 0 }) => (
+    <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-emerald-400 to-teal-600">
+        <div className="p-3 w-fit rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 mb-3">
+            <FileText className="w-6 h-6" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white">Sales Orders</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-3">Quotations, Orders &amp; Invoicing</p>
+
+        <div className="grid grid-cols-2 gap-2 mt-auto">
+            <div className="bg-white/40 dark:bg-black/20 rounded-xl p-2">
+                <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Total Sales</p>
+                <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{totalSales}</p>
+            </div>
+            <div className="bg-white/40 dark:bg-black/20 rounded-xl p-2">
+                <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Pending</p>
+                <p className="text-sm font-bold text-emerald-700 dark:text-emerald-300">{pendingOrders} orders</p>
+            </div>
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center gap-2 text-xs font-bold text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors uppercase tracking-widest">
+            <span>Open Sales Portal</span>
+            <ChevronRight className="w-3 h-3" strokeWidth={3} />
+        </div>
+    </WidgetCard>
+);
+
+// ─── Help Desk Widget ────────────────────────────────────────────────────────
+export const HelpDeskWidget: React.FC<WidgetProps & { openTickets?: number }> = ({ onClick, className, openTickets = 0 }) => (
+    <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-pink-400 to-rose-600">
+        <div className="p-3 w-fit rounded-2xl bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 mb-3">
+            <Headphones className="w-6 h-6" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white">Help Desk</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-3">Support Tickets &amp; Issues</p>
+
+        <div className="mt-auto">
+            <div className="bg-white/40 dark:bg-black/20 rounded-xl p-3 flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Open Tickets</span>
+                <span className="text-lg font-black text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-900/35 px-2.5 py-0.5 rounded-lg">{openTickets}</span>
+            </div>
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center gap-2 text-xs font-bold text-slate-500 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors uppercase tracking-widest">
+            <span>Open Tickets Support</span>
+            <ChevronRight className="w-3 h-3" strokeWidth={3} />
+        </div>
+    </WidgetCard>
+);
+
+// ─── Marketing Widget ────────────────────────────────────────────────────────
+export const MarketingWidget: React.FC<WidgetProps & { activeCampaigns?: number; leadsGenerated?: number }> = ({ onClick, className, activeCampaigns = 4, leadsGenerated = 1240 }) => (
+    <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-orange-400 to-amber-600">
+        <div className="p-3 w-fit rounded-2xl bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 mb-3">
+            <Megaphone className="w-6 h-6" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white">Marketing</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-3">Campaigns &amp; Lead Generation</p>
+
+        <div className="grid grid-cols-2 gap-2 mt-auto">
+            <div className="bg-white/40 dark:bg-black/20 rounded-xl p-2">
+                <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Campaigns</p>
+                <p className="text-sm font-bold text-orange-700 dark:text-orange-300">{activeCampaigns} Active</p>
+            </div>
+            <div className="bg-white/40 dark:bg-black/20 rounded-xl p-2">
+                <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400">Total Leads</p>
+                <p className="text-sm font-bold text-orange-700 dark:text-orange-300">{leadsGenerated}</p>
+            </div>
+        </div>
+
+        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center gap-2 text-xs font-bold text-slate-500 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors uppercase tracking-widest">
+            <span>Manage Campaigns</span>
+            <ChevronRight className="w-3 h-3" strokeWidth={3} />
+        </div>
+    </WidgetCard>
+);
+

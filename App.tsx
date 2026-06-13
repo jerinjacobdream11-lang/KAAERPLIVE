@@ -11,6 +11,8 @@ import { PayrollHub } from './components/modules/PayrollHub';
 import { CRM } from './components/modules/CRM';
 import { Organisation } from './components/modules/Organisation';
 import { ESSP } from './components/modules/ESSP';
+import { HelpDeskHub } from './components/modules/HelpDeskHub';
+import { MarketingHub } from './components/modules/MarketingHub';
 import { Settings } from './components/Settings';
 import { AppView } from './types';
 import { ArrowLeft } from 'lucide-react';
@@ -83,6 +85,9 @@ const AppContent: React.FC = () => {
     if (path === 'essp') return AppView.ESSP;
     if (path === 'projects') return AppView.PROJECTS;
     if (path === 'documents') return AppView.DOCUMENTS;
+    if (path === 'help_desk') return AppView.HELP_DESK;
+    if (path === 'marketing') return AppView.MARKETING;
+    if (path === 'sales') return AppView.SALES;
     return AppView.DASHBOARD;
   };
 
@@ -102,6 +107,9 @@ const AppContent: React.FC = () => {
     { path: '/essp', element: <ESSP />, id: 'essp' },
     { path: '/projects', element: <ProjectManagement />, id: 'projects' },
     { path: '/documents', element: <DocumentManagement />, id: 'documents' },
+    { path: '/sales', element: <ProcurementSalesDashboard defaultTab="sales" />, id: 'sales' },
+    { path: '/help_desk', element: <HelpDeskHub />, id: 'help_desk' },
+    { path: '/marketing', element: <MarketingHub />, id: 'marketing' },
   ];
 
   return (
