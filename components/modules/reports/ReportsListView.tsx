@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import {
@@ -26,6 +26,21 @@ export const ReportsListView: React.FC<ReportsListViewProps> = ({ moduleFilter, 
     const [editReport, setEditReport] = useState<any>(null);
     const [selectedStandardReport, setSelectedStandardReport] = useState<string | null>(null);
     const [reportCategory, setReportCategory] = useState<'CUSTOM' | 'STANDARD'>('CUSTOM');
+
+    const allStandardReports = useMemo(() => [
+        { id: 'LEAVE_ANALYTICS', name: 'Leave Analytics', desc: 'Visual trends and departmental distribution', icon: BarChart3, color: 'emerald', module: 'LEAVE' },
+        { id: 'SALARY_STATEMENT', name: 'Monthly Salary Statement', desc: 'Detailed earnings and deductions breakdown', icon: DollarSign, color: 'indigo', module: 'PAYROLL' },
+        { id: 'BONUS_GRATUITY', name: 'Bonus & Gratuity Valuation', desc: 'Tenure-based liability and accruals', icon: FileText, color: 'amber', module: 'PAYROLL' },
+    ], []);
+
+    const standardReports = useMemo(() => allStandardReports.filter(r => !moduleFilter || r.module === moduleFilter), [allStandardReports, moduleFilter]);
+    const showStandardTab = standardReports.length > 0;
+
+    useEffect(() => {
+        if (!showStandardTab && reportCategory === 'STANDARD') {
+            setReportCategory('CUSTOM');
+        }
+    }, [showStandardTab, reportCategory]);
 
     useEffect(() => {
         if (view === 'LIST') fetchReports();
@@ -101,20 +116,7 @@ export const ReportsListView: React.FC<ReportsListViewProps> = ({ moduleFilter, 
         );
     }
 
-    const allStandardReports = [
-        { id: 'LEAVE_ANALYTICS', name: 'Leave Analytics', desc: 'Visual trends and departmental distribution', icon: BarChart3, color: 'emerald', module: 'LEAVE' },
-        { id: 'SALARY_STATEMENT', name: 'Monthly Salary Statement', desc: 'Detailed earnings and deductions breakdown', icon: DollarSign, color: 'indigo', module: 'PAYROLL' },
-        { id: 'BONUS_GRATUITY', name: 'Bonus & Gratuity Valuation', desc: 'Tenure-based liability and accruals', icon: FileText, color: 'amber', module: 'PAYROLL' },
-    ];
-
-    const standardReports = allStandardReports.filter(r => !moduleFilter || r.module === moduleFilter);
-    const showStandardTab = standardReports.length > 0;
-
-    useEffect(() => {
-        if (!showStandardTab && reportCategory === 'STANDARD') {
-            setReportCategory('CUSTOM');
-        }
-    }, [showStandardTab, reportCategory]);
+    // standardReports and showStandardTab are defined at the top
 
     // ── List view ──
     return (
