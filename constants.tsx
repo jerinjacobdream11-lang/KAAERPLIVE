@@ -14,7 +14,9 @@ import {
   FileText,
   Clock,
   CalendarDays,
-  DollarSign
+  DollarSign,
+  Award,
+  Plane
 } from 'lucide-react';
 import { AppView, ModuleConfig } from './types';
 
@@ -144,5 +146,37 @@ export const MODULES: ModuleConfig[] = [
     icon: FileText,
     color: "text-blue-600",
     bgColor: "bg-blue-100",
+  },
+  {
+    id: AppView.RECRUITMENT,
+    name: "Recruitment",
+    description: "ATS, Hiring & Jobs",
+    icon: Briefcase,
+    color: "text-amber-600",
+    bgColor: "bg-amber-100",
+  },
+  {
+    id: AppView.LOANS,
+    name: "Loans & Benefits",
+    description: "Advances, Insurance & Claims",
+    icon: DollarSign,
+    color: "text-emerald-600",
+    bgColor: "bg-emerald-100",
+  },
+  {
+    id: AppView.PERFORMANCE,
+    name: "Performance",
+    description: "Goals, OKRs & Appraisals",
+    icon: Award,
+    color: "text-violet-600",
+    bgColor: "bg-violet-100",
+  },
+  {
+    id: AppView.TRAVEL,
+    name: "Travel & Expenses",
+    description: "Trips, Bookings & Claims",
+    icon: Plane,
+    color: "text-rose-600",
+    bgColor: "bg-rose-100",
   },
 ];

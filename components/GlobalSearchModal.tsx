@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Command, X, ArrowRight, User, Building, FileText, Settings, LogOut, LayoutGrid, Clock, Calendar, Headphones, Megaphone } from 'lucide-react';
+import { Search, Command, X, ArrowRight, User, Building, FileText, Settings, LogOut, LayoutGrid, Clock, Calendar, Headphones, Megaphone, Briefcase, Award, Plane, DollarSign } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUI } from '../contexts/UIContext';
 import { supabase } from '../lib/supabase';
@@ -51,6 +51,10 @@ export const GlobalSearchModal: React.FC = () => {
         { id: 'nav-sales', type: 'NAVIGATION', title: 'Sales', subtitle: 'Sales Orders & Customers', icon: <FileText className="w-4 h-4" />, action: () => navigate('/sales') },
         { id: 'nav-help-desk', type: 'NAVIGATION', title: 'Help Desk', subtitle: 'Tickets & Customer Support', icon: <Headphones className="w-4 h-4" />, action: () => navigate('/help_desk') },
         { id: 'nav-marketing', type: 'NAVIGATION', title: 'Marketing', subtitle: 'Campaigns & Lead Generation', icon: <Megaphone className="w-4 h-4" />, action: () => navigate('/marketing') },
+        { id: 'nav-recruitment', type: 'NAVIGATION', title: 'Recruitment', subtitle: 'ATS, Hiring & Job Openings', icon: <Briefcase className="w-4 h-4" />, action: () => navigate('/recruitment') },
+        { id: 'nav-performance', type: 'NAVIGATION', title: 'Performance', subtitle: 'Goals, OKRs & Reviews', icon: <Award className="w-4 h-4" />, action: () => navigate('/performance') },
+        { id: 'nav-loans', type: 'NAVIGATION', title: 'Loans & Benefits', subtitle: 'Advances, Claims & Insurance', icon: <DollarSign className="w-4 h-4" />, action: () => navigate('/loans') },
+        { id: 'nav-travel', type: 'NAVIGATION', title: 'Travel & Expenses', subtitle: 'Trips, Hotel & Flight Bookings', icon: <Plane className="w-4 h-4" />, action: () => navigate('/travel') },
         { id: 'nav-settings', type: 'NAVIGATION', title: 'Settings', subtitle: 'App Preferences', icon: <Settings className="w-4 h-4" />, action: () => navigate('/settings') },
         { id: 'act-notifs', type: 'ACTION', title: 'Notifications', subtitle: 'View latest alerts', icon: <Settings className="w-4 h-4" />, action: () => { toggleSearch(false); toggleNotifications(true); } },
     ];

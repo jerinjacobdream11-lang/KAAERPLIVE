@@ -3,7 +3,7 @@ import {
     Users, Building2, TrendingUp, TrendingDown, Calendar, Briefcase,
     ChevronRight, PieChart, Activity, UserPlus, Package, Boxes,
     AlertTriangle, DollarSign, Landmark, Clock, Bell, FileText,
-    Headphones, Megaphone
+    Headphones, Megaphone, Award, Plane
 } from 'lucide-react';
 
 interface WidgetProps {
@@ -526,6 +526,82 @@ export const MarketingWidget: React.FC<WidgetProps & { activeCampaigns?: number;
 
         <div className="mt-3 pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center gap-2 text-xs font-bold text-slate-500 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors uppercase tracking-widest">
             <span>Manage Campaigns</span>
+            <ChevronRight className="w-3 h-3" strokeWidth={3} />
+        </div>
+    </WidgetCard>
+);
+
+// ─── Recruitment Widget ──────────────────────────────────────────────────────
+export const RecruitmentWidget: React.FC<WidgetProps & { jobOpenings?: number }> = ({ onClick, className, jobOpenings = 3 }) => (
+    <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-amber-400 to-amber-600">
+        <div className="p-3 w-fit rounded-2xl bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 mb-3">
+            <Briefcase className="w-6 h-6" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white">Recruitment</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-3">ATS &amp; Job Openings</p>
+        <div className="mt-auto">
+            <p className="text-2xl font-light text-slate-700 dark:text-slate-200">{jobOpenings} Jobs</p>
+            <p className="text-[10px] font-bold uppercase text-slate-400">Currently Hiring</p>
+        </div>
+        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center gap-2 text-xs font-bold text-slate-500 group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors uppercase tracking-widest">
+            <span>Open Job Board</span>
+            <ChevronRight className="w-3 h-3" strokeWidth={3} />
+        </div>
+    </WidgetCard>
+);
+
+// ─── Loans & Benefits Widget ──────────────────────────────────────────────────
+export const LoansWidget: React.FC<WidgetProps & { activeLoansCount?: number }> = ({ onClick, className, activeLoansCount = 2 }) => (
+    <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-emerald-400 to-emerald-600">
+        <div className="p-3 w-fit rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 mb-3">
+            <DollarSign className="w-6 h-6" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white">Loans &amp; Benefits</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-3">Advances, Claims &amp; Insurance</p>
+        <div className="mt-auto">
+            <p className="text-2xl font-light text-slate-700 dark:text-slate-200">{activeLoansCount} Disbursed</p>
+            <p className="text-[10px] font-bold uppercase text-slate-400">Salary Deductions</p>
+        </div>
+        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center gap-2 text-xs font-bold text-slate-500 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors uppercase tracking-widest">
+            <span>Manage Loans</span>
+            <ChevronRight className="w-3 h-3" strokeWidth={3} />
+        </div>
+    </WidgetCard>
+);
+
+// ─── Performance Widget ─────────────────────────────────────────────────────
+export const PerformanceWidget: React.FC<WidgetProps & { activeReviewsCount?: number }> = ({ onClick, className, activeReviewsCount = 1 }) => (
+    <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-violet-400 to-violet-600">
+        <div className="p-3 w-fit rounded-2xl bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 mb-3">
+            <Award className="w-6 h-6" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white">Performance</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-3">Goal Tracking &amp; OKRs</p>
+        <div className="mt-auto">
+            <p className="text-2xl font-light text-slate-700 dark:text-slate-200">{activeReviewsCount} Active Reviews</p>
+            <p className="text-[10px] font-bold uppercase text-slate-400">Appraisal Cycles</p>
+        </div>
+        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center gap-2 text-xs font-bold text-slate-500 group-hover:text-violet-600 dark:group-hover:text-violet-400 transition-colors uppercase tracking-widest">
+            <span>View OKRs</span>
+            <ChevronRight className="w-3 h-3" strokeWidth={3} />
+        </div>
+    </WidgetCard>
+);
+
+// ─── Travel Widget ──────────────────────────────────────────────────────────
+export const TravelWidget: React.FC<WidgetProps & { pendingTripsCount?: number }> = ({ onClick, className, pendingTripsCount = 0 }) => (
+    <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-rose-400 to-rose-600">
+        <div className="p-3 w-fit rounded-2xl bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 mb-3">
+            <Plane className="w-6 h-6" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-800 dark:text-white">Travel &amp; Expenses</h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 mb-3">Logistics &amp; Per Diems</p>
+        <div className="mt-auto">
+            <p className="text-2xl font-light text-slate-700 dark:text-slate-200">{pendingTripsCount} Requests</p>
+            <p className="text-[10px] font-bold uppercase text-slate-400">Reimbursement Claims</p>
+        </div>
+        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-zinc-800 flex items-center gap-2 text-xs font-bold text-slate-500 group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors uppercase tracking-widest">
+            <span>Manage Trips</span>
             <ChevronRight className="w-3 h-3" strokeWidth={3} />
         </div>
     </WidgetCard>

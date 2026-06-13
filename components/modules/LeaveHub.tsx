@@ -60,7 +60,7 @@ export const LeaveHub: React.FC = () => {
         const { data: empData } = await supabase.from('employees')
             .select('*')
             .eq('company_id', companyId);
-        if (empData) setEmployees(empData);
+        if (empData) setEmployees(empData as any);
 
         setLoading(false);
     };
@@ -234,7 +234,7 @@ export const LeaveHub: React.FC = () => {
                             {leaves.slice(0, 5).map(req => (
                                 <div key={req.id} className="flex items-center justify-between p-4 bg-white dark:bg-zinc-850 rounded-2xl border border-slate-100 dark:border-zinc-850 shadow-sm">
                                     <div>
-                                        <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{getEmployeeName(req.employee_id)}</p>
+                                        <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{getEmployeeName((req as any).employee_id)}</p>
                                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                                             {leaveTypes.find(lt => lt.id === req.leave_type_id)?.name || req.type} • {formatDate(req.start_date)} to {formatDate(req.end_date)}
                                         </p>

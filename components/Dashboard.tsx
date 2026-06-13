@@ -6,7 +6,8 @@ import { useNavigate } from 'react-router-dom';
 import {
   EmployeesWidget, AttendanceWidget, LeaveWidget, PayrollWidget, CRMWidget, OrganisationWidget, ESSPWidget, UpcomingWidget,
   AccountingWidget, InventoryWidget, ManufacturingWidget, ProcurementWidget,
-  ProjectsWidget, DocumentsWidget, SalesWidget, HelpDeskWidget, MarketingWidget
+  ProjectsWidget, DocumentsWidget, SalesWidget, HelpDeskWidget, MarketingWidget,
+  RecruitmentWidget, PerformanceWidget, LoansWidget, TravelWidget
 } from './DashboardWidgets';
 import { useUI } from '../contexts/UIContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -153,13 +154,14 @@ export const Dashboard: React.FC = () => {
         try {
           if (currentCompanyId) {
             const { data: salesData } = await supabase
-              .from('sales_orders')
+              .from('sales_orders' as any)
               .select('total_amount, status')
               .eq('company_id', currentCompanyId);
             
-            if (salesData) {
-              const totalVal = salesData.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-              const pendingCount = salesData.filter(order => order.status === 'Draft' || order.status === 'Confirmed').length;
+            const salesArray = salesData as any[] | null;
+            if (salesArray) {
+              const totalVal = salesArray.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+              const pendingCount = salesArray.filter(order => order.status === 'Draft' || order.status === 'Confirmed').length;
               const totalSales = 'QAR ' + new Intl.NumberFormat('en-US', {
                 maximumFractionDigits: 0, notation: 'compact'
               }).format(totalVal);
@@ -343,6 +345,38 @@ export const Dashboard: React.FC = () => {
         return (
           <MarketingWidget
             onClick={() => handleNavigate(AppView.MARKETING)}
+            className="md:col-span-1 min-h-[200px]"
+          />
+        );
+
+      case AppView.RECRUITMENT:
+        return (
+          <RecruitmentWidget
+            onClick={() => handleNavigate(AppView.RECRUITMENT)}
+            className="md:col-span-1 min-h-[200px]"
+          />
+        );
+
+      case AppView.LOANS:
+        return (
+          <LoansWidget
+            onClick={() => handleNavigate(AppView.LOANS)}
+            className="md:col-span-1 min-h-[200px]"
+          />
+        );
+
+      case AppView.PERFORMANCE:
+        return (
+          <PerformanceWidget
+            onClick={() => handleNavigate(AppView.PERFORMANCE)}
+            className="md:col-span-1 min-h-[200px]"
+          />
+        );
+
+      case AppView.TRAVEL:
+        return (
+          <TravelWidget
+            onClick={() => handleNavigate(AppView.TRAVEL)}
             className="md:col-span-1 min-h-[200px]"
           />
         );

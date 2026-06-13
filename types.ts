@@ -20,6 +20,11 @@ export enum AppView {
   MARKETING = 'MARKETING',
   SETTINGS = 'SETTINGS',
   DOCUMENTS = 'DOCUMENTS',
+  RECRUITMENT = 'RECRUITMENT',
+  PERFORMANCE = 'PERFORMANCE',
+  LOANS = 'LOANS',
+  TRAVEL = 'TRAVEL',
+  CAREERS = 'CAREERS',
 }
 
 export interface ModuleConfig {

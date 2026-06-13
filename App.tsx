@@ -28,6 +28,11 @@ import { ProcurementSalesDashboard } from './components/procurement/ProcurementS
 import { CompanySelector } from './components/auth/CompanySelector';
 import { ProjectManagement } from './components/modules/ProjectManagement';
 import { DocumentManagement } from './components/modules/DocumentManagement';
+import { LoansBenefitsHub } from './components/modules/LoansBenefitsHub';
+import { TravelExpensesHub } from './components/modules/TravelExpensesHub';
+import { PerformanceHub } from './components/modules/PerformanceHub';
+import { RecruitmentHub } from './components/modules/RecruitmentHub';
+import { CareersPortal } from './components/modules/CareersPortal';
 
 const AppContent: React.FC = () => {
   const { session, loading, currentCompanyId, selectCompany, userRole } = useAuth();
@@ -59,6 +64,11 @@ const AppContent: React.FC = () => {
     return <div className="flex items-center justify-center h-screen bg-slate-50 dark:bg-zinc-950 text-slate-400">Loading...</div>;
   }
 
+  const isPublicRoute = location.pathname.startsWith('/careers');
+  if (isPublicRoute) {
+    return <CareersPortal />;
+  }
+
   if (!session) {
     return <Login />;
   }
@@ -88,6 +98,11 @@ const AppContent: React.FC = () => {
     if (path === 'help_desk') return AppView.HELP_DESK;
     if (path === 'marketing') return AppView.MARKETING;
     if (path === 'sales') return AppView.SALES;
+    if (path === 'recruitment') return AppView.RECRUITMENT;
+    if (path === 'performance') return AppView.PERFORMANCE;
+    if (path === 'loans') return AppView.LOANS;
+    if (path === 'travel') return AppView.TRAVEL;
+    if (path === 'careers') return AppView.CAREERS;
     return AppView.DASHBOARD;
   };
 
@@ -110,6 +125,11 @@ const AppContent: React.FC = () => {
     { path: '/sales', element: <ProcurementSalesDashboard defaultTab="sales" />, id: 'sales' },
     { path: '/help_desk', element: <HelpDeskHub />, id: 'help_desk' },
     { path: '/marketing', element: <MarketingHub />, id: 'marketing' },
+    { path: '/recruitment', element: <RecruitmentHub />, id: 'recruitment' },
+    { path: '/performance', element: <PerformanceHub />, id: 'performance' },
+    { path: '/loans', element: <LoansBenefitsHub />, id: 'loans' },
+    { path: '/travel', element: <TravelExpensesHub />, id: 'travel' },
+    { path: '/careers', element: <CareersPortal />, id: 'careers' },
   ];
 
   return (
