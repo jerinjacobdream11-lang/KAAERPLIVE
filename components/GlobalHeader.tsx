@@ -83,7 +83,7 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ currentView }) => {
                     className="flex items-center cursor-pointer active:scale-95 transition-transform"
                     onClick={() => navigate('/')}
                 >
-                    <img src={KAA_LOGO_URL} alt="Kaa" className="h-10 w-auto object-contain brightness-100 dark:brightness-110" />
+                    <img src={KAA_LOGO_URL} alt="Kaa" className="h-12 w-auto object-contain mix-blend-multiply dark:invert dark:mix-blend-screen" />
                 </div>
 
                 {/* Company Badge / Logo */}

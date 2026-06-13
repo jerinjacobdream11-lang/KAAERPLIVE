@@ -3281,7 +3281,7 @@ export const Organisation: React.FC = () => {
                 <div className="flex flex-col gap-3">
                     <div className="mb-8 px-2 hidden md:block">
                         <div className="flex items-center gap-2 mb-1">
-                            <img src={KAA_LOGO_URL} alt="Logo" className="h-8 w-auto object-contain brightness-100 dark:brightness-[1.15]" />
+                            <img src={KAA_LOGO_URL} alt="Logo" className="h-10 w-auto object-contain mix-blend-multiply dark:invert dark:mix-blend-screen" />
                             <span className="text-lg font-extrabold text-slate-800 dark:text-white tracking-tight">ORG</span>
                         </div>
                         <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-white/50 dark:bg-zinc-800/50 px-2 py-1 rounded-md">Administration</span>

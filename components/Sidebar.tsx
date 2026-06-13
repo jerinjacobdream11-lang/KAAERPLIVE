@@ -70,7 +70,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
         className="mb-12 cursor-pointer flex justify-center w-full active:scale-95 transition-transform duration-200 overflow-hidden px-2"
         onClick={() => onNavigate(AppView.DASHBOARD)}
       >
-        <img src={KAA_LOGO_URL} alt="Kaa" className="w-16 h-auto object-contain brightness-100 dark:brightness-110" />
+        <img src={KAA_LOGO_URL} alt="Kaa" className="w-20 h-auto object-contain mix-blend-multiply dark:invert dark:mix-blend-screen" />
       </div>
 
       {/* Main Nav Actions */}
