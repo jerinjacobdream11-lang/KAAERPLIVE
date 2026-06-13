@@ -101,11 +101,20 @@ export const ReportsListView: React.FC<ReportsListViewProps> = ({ moduleFilter, 
         );
     }
 
-    const standardReports = [
-        { id: 'LEAVE_ANALYTICS', name: 'Leave Analytics', desc: 'Visual trends and departmental distribution', icon: BarChart3, color: 'emerald' },
-        { id: 'SALARY_STATEMENT', name: 'Monthly Salary Statement', desc: 'Detailed earnings and deductions breakdown', icon: DollarSign, color: 'indigo' },
-        { id: 'BONUS_GRATUITY', name: 'Bonus & Gratuity Valuation', desc: 'Tenure-based liability and accruals', icon: FileText, color: 'amber' },
+    const allStandardReports = [
+        { id: 'LEAVE_ANALYTICS', name: 'Leave Analytics', desc: 'Visual trends and departmental distribution', icon: BarChart3, color: 'emerald', module: 'LEAVE' },
+        { id: 'SALARY_STATEMENT', name: 'Monthly Salary Statement', desc: 'Detailed earnings and deductions breakdown', icon: DollarSign, color: 'indigo', module: 'PAYROLL' },
+        { id: 'BONUS_GRATUITY', name: 'Bonus & Gratuity Valuation', desc: 'Tenure-based liability and accruals', icon: FileText, color: 'amber', module: 'PAYROLL' },
     ];
+
+    const standardReports = allStandardReports.filter(r => !moduleFilter || r.module === moduleFilter);
+    const showStandardTab = standardReports.length > 0;
+
+    useEffect(() => {
+        if (!showStandardTab && reportCategory === 'STANDARD') {
+            setReportCategory('CUSTOM');
+        }
+    }, [showStandardTab, reportCategory]);
 
     // ── List view ──
     return (
@@ -133,13 +142,15 @@ export const ReportsListView: React.FC<ReportsListViewProps> = ({ moduleFilter, 
                     Custom Reports
                     {reportCategory === 'CUSTOM' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />}
                 </button>
-                <button 
-                    onClick={() => setReportCategory('STANDARD')}
-                    className={`pb-4 text-sm font-bold tracking-tight transition-all relative ${reportCategory === 'STANDARD' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
-                >
-                    Standard HRMS Reports
-                    {reportCategory === 'STANDARD' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />}
-                </button>
+                {showStandardTab && (
+                    <button 
+                        onClick={() => setReportCategory('STANDARD')}
+                        className={`pb-4 text-sm font-bold tracking-tight transition-all relative ${reportCategory === 'STANDARD' ? 'text-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+                    >
+                        Standard {moduleFilter ? moduleLabel(moduleFilter) : 'HRMS'} Reports
+                        {reportCategory === 'STANDARD' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 rounded-full" />}
+                    </button>
+                )}
             </div>
 
             {/* Search */}

@@ -47,32 +47,90 @@ const fmt = (n: number) =>
 
 // ─── HRMS Widget ──────────────────────────────────────────────────────────────
 
-export const HRMSWidget: React.FC<WidgetProps & {
+export const EmployeesWidget: React.FC<WidgetProps & {
     count?: number;
-    attendancePercentage?: number;
-    openLeaves?: number;
-}> = ({ onClick, className, count = 0, attendancePercentage = 0, openLeaves = 0 }) => (
+}> = ({ onClick, className, count = 0 }) => (
     <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-pink-400 to-rose-600">
         <div className="flex justify-between items-start mb-4">
             <div className="p-3 rounded-2xl bg-pink-50 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400">
                 <Users className="w-6 h-6" />
             </div>
+            <span className="px-2 py-1 rounded-full bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-300 text-[10px] font-bold uppercase">
+                Directory
+            </span>
+        </div>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Employees</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">People, Assets & Exits</p>
+        <div className="mt-auto">
+            <div className="flex items-end gap-2">
+                <span className="text-3xl font-light text-slate-700 dark:text-slate-200">{count}</span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 mb-1 font-bold uppercase tracking-wider">Active Staff</span>
+            </div>
+        </div>
+    </WidgetCard>
+);
+
+export const AttendanceWidget: React.FC<WidgetProps & {
+    percentage?: number;
+}> = ({ onClick, className, percentage = 0 }) => (
+    <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-cyan-400 to-blue-600">
+        <div className="flex justify-between items-start mb-4">
+            <div className="p-3 rounded-2xl bg-cyan-50 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400">
+                <Clock className="w-6 h-6" />
+            </div>
+            <span className="px-2 py-1 rounded-full bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300 text-[10px] font-bold uppercase">
+                Shifts
+            </span>
+        </div>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Attendance</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Logs, Shifts & Roster</p>
+        <div className="mt-auto">
+            <div className="w-full bg-slate-200 dark:bg-zinc-700/50 rounded-full h-1.5 overflow-hidden">
+                <div className="bg-cyan-500 h-full transition-all duration-1000" style={{ width: `${percentage}%` }} />
+            </div>
+            <p className="text-xs text-slate-500 mt-2 font-medium">{percentage}% Present Today</p>
+        </div>
+    </WidgetCard>
+);
+
+export const LeaveWidget: React.FC<WidgetProps & {
+    openLeaves?: number;
+}> = ({ onClick, className, openLeaves = 0 }) => (
+    <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-emerald-400 to-teal-600">
+        <div className="flex justify-between items-start mb-4">
+            <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">
+                <Calendar className="w-6 h-6" />
+            </div>
             {openLeaves > 0 && (
-                <span className="flex items-center gap-1 text-xs font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full">
-                    <Clock className="w-3 h-3" />{openLeaves} pending
+                <span className="flex items-center gap-1 text-[10px] font-bold bg-amber-100 dark:bg-amber-900/40 text-amber-700 dark:text-amber-400 px-2 py-1 rounded-full">
+                    {openLeaves} pending
                 </span>
             )}
         </div>
-        <div className="mt-auto">
-            <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1">Human Resources</h3>
-            <div className="flex items-end gap-2 mb-2">
-                <span className="text-4xl font-light text-slate-700 dark:text-slate-200">{count}</span>
-                <span className="text-sm text-slate-500 dark:text-slate-400 mb-1">Active Employees</span>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Leave</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Requests & Accruals</p>
+        <div className="mt-auto flex items-center gap-2 text-emerald-600 dark:text-emerald-400 font-bold text-sm">
+            <span>Manage Time-Off</span>
+            <ChevronRight className="w-4 h-4" />
+        </div>
+    </WidgetCard>
+);
+
+export const PayrollWidget: React.FC<WidgetProps> = ({ onClick, className }) => (
+    <WidgetCard onClick={onClick} className={className} gradient="bg-gradient-to-br from-violet-400 to-purple-600">
+        <div className="flex justify-between items-start mb-4">
+            <div className="p-3 rounded-2xl bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400">
+                <DollarSign className="w-6 h-6" />
             </div>
-            <div className="w-full bg-slate-200 dark:bg-zinc-700/50 rounded-full h-1.5 overflow-hidden">
-                <div className="bg-pink-500 h-full transition-all duration-1000" style={{ width: `${attendancePercentage}%` }} />
-            </div>
-            <p className="text-xs text-slate-500 mt-2 font-medium">{attendancePercentage}% Attendance today</p>
+            <span className="px-2 py-1 rounded-full bg-violet-100 dark:bg-violet-900/40 text-violet-700 dark:text-violet-300 text-[10px] font-bold uppercase">
+                Payouts
+            </span>
+        </div>
+        <h3 className="text-xl font-bold text-slate-800 dark:text-white mb-1">Payroll</h3>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">Salary runs & payslips</p>
+        <div className="mt-auto flex items-center gap-2 text-violet-600 dark:text-violet-400 font-bold text-sm">
+            <span>Process Salary</span>
+            <ChevronRight className="w-4 h-4" />
         </div>
     </WidgetCard>
 );

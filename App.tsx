@@ -4,7 +4,10 @@ import { Analytics } from '@vercel/analytics/react';
 import { GlobalHeader } from './components/GlobalHeader';
 import { Dashboard } from './components/Dashboard';
 import { Login } from './components/Login';
-import { HRMS } from './components/modules/HRMS';
+import { Employees } from './components/modules/Employees';
+import { AttendanceHub } from './components/modules/AttendanceHub';
+import { LeaveHub } from './components/modules/LeaveHub';
+import { PayrollHub } from './components/modules/PayrollHub';
 import { CRM } from './components/modules/CRM';
 import { Organisation } from './components/modules/Organisation';
 import { ESSP } from './components/modules/ESSP';
@@ -65,11 +68,21 @@ const AppContent: React.FC = () => {
 
   // Determine current view for header
   const getCurrentView = (): AppView => {
-    const path = location.pathname.substring(1).toUpperCase();
-    if (path === '' || path === 'DASHBOARD') return AppView.DASHBOARD;
-
-    // Simple mapping for demonstration
-    // In a real app, you might match specific routes to enum values
+    const path = location.pathname.substring(1).toLowerCase();
+    if (path === '' || path === 'dashboard') return AppView.DASHBOARD;
+    if (path === 'employees') return AppView.EMPLOYEES;
+    if (path === 'attendance') return AppView.ATTENDANCE;
+    if (path === 'leave') return AppView.LEAVE;
+    if (path === 'payroll') return AppView.PAYROLL;
+    if (path === 'organisation') return AppView.ORGANISATION;
+    if (path === 'crm') return AppView.CRM;
+    if (path === 'inventory') return AppView.INVENTORY;
+    if (path === 'accounting') return AppView.ACCOUNTING;
+    if (path === 'manufacturing') return AppView.MANUFACTURING;
+    if (path === 'procurement') return AppView.PROCUREMENT;
+    if (path === 'essp') return AppView.ESSP;
+    if (path === 'projects') return AppView.PROJECTS;
+    if (path === 'documents') return AppView.DOCUMENTS;
     return AppView.DASHBOARD;
   };
 
@@ -77,7 +90,10 @@ const AppContent: React.FC = () => {
   const KEEPALIVE_MODULES = [
     { path: '/', element: <Dashboard />, id: 'dashboard' },
     { path: '/organisation', element: <Organisation />, id: 'organisation' },
-    { path: '/hrms', element: <HRMS />, id: 'hrms' },
+    { path: '/employees', element: <Employees />, id: 'employees' },
+    { path: '/attendance', element: <AttendanceHub />, id: 'attendance' },
+    { path: '/leave', element: <LeaveHub />, id: 'leave' },
+    { path: '/payroll', element: <PayrollHub />, id: 'payroll' },
     { path: '/crm', element: <CRM />, id: 'crm' },
     { path: '/inventory', element: <InventoryDashboard />, id: 'inventory' },
     { path: '/accounting', element: <AccountingDashboard />, id: 'accounting' },
@@ -130,6 +146,7 @@ const AppContent: React.FC = () => {
 
         {/* Standard Routes (for non-persisted views like Settings and fallbacks) */}
         <Routes>
+          <Route path="/hrms" element={<Navigate to="/employees" replace />} />
           <Route path="/settings" element={
             <Settings
               isDarkMode={isDarkMode}

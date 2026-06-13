@@ -161,7 +161,7 @@ export const AttendanceModule: React.FC<AttendanceModuleProps> = ({ employees })
 // ═══════════════════════════════════════════════════════════════════════
 // SUB-TAB 1: OVERVIEW (unchanged)
 // ═══════════════════════════════════════════════════════════════════════
-const OverviewTab: React.FC<{ employees: Employee[]; companyId: string }> = ({ employees, companyId }) => {
+export const OverviewTab: React.FC<{ employees: Employee[]; companyId: string }> = ({ employees, companyId }) => {
     const [records, setRecords] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const today = todayStr();
@@ -282,7 +282,7 @@ const OverviewTab: React.FC<{ employees: Employee[]; companyId: string }> = ({ e
 // ═══════════════════════════════════════════════════════════════════════
 // SUB-TAB 2: DAILY ATTENDANCE (Enhanced with processing + future block)
 // ═══════════════════════════════════════════════════════════════════════
-const DailyTab: React.FC<{ employees: Employee[]; companyId: string }> = ({ employees, companyId }) => {
+export const DailyTab: React.FC<{ employees: Employee[]; companyId: string }> = ({ employees, companyId }) => {
     const [selectedDate, setSelectedDate] = useState(todayStr());
     const [records, setRecords] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -701,7 +701,7 @@ const DailyTab: React.FC<{ employees: Employee[]; companyId: string }> = ({ empl
 // ═══════════════════════════════════════════════════════════════════════
 // SUB-TAB 3: MONTHLY CALENDAR (Enhanced with processing)
 // ═══════════════════════════════════════════════════════════════════════
-const MonthlyTab: React.FC<{ employees: Employee[]; companyId: string; companyOffDays: number[] }> = ({ employees, companyId, companyOffDays }) => {
+export const MonthlyTab: React.FC<{ employees: Employee[]; companyId: string; companyOffDays: number[] }> = ({ employees, companyId, companyOffDays }) => {
     const [selectedEmpId, setSelectedEmpId] = useState<string>(employees[0]?.id || '');
     const [currentMonth, setCurrentMonth] = useState(() => {
         const now = new Date();
@@ -1088,7 +1088,7 @@ const MonthlyTab: React.FC<{ employees: Employee[]; companyId: string; companyOf
 // ═══════════════════════════════════════════════════════════════════════
 // SUB-TAB 4: SHIFTS (Read from org_shift_timings)
 // ═══════════════════════════════════════════════════════════════════════
-const ShiftsTab: React.FC<{ companyId: string }> = ({ companyId }) => {
+export const ShiftsTab: React.FC<{ companyId: string }> = ({ companyId }) => {
     const [shifts, setShifts] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -1178,7 +1178,7 @@ const ShiftsTab: React.FC<{ companyId: string }> = ({ companyId }) => {
 // ═══════════════════════════════════════════════════════════════════════
 // SUB-TAB 5: DUTY ROSTER (Calendar-based shift assignment)
 // ═══════════════════════════════════════════════════════════════════════
-const DutyRosterTab: React.FC<{ employees: Employee[]; companyId: string; companyOffDays: number[] }> = ({ employees, companyId, companyOffDays }) => {
+export const DutyRosterTab: React.FC<{ employees: Employee[]; companyId: string; companyOffDays: number[] }> = ({ employees, companyId, companyOffDays }) => {
     const [currentWeekStart, setCurrentWeekStart] = useState(() => {
         const now = new Date();
         const dayOfWeek = now.getDay();

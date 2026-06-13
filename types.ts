@@ -4,6 +4,10 @@ export enum AppView {
   DASHBOARD = 'DASHBOARD',
   ORGANISATION = 'ORGANISATION',
   HRMS = 'HRMS',
+  EMPLOYEES = 'EMPLOYEES',
+  ATTENDANCE = 'ATTENDANCE',
+  LEAVE = 'LEAVE',
+  PAYROLL = 'PAYROLL',
   CRM = 'CRM',
   ESSP = 'ESSP',
   SALES = 'SALES',
@@ -128,6 +132,11 @@ export interface Ticket {
 }
 
 export type HRMSViewMode = 'OVERVIEW' | 'EMPLOYEES' | 'PEOPLE' | 'ATTENDANCE' | 'LEAVES' | 'PAYROLL' | 'PERFORMANCE' | 'ASSETS' | 'HELPDESK' | 'SETTINGS' | 'REPORTS' | 'EXIT' | 'DOCUMENTS' | 'ADMIN' | 'RECRUITMENT' | 'ONBOARDING' | 'OFFBOARDING';
+
+export type EmployeesViewMode = 'OVERVIEW' | 'PEOPLE' | 'APPROVALS' | 'ASSETS' | 'HELPDESK' | 'EXIT' | 'SETTINGS' | 'REPORTS';
+export type AttendanceViewMode = 'OVERVIEW' | 'LOGS' | 'CORRECTION' | 'MANUAL' | 'SHIFTS' | 'REPORTS';
+export type LeaveViewMode = 'OVERVIEW' | 'APPLICATIONS' | 'APPROVALS' | 'CALENDAR' | 'BALANCES' | 'REPORTS';
+export type PayrollViewMode = 'OVERVIEW' | 'PROCESSING' | 'RUNS' | 'PAYSLIPS' | 'STRUCTURES' | 'REVISIONS' | 'REPORTS';
 
 // CRM Interfaces
 export interface CRMStage {

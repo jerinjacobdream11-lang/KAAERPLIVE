@@ -4,7 +4,7 @@ import { AppView } from '../types';
 import { Search, Command, Bell, Settings, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
-  HRMSWidget, CRMWidget, OrganisationWidget, ESSPWidget, UpcomingWidget,
+  EmployeesWidget, AttendanceWidget, LeaveWidget, PayrollWidget, CRMWidget, OrganisationWidget, ESSPWidget, UpcomingWidget,
   AccountingWidget, InventoryWidget, ManufacturingWidget, ProcurementWidget,
   ProjectsWidget, DocumentsWidget
 } from './DashboardWidgets';
@@ -172,15 +172,42 @@ export const Dashboard: React.FC = () => {
   // ── Widget Renderer (permission-gated) ──
   const renderModuleWidget = (moduleId: AppView) => {
     switch (moduleId) {
-      case AppView.HRMS:
-        if (!hasPermission('hrms.employees.view') && !hasPermission('hrms.attendance.view') && !hasPermission('hrms.leave.view')) return null;
+      case AppView.EMPLOYEES:
+        if (!hasPermission('hrms.employees.view') && !hasPermission('*')) return null;
         return (
-          <HRMSWidget
-            onClick={() => handleNavigate(AppView.HRMS)}
+          <EmployeesWidget
+            onClick={() => handleNavigate(AppView.EMPLOYEES)}
             count={stats.activeEmployees}
-            attendancePercentage={stats.attendancePercentage}
+            className="md:col-span-1 min-h-[160px]"
+          />
+        );
+
+      case AppView.ATTENDANCE:
+        if (!hasPermission('hrms.attendance.view') && !hasPermission('*')) return null;
+        return (
+          <AttendanceWidget
+            onClick={() => handleNavigate(AppView.ATTENDANCE)}
+            percentage={stats.attendancePercentage}
+            className="md:col-span-1 min-h-[160px]"
+          />
+        );
+
+      case AppView.LEAVE:
+        if (!hasPermission('hrms.leave.view') && !hasPermission('*')) return null;
+        return (
+          <LeaveWidget
+            onClick={() => handleNavigate(AppView.LEAVE)}
             openLeaves={stats.pendingLeaves}
-            className="md:col-span-2 md:row-span-2 min-h-[320px]"
+            className="md:col-span-1 min-h-[160px]"
+          />
+        );
+
+      case AppView.PAYROLL:
+        if (!hasPermission('finance.payroll.view') && !hasPermission('*')) return null;
+        return (
+          <PayrollWidget
+            onClick={() => handleNavigate(AppView.PAYROLL)}
+            className="md:col-span-1 min-h-[160px]"
           />
         );
 
@@ -327,7 +354,10 @@ export const Dashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 grid-rows-auto gap-6 pb-20 animate-slide-up" style={{ animationDelay: '0.1s' }}>
 
           {/* Priority Modules */}
-          {renderModuleWidget(AppView.HRMS)}
+          {renderModuleWidget(AppView.EMPLOYEES)}
+          {renderModuleWidget(AppView.ATTENDANCE)}
+          {renderModuleWidget(AppView.LEAVE)}
+          {renderModuleWidget(AppView.PAYROLL)}
           {renderModuleWidget(AppView.CRM)}
 
           {/* Secondary Modules */}
@@ -341,7 +371,8 @@ export const Dashboard: React.FC = () => {
           {/* Render All Other Modules */}
           {MODULES
             .filter(m => ![
-              AppView.HRMS, AppView.CRM, AppView.SALES, AppView.ESSP, 
+              AppView.EMPLOYEES, AppView.ATTENDANCE, AppView.LEAVE, AppView.PAYROLL,
+              AppView.CRM, AppView.SALES, AppView.ESSP, 
               AppView.ORGANISATION, AppView.DASHBOARD, AppView.PROJECTS, 
               AppView.DOCUMENTS, AppView.ACCOUNTING, AppView.INVENTORY
             ].includes(m.id))

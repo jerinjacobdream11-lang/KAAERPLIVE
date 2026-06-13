@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, Command, X, ArrowRight, User, Building, FileText, Settings, LogOut, LayoutGrid } from 'lucide-react';
+import { Search, Command, X, ArrowRight, User, Building, FileText, Settings, LogOut, LayoutGrid, Clock, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useUI } from '../contexts/UIContext';
 import { supabase } from '../lib/supabase';
@@ -37,7 +37,10 @@ export const GlobalSearchModal: React.FC = () => {
     // Static Navigation Items
     const staticItems: SearchResult[] = [
         { id: 'nav-home', type: 'NAVIGATION', title: 'Dashboard', subtitle: 'Go to Home', icon: <LayoutGrid className="w-4 h-4" />, action: () => navigate('/') },
-        { id: 'nav-hrms', type: 'NAVIGATION', title: 'HRMS', subtitle: 'Human Resources Module', icon: <User className="w-4 h-4" />, action: () => navigate('/hrms') },
+        { id: 'nav-employees', type: 'NAVIGATION', title: 'Employees', subtitle: 'Employee Directory & Assets', icon: <User className="w-4 h-4" />, action: () => navigate('/employees') },
+        { id: 'nav-attendance', type: 'NAVIGATION', title: 'Attendance', subtitle: 'Attendance Logs & Shifts', icon: <Clock className="w-4 h-4" />, action: () => navigate('/attendance') },
+        { id: 'nav-leave', type: 'NAVIGATION', title: 'Leave', subtitle: 'Leave Requests & Calendars', icon: <Calendar className="w-4 h-4" />, action: () => navigate('/leave') },
+        { id: 'nav-payroll', type: 'NAVIGATION', title: 'Payroll', subtitle: 'Salary Runs & Payslips', icon: <FileText className="w-4 h-4" />, action: () => navigate('/payroll') },
         { id: 'nav-crm', type: 'NAVIGATION', title: 'CRM', subtitle: 'Customer Relationship Module', icon: <User className="w-4 h-4" />, action: () => navigate('/crm') },
         { id: 'nav-org', type: 'NAVIGATION', title: 'Organisation', subtitle: 'Company Settings & Structure', icon: <Building className="w-4 h-4" />, action: () => navigate('/organisation') },
         { id: 'nav-essp', type: 'NAVIGATION', title: 'ESSP', subtitle: 'Employee Self Service', icon: <User className="w-4 h-4" />, action: () => navigate('/essp') },
@@ -87,7 +90,7 @@ export const GlobalSearchModal: React.FC = () => {
                                 title: name,
                                 subtitle: `${emp.designation || 'Employee'} • ${emp.department || ''}`.trim(),
                                 icon: <User className="w-4 h-4" />,
-                                action: () => { navigate('/hrms'); }
+                                action: () => { navigate('/employees'); }
                             });
                         });
                     }

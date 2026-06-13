@@ -11,7 +11,7 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => {
-  if (currentView === AppView.HRMS) return null;
+  if ([AppView.EMPLOYEES, AppView.ATTENDANCE, AppView.LEAVE, AppView.PAYROLL].includes(currentView)) return null;
 
   const { signOut } = useAuth();
   const [showMenu, setShowMenu] = useState(false);

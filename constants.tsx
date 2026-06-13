@@ -11,7 +11,10 @@ import {
   LayoutGrid,
   Building2,
   UserCircle,
-  FileText
+  FileText,
+  Clock,
+  CalendarDays,
+  DollarSign
 } from 'lucide-react';
 import { AppView, ModuleConfig } from './types';
 
@@ -31,12 +34,36 @@ export const MODULES: ModuleConfig[] = [
     bgColor: "bg-blue-100",
   },
   {
-    id: AppView.HRMS,
-    name: "HRMS",
-    description: "Employees, Payroll & Recruiting",
+    id: AppView.EMPLOYEES,
+    name: "Employees",
+    description: "People, Approvals & Assets",
     icon: Users,
     color: "text-rose-600",
     bgColor: "bg-rose-100",
+  },
+  {
+    id: AppView.ATTENDANCE,
+    name: "Attendance",
+    description: "Logs, Shifts & Time Tracking",
+    icon: Clock,
+    color: "text-cyan-600",
+    bgColor: "bg-cyan-100",
+  },
+  {
+    id: AppView.LEAVE,
+    name: "Leave",
+    description: "Applications, Balances & Calendar",
+    icon: CalendarDays,
+    color: "text-emerald-600",
+    bgColor: "bg-emerald-100",
+  },
+  {
+    id: AppView.PAYROLL,
+    name: "Payroll",
+    description: "Salary, Payslips & Compliance",
+    icon: DollarSign,
+    color: "text-violet-600",
+    bgColor: "bg-violet-100",
   },
   {
     id: AppView.ESSP,
