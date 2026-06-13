@@ -2275,7 +2275,9 @@ export const ESSP: React.FC = () => {
             <div className="w-20 lg:w-72 flex-shrink-0 bg-white/80 dark:bg-zinc-900/80 border-r border-slate-200 dark:border-zinc-800 flex flex-col overflow-hidden backdrop-blur-xl">
                 <div className="p-6">
                     <div className="flex items-center gap-3 mb-8">
-                        <img src={KAA_LOGO_URL} alt="Logo" className="h-10 w-auto object-contain mix-blend-multiply dark:invert dark:mix-blend-screen" />
+                        <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-1.5 flex items-center justify-center h-10 w-10 shrink-0">
+                            <img src={KAA_LOGO_URL} alt="Logo" className="h-full w-full object-contain" />
+                        </div>
                         <span className="text-xl font-black text-slate-800 dark:text-white tracking-tighter hidden lg:block">ESSP</span>
                     </div>
                     <div className="flex flex-col gap-1 overflow-y-auto h-[calc(100vh-140px)] pr-2 scrollbar-hide">

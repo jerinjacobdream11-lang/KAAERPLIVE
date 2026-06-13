@@ -370,7 +370,9 @@ export const Employees: React.FC = () => {
                 <div className="flex flex-col gap-3">
                     <div className="mb-8 px-2 hidden md:block">
                         <div className="flex items-center gap-2 mb-1">
-                            <img src={KAA_LOGO_URL} alt="Employees Logo" className="h-10 w-auto object-contain mix-blend-multiply dark:invert dark:mix-blend-screen" />
+                            <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-1.5 flex items-center justify-center h-10 w-10 shrink-0">
+                                <img src={KAA_LOGO_URL} alt="Employees Logo" className="h-full w-full object-contain" />
+                            </div>
                             <span className="text-lg font-extrabold text-slate-800 dark:text-white tracking-tight">Employees</span>
                         </div>
                         <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest bg-white/50 dark:bg-zinc-800/50 px-2 py-1 rounded-md">Directory & Assets</span>

@@ -147,9 +147,8 @@ export const Login: React.FC = () => {
                 <div className="relative z-10 flex flex-col items-center gap-10">
                     {/* Logo card */}
                     <div className="flex flex-col items-center gap-5">
-                        <div className="p-6 rounded-3xl border border-white/10 backdrop-blur-xl flex items-center justify-center"
-                            style={{ background: 'rgba(255,255,255,0.05)' }}>
-                            <img src={KAA_LOGO_URL} alt="KAA Logo" className="h-28 w-auto drop-shadow-2xl invert mix-blend-screen" />
+                        <div className="p-6 rounded-[2.5rem] bg-white border border-slate-100 shadow-2xl flex items-center justify-center h-28 w-28 md:h-32 md:w-32 transition-transform duration-500 hover:scale-105 active:scale-95 cursor-pointer">
+                            <img src={KAA_LOGO_URL} alt="KAA Logo" className="h-full w-full object-contain" />
                         </div>
                         <div className="flex flex-col items-center gap-1">
                             <h1 className="text-white text-xl font-black tracking-[0.1em] uppercase">KAA ERP</h1>
@@ -203,8 +202,10 @@ export const Login: React.FC = () => {
                     {/* Header */}
                     <div className="flex flex-col items-center mb-10">
                         <div className="relative mb-6 group">
-                            <div className="absolute inset-0 bg-indigo-500/20 rounded-full blur-xl group-hover:blur-2xl transition-all duration-500 opacity-0 group-hover:opacity-100"></div>
-                            <img src={KAA_LOGO_URL} alt="Kaa Logo" className="h-24 w-auto relative z-10 mix-blend-multiply dark:invert dark:mix-blend-screen" />
+                            <div className="absolute inset-0 bg-indigo-500/20 rounded-[2rem] blur-xl group-hover:blur-2xl transition-all duration-500 opacity-0 group-hover:opacity-100"></div>
+                            <div className="relative z-10 bg-white border border-slate-100 shadow-xl rounded-[2rem] p-4 flex items-center justify-center h-20 w-20 md:h-24 md:w-24 transition-transform duration-300 group-hover:scale-105">
+                                <img src={KAA_LOGO_URL} alt="Kaa Logo" className="h-full w-full object-contain" />
+                            </div>
                         </div>
                         <h2 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-br from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 tracking-tight mb-2">
                             {isSignUp ? 'Join the Future' : 'Welcome Back'}

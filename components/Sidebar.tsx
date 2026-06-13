@@ -67,10 +67,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate }) => 
     <div className="h-screen w-20 flex flex-col items-center py-6 bg-white dark:bg-zinc-900 border-r border-zinc-100 dark:border-zinc-800 z-50 transition-colors duration-300">
       {/* Brand Icon (Image) */}
       <div
-        className="mb-12 cursor-pointer flex justify-center w-full active:scale-95 transition-transform duration-200 overflow-hidden px-2"
+        className="mb-12 cursor-pointer flex justify-center w-full active:scale-95 transition-transform duration-200 px-2"
         onClick={() => onNavigate(AppView.DASHBOARD)}
       >
-        <img src={KAA_LOGO_URL} alt="Kaa" className="w-20 h-auto object-contain mix-blend-multiply dark:invert dark:mix-blend-screen" />
+        <div className="bg-white border border-slate-100 shadow-md rounded-2xl p-2 flex items-center justify-center h-14 w-14">
+          <img src={KAA_LOGO_URL} alt="Kaa" className="h-full w-full object-contain" />
+        </div>
       </div>
 
       {/* Main Nav Actions */}

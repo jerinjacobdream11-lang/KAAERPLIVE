@@ -80,10 +80,10 @@ export const GlobalHeader: React.FC<GlobalHeaderProps> = ({ currentView }) => {
             <div className="flex items-center gap-3">
                 {/* KAA Brand Logo - Always Permanent in Header */}
                 <div
-                    className="flex items-center cursor-pointer active:scale-95 transition-transform"
+                    className="flex items-center justify-center cursor-pointer bg-white rounded-xl p-1.5 shadow-md shadow-black/5 border border-slate-100 h-10 w-10 md:h-12 md:w-12 active:scale-95 transition-all duration-200"
                     onClick={() => navigate('/')}
                 >
-                    <img src={KAA_LOGO_URL} alt="Kaa" className="h-12 w-auto object-contain mix-blend-multiply dark:invert dark:mix-blend-screen" />
+                    <img src={KAA_LOGO_URL} alt="Kaa" className="h-full w-full object-contain" />
                 </div>
 
                 {/* Company Badge / Logo */}
