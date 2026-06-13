@@ -2,7 +2,8 @@ import React from 'react';
 import {
     Users, Building2, TrendingUp, TrendingDown, Calendar, Briefcase,
     ChevronRight, PieChart, Activity, UserPlus, Package, Boxes,
-    AlertTriangle, DollarSign, Landmark, Clock, Bell, FileText
+    AlertTriangle, DollarSign, Landmark, Clock, Bell, FileText,
+    Headphones, Megaphone
 } from 'lucide-react';
 
 interface WidgetProps {
