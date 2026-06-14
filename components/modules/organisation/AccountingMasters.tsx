@@ -451,6 +451,8 @@ export const AccountingMasters: React.FC = () => {
                 query = query.order('code');
             } else if (activeConfig.id === 'FISCAL_YEARS') {
                 query = query.order('start_date', { ascending: false });
+            } else if (activeConfig.id === 'CURRENCIES') {
+                query = query.order('code');
             } else {
                 query = query.order('created_at', { ascending: false });
             }
@@ -532,7 +534,7 @@ export const AccountingMasters: React.FC = () => {
         setEditingItem(item);
         const editForm: Record<string, any> = {};
         activeConfig.fields.forEach(f => {
-            editForm[f.key] = item[f.key] !== null ? item[f.key] : '';
+            editForm[f.key] = item[f.key] !== null && item[f.key] !== undefined ? item[f.key] : '';
         });
         setFormState(editForm);
         setIsModalOpen(true);
@@ -710,7 +712,7 @@ export const AccountingMasters: React.FC = () => {
                                                     
                                                     return (
                                                         <td key={col.key} className="px-6 py-4 font-medium text-slate-800 dark:text-zinc-200 text-sm truncate max-w-xs">
-                                                            {val !== null ? val.toString() : '-'}
+                                                            {val !== null && val !== undefined ? String(val) : '-'}
                                                         </td>
                                                     );
                                                 })}
