@@ -86,7 +86,8 @@ CREATE TABLE IF NOT EXISTS public.accounting_taxes (
     account_id UUID REFERENCES public.accounting_chart_of_accounts(id) ON DELETE SET NULL,
     refund_account_id UUID REFERENCES public.accounting_chart_of_accounts(id) ON DELETE SET NULL,
     is_active BOOLEAN DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    CONSTRAINT uk_accounting_taxes_name UNIQUE (company_id, name)
 );
 
 -- 8. Payment Terms Table
