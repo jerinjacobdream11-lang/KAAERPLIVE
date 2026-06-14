@@ -3,7 +3,6 @@ import { supabase } from '../../../lib/supabase';
 import { Plus, Search, Filter, ArrowRight, Save, Trash2 } from 'lucide-react';
 import { Modal } from '../../ui/Modal';
 
-// Reusing types roughly, but ideally should be in types.ts
 interface JournalEntry {
     id: string;
     date: string;
@@ -16,22 +15,27 @@ interface JournalEntry {
 }
 
 interface JournalEntryLine {
-    id?: string; // Optional for new lines
+    id?: string;
     account_id: string;
     description: string;
     debit: number;
     credit: number;
     partner_id?: string;
-    name?: string; // For display
+    name?: string;
+    cost_center_id?: string;
+    project_cost_center_id?: string;
+    contract_cost_center_id?: string;
 }
 
 export const JournalEntries: React.FC = () => {
     const [entries, setEntries] = useState<JournalEntry[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentEntry, setCurrentEntry] = useState<Partial<JournalEntry>>({ lines: [] });
+    
     // Masters
     const [journals, setJournals] = useState<any[]>([]);
     const [accounts, setAccounts] = useState<any[]>([]);
+    const [costCenters, setCostCenters] = useState<any[]>([]);
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
@@ -41,10 +45,10 @@ export const JournalEntries: React.FC = () => {
 
     const fetchEntries = async () => {
         const { data, error } = await supabase
-            .from('accounting_moves')
+            .from('accounting_journal_entries')
             .select(`
                 *,
-                journal:journals(name)
+                journal:accounting_journals(name)
             `)
             .order('date', { ascending: false });
         if (error) console.error(error);
@@ -52,16 +56,18 @@ export const JournalEntries: React.FC = () => {
     };
 
     const fetchMasters = async () => {
-        const [jRes, aRes] = await Promise.all([
-            supabase.from('journals').select('*'),
-            supabase.from('chart_of_accounts').select('*').order('code')
+        const [jRes, aRes, ccRes] = await Promise.all([
+            supabase.from('accounting_journals').select('*').eq('is_active', true),
+            supabase.from('accounting_chart_of_accounts').select('*').eq('is_active', true).order('code'),
+            supabase.from('accounting_cost_centers').select('*').eq('is_active', true)
         ]);
         if (jRes.data) setJournals(jRes.data);
         if (aRes.data) setAccounts(aRes.data);
+        if (ccRes.data) setCostCenters(ccRes.data);
     };
 
     const handleOpenCreate = () => {
-        const defaultJournal = journals.find(j => j.type === 'General');
+        const defaultJournal = journals.find(j => j.type === 'General') || journals[0];
         setCurrentEntry({
             date: new Date().toISOString().split('T')[0],
             journal_id: defaultJournal?.id || '',
@@ -77,11 +83,6 @@ export const JournalEntries: React.FC = () => {
     const updateLine = (index: number, field: keyof JournalEntryLine, value: any) => {
         const newLines = [...(currentEntry.lines || [])];
         newLines[index] = { ...newLines[index], [field]: value };
-
-        // Auto-balance logic (simple)
-        // If updating debit on line 1, suggest credit on line 2 if balanced?
-        // Let's keep it manual for now.
-
         setCurrentEntry({ ...currentEntry, lines: newLines });
     };
 
@@ -101,7 +102,7 @@ export const JournalEntries: React.FC = () => {
     const calculateTotals = () => {
         const totalDebit = currentEntry.lines?.reduce((sum, line) => sum + (Number(line.debit) || 0), 0) || 0;
         const totalCredit = currentEntry.lines?.reduce((sum, line) => sum + (Number(line.credit) || 0), 0) || 0;
-        return { totalDebit, totalCredit, balanced: totalDebit === totalCredit && totalDebit > 0 };
+        return { totalDebit, totalCredit, balanced: Math.abs(totalDebit - totalCredit) < 0.001 && totalDebit > 0 };
     };
 
     const handleSave = async () => {
@@ -127,12 +128,12 @@ export const JournalEntries: React.FC = () => {
                 date: currentEntry.date,
                 reference: currentEntry.reference,
                 notes: currentEntry.notes,
-                state: 'Draft', // Always start draft
+                state: 'Draft',
                 amount_total: totals.totalDebit
             };
 
             const { data: move, error: moveError } = await supabase
-                .from('accounting_moves')
+                .from('accounting_journal_entries')
                 .insert([moveData])
                 .select()
                 .single();
@@ -141,22 +142,22 @@ export const JournalEntries: React.FC = () => {
 
             // 2. Insert Lines
             const linesData = currentEntry.lines?.map(line => ({
-                move_id: move.id,
-                journal_id: currentEntry.journal_id, // denormalized
-                date: currentEntry.date, // denormalized
+                entry_id: move.id,
                 account_id: line.account_id,
                 name: line.description,
                 debit: line.debit,
-                credit: line.credit
+                credit: line.credit,
+                cost_center_id: line.cost_center_id || null,
+                project_cost_center_id: line.project_cost_center_id || null,
+                contract_cost_center_id: line.contract_cost_center_id || null
             }));
 
             const { error: linesError } = await supabase
-                .from('accounting_move_lines')
+                .from('accounting_journal_lines')
                 .insert(linesData as any[]);
 
             if (linesError) throw linesError;
 
-            // Success
             setIsModalOpen(false);
             fetchEntries();
 
@@ -171,7 +172,7 @@ export const JournalEntries: React.FC = () => {
     const handlePost = async (id: string) => {
         if (!confirm('Are you sure you want to POST this entry? This cannot be undone.')) return;
 
-        const { data, error } = await supabase.rpc('rpc_post_move', { p_move_id: id, p_user_id: (await supabase.auth.getUser()).data.user?.id });
+        const { data, error } = await supabase.rpc('rpc_post_accounting_entry', { p_entry_id: id });
 
         if (error) alert('Error: ' + error.message);
         else {
@@ -191,14 +192,12 @@ export const JournalEntries: React.FC = () => {
 
         setLoading(true);
         try {
-            // Find the entry details before deleting so we can log it nicely
             const { data: entry } = await supabase
-                .from('accounting_moves')
+                .from('accounting_journal_entries')
                 .select('*')
                 .eq('id', id)
                 .maybeSingle();
 
-            // 1. Log deletion
             if (currentAuthUser && entry) {
                 await (supabase.from as any)('delete_audit_logs').insert([{
                     deleted_by_email: currentAuthUser.email || 'unknown',
@@ -209,9 +208,8 @@ export const JournalEntries: React.FC = () => {
                 }]);
             }
 
-            // 2. Perform deletion
             const { error } = await supabase
-                .from('accounting_moves')
+                .from('accounting_journal_entries')
                 .delete()
                 .eq('id', id);
 
@@ -225,6 +223,11 @@ export const JournalEntries: React.FC = () => {
             setLoading(false);
         }
     };
+
+    // Filter cost centers by type
+    const genericCC = costCenters.filter(cc => cc.type === 'GENERIC');
+    const projectCC = costCenters.filter(cc => cc.type === 'PROJECT');
+    const contractCC = costCenters.filter(cc => cc.type === 'CONTRACT');
 
     return (
         <div className="space-y-6 animate-page-enter">
@@ -295,7 +298,7 @@ export const JournalEntries: React.FC = () => {
 
             {/* Create Modal */}
             {isModalOpen && (
-                <Modal title="New Journal Entry" onClose={() => setIsModalOpen(false)} maxWidth="4xl">
+                <Modal title="New Journal Entry" onClose={() => setIsModalOpen(false)} maxWidth="6xl">
                     <div className="space-y-6">
                         {/* Header Inputs */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-zinc-800 rounded-lg">
@@ -323,7 +326,7 @@ export const JournalEntries: React.FC = () => {
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Reference</label>
                                 <input
                                     className="w-full p-2 border rounded dark:bg-zinc-900 dark:border-zinc-700"
-                                    placeholder="e.g. INV/2026/001"
+                                    placeholder="e.g. JV/2026/001"
                                     value={currentEntry.reference || ''}
                                     onChange={e => setCurrentEntry({ ...currentEntry, reference: e.target.value })}
                                 />
@@ -335,8 +338,11 @@ export const JournalEntries: React.FC = () => {
                             <table className="w-full text-sm">
                                 <thead className="bg-slate-100 dark:bg-zinc-800">
                                     <tr>
-                                        <th className="p-2 w-1/3 text-left">Account</th>
-                                        <th className="p-2 w-1/3 text-left">Description</th>
+                                        <th className="p-2 w-[18%] text-left">Account</th>
+                                        <th className="p-2 w-[18%] text-left">Description</th>
+                                        <th className="p-2 w-[14%] text-left">Cost Center</th>
+                                        <th className="p-2 w-[14%] text-left">Project CC</th>
+                                        <th className="p-2 w-[14%] text-left">Contract CC</th>
                                         <th className="p-2 w-24 text-right">Debit</th>
                                         <th className="p-2 w-24 text-right">Credit</th>
                                         <th className="p-2 w-10"></th>
@@ -347,7 +353,7 @@ export const JournalEntries: React.FC = () => {
                                         <tr key={idx}>
                                             <td className="p-2">
                                                 <select
-                                                    className="w-full p-1 border-0 bg-transparent focus:ring-1 focus:ring-indigo-500 rounded"
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs"
                                                     value={line.account_id}
                                                     onChange={e => updateLine(idx, 'account_id', e.target.value)}
                                                 >
@@ -357,16 +363,46 @@ export const JournalEntries: React.FC = () => {
                                             </td>
                                             <td className="p-2">
                                                 <input
-                                                    className="w-full p-1 border-0 bg-transparent focus:ring-1 focus:ring-indigo-500 rounded"
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs"
                                                     placeholder="Label"
                                                     value={line.description}
                                                     onChange={e => updateLine(idx, 'description', e.target.value)}
                                                 />
                                             </td>
                                             <td className="p-2">
+                                                <select
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs"
+                                                    value={line.cost_center_id || ''}
+                                                    onChange={e => updateLine(idx, 'cost_center_id', e.target.value || undefined)}
+                                                >
+                                                    <option value="">None</option>
+                                                    {genericCC.map(cc => <option key={cc.id} value={cc.id}>{cc.code} - {cc.name}</option>)}
+                                                </select>
+                                            </td>
+                                            <td className="p-2">
+                                                <select
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs"
+                                                    value={line.project_cost_center_id || ''}
+                                                    onChange={e => updateLine(idx, 'project_cost_center_id', e.target.value || undefined)}
+                                                >
+                                                    <option value="">None</option>
+                                                    {projectCC.map(cc => <option key={cc.id} value={cc.id}>{cc.code} - {cc.name}</option>)}
+                                                </select>
+                                            </td>
+                                            <td className="p-2">
+                                                <select
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs"
+                                                    value={line.contract_cost_center_id || ''}
+                                                    onChange={e => updateLine(idx, 'contract_cost_center_id', e.target.value || undefined)}
+                                                >
+                                                    <option value="">None</option>
+                                                    {contractCC.map(cc => <option key={cc.id} value={cc.id}>{cc.code} - {cc.name}</option>)}
+                                                </select>
+                                            </td>
+                                            <td className="p-2">
                                                 <input
                                                     type="number" step="0.01"
-                                                    className="w-full p-1 border-0 bg-transparent focus:ring-1 focus:ring-indigo-500 rounded text-right"
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-right text-xs"
                                                     value={line.debit}
                                                     onChange={e => updateLine(idx, 'debit', parseFloat(e.target.value) || 0)}
                                                 />
@@ -374,7 +410,7 @@ export const JournalEntries: React.FC = () => {
                                             <td className="p-2">
                                                 <input
                                                     type="number" step="0.01"
-                                                    className="w-full p-1 border-0 bg-transparent focus:ring-1 focus:ring-indigo-500 rounded text-right"
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-right text-xs"
                                                     value={line.credit}
                                                     onChange={e => updateLine(idx, 'credit', parseFloat(e.target.value) || 0)}
                                                 />
@@ -389,7 +425,7 @@ export const JournalEntries: React.FC = () => {
                                 </tbody>
                                 <tfoot className="bg-slate-50 dark:bg-zinc-800 font-bold">
                                     <tr>
-                                        <td colSpan={2} className="p-2">
+                                        <td colSpan={5} className="p-2">
                                             <button onClick={addNewLine} className="text-indigo-600 hover:underline text-xs flex items-center gap-1">
                                                 <Plus className="w-3 h-3" /> Add Line
                                             </button>

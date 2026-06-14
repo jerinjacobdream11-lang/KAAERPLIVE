@@ -19,24 +19,40 @@ export const GeneralLedger: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [companyCurrency, setCompanyCurrency] = useState('QAR');
 
+    // Cost Centers for filtering
+    const [costCenters, setCostCenters] = useState<any[]>([]);
+    const [selectedCC, setSelectedCC] = useState('');
+    const [selectedProjectCC, setSelectedProjectCC] = useState('');
+    const [selectedContractCC, setSelectedContractCC] = useState('');
+
     useEffect(() => { 
         if (currentCompanyId) {
             fetchAccounts(); 
             fetchCurrency(); 
+            fetchCostCenters();
         }
     }, [currentCompanyId]);
 
     useEffect(() => { 
         if (selectedAccount && currentCompanyId) fetchLedger(); 
-    }, [selectedAccount, startDate, endDate, currentCompanyId]);
+    }, [selectedAccount, startDate, endDate, selectedCC, selectedProjectCC, selectedContractCC, currentCompanyId]);
 
     const fetchAccounts = async () => {
         if (!currentCompanyId) return;
-        const { data } = await supabase.from('chart_of_accounts')
+        const { data } = await supabase.from('accounting_chart_of_accounts')
             .select('id, code, name, type')
             .eq('company_id', currentCompanyId)
             .order('code');
         setAccounts(data || []);
+    };
+
+    const fetchCostCenters = async () => {
+        if (!currentCompanyId) return;
+        const { data } = await supabase.from('accounting_cost_centers')
+            .select('id, name, code, type')
+            .eq('company_id', currentCompanyId)
+            .eq('is_active', true);
+        setCostCenters(data || []);
     };
 
     const fetchCurrency = async () => {
@@ -53,26 +69,51 @@ export const GeneralLedger: React.FC = () => {
         if (!selectedAccount || !currentCompanyId) return;
         setLoading(true);
         try {
-            const { data, error } = await supabase
-                .from('accounting_move_lines')
+            let query = supabase
+                .from('accounting_journal_lines')
                 .select(`
-                    date, name, debit, credit,
-                    move:accounting_moves(reference, notes),
-                    journal:journals(name),
+                    entry_id, name, debit, credit,
+                    entry:accounting_journal_entries!entry_id(date, reference, notes),
+                    journal:accounting_journals!accounting_journal_lines_entry_id_fkey(name),
                     partner:accounting_partners(name)
                 `)
                 .eq('company_id', currentCompanyId)
-                .eq('account_id', selectedAccount)
-                .gte('date', startDate)
-                .lte('date', endDate)
-                .order('date', { ascending: true });
+                .eq('account_id', selectedAccount);
+
+            // Wait, does entry date filter work? Yes, we can filter using inner join syntax or do it in memory / postgrest.
+            // Let's filter on entry date:
+            // PostgREST syntax for filtering nested resource: entry.date.gte
+            // Or we can query accounting_journal_lines and filter the entry!
+            // Wait, a cleaner PostgREST query is:
+            query = query
+                .filter('entry.date', 'gte', startDate)
+                .filter('entry.date', 'lte', endDate);
+
+            if (selectedCC) {
+                query = query.eq('cost_center_id', selectedCC);
+            }
+            if (selectedProjectCC) {
+                query = query.eq('project_cost_center_id', selectedProjectCC);
+            }
+            if (selectedContractCC) {
+                query = query.eq('contract_cost_center_id', selectedContractCC);
+            }
+
+            const { data, error } = await query;
 
             if (error) throw error;
-            setEntries((data || []).map((d: any) => ({
-                date: d.date,
+
+            // PostgREST filters on nested fields don't remove parent records, so we do client-side filtering on entry presence
+            const filteredData = (data || []).filter((d: any) => d.entry !== null);
+
+            // Sort by entry date
+            filteredData.sort((a: any, b: any) => new Date(a.entry.date).getTime() - new Date(b.entry.date).getTime());
+
+            setEntries(filteredData.map((d: any) => ({
+                date: d.entry?.date || '',
                 journal_name: d.journal?.name || '',
-                reference: d.move?.reference || '',
-                description: d.name || d.move?.notes || '',
+                reference: d.entry?.reference || '',
+                description: d.name || d.entry?.notes || '',
                 debit: Number(d.debit) || 0,
                 credit: Number(d.credit) || 0,
                 partner_name: d.partner?.name || ''
@@ -89,7 +130,6 @@ export const GeneralLedger: React.FC = () => {
         catch { return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n); }
     };
 
-    // Running balance
     let runningBalance = 0;
     const rows = entries.map(e => {
         runningBalance += e.debit - e.credit;
@@ -99,6 +139,10 @@ export const GeneralLedger: React.FC = () => {
     const totalDebit = entries.reduce((s, e) => s + e.debit, 0);
     const totalCredit = entries.reduce((s, e) => s + e.credit, 0);
     const selectedAcc = accounts.find(a => a.id === selectedAccount);
+
+    const genericCC = costCenters.filter(cc => cc.type === 'GENERIC');
+    const projectCC = costCenters.filter(cc => cc.type === 'PROJECT');
+    const contractCC = costCenters.filter(cc => cc.type === 'CONTRACT');
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
@@ -110,7 +154,7 @@ export const GeneralLedger: React.FC = () => {
 
             {/* Filters */}
             <div className="flex flex-wrap items-end gap-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-sm">
-                <div className="flex-1 min-w-[250px]">
+                <div className="w-full md:flex-1 min-w-[200px]">
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Account</label>
                     <select value={selectedAccount} onChange={e => setSelectedAccount(e.target.value)}
                         className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm">
@@ -126,9 +170,32 @@ export const GeneralLedger: React.FC = () => {
                     <label className="block text-xs font-bold text-slate-500 uppercase mb-1">To</label>
                     <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" />
                 </div>
-                <button onClick={fetchLedger} className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold flex items-center gap-2 transition-colors">
-                    <Filter className="w-4 h-4" /> Apply
-                </button>
+                
+                {/* Cost Center Filters */}
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Project CC</label>
+                    <select value={selectedProjectCC} onChange={e => setSelectedProjectCC(e.target.value)}
+                        className="p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm">
+                        <option value="">All Projects</option>
+                        {projectCC.map(cc => <option key={cc.id} value={cc.id}>{cc.code}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Contract CC</label>
+                    <select value={selectedContractCC} onChange={e => setSelectedContractCC(e.target.value)}
+                        className="p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm">
+                        <option value="">All Contracts</option>
+                        {contractCC.map(cc => <option key={cc.id} value={cc.id}>{cc.code}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Cost Center</label>
+                    <select value={selectedCC} onChange={e => setSelectedCC(e.target.value)}
+                        className="p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm">
+                        <option value="">All Generic</option>
+                        {genericCC.map(cc => <option key={cc.id} value={cc.id}>{cc.code}</option>)}
+                    </select>
+                </div>
             </div>
 
             {/* Account Info */}
@@ -137,7 +204,12 @@ export const GeneralLedger: React.FC = () => {
                     <div className="flex items-center justify-between">
                         <div>
                             <h3 className="font-bold text-slate-800 dark:text-white">{selectedAcc.code} — {selectedAcc.name}</h3>
-                            <p className="text-xs text-slate-500 mt-0.5">Type: {selectedAcc.type} · Period: {startDate} to {endDate}</p>
+                            <p className="text-xs text-slate-500 mt-0.5 mt-0.5">
+                                Type: {selectedAcc.type} · Period: {startDate} to {endDate}
+                                {selectedProjectCC && ` · Project: ${projectCC.find(p => p.id === selectedProjectCC)?.code}`}
+                                {selectedContractCC && ` · Contract: ${contractCC.find(c => c.id === selectedContractCC)?.code}`}
+                                {selectedCC && ` · Cost Center: ${genericCC.find(g => g.id === selectedCC)?.code}`}
+                            </p>
                         </div>
                         <div className="text-right">
                             <p className="text-xs text-slate-500 uppercase font-bold">Net Balance</p>

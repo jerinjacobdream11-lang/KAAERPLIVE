@@ -10,7 +10,7 @@ export const Payments: React.FC = () => {
 
     // Masters
     const [partners, setPartners] = useState<any[]>([]);
-    const [journals, setJournals] = useState<any[]>([]); // Bank/Cash Journals
+    const [journals, setJournals] = useState<any[]>([]); // New Bank/Cash Journals
 
     // Form State
     const [paymentType, setPaymentType] = useState('inbound'); // inbound, outbound
@@ -32,7 +32,7 @@ export const Payments: React.FC = () => {
             .select(`
                 *,
                 partner:accounting_partners(name),
-                journal:journals(code)
+                journal:accounting_journals!accounting_journal_id(code)
             `)
             .order('date', { ascending: false });
 
@@ -45,8 +45,8 @@ export const Payments: React.FC = () => {
         const { data: pData } = await supabase.from('accounting_partners').select('id, name, partner_type');
         setPartners(pData || []);
 
-        // Fetch only Bank/Cash journals
-        const { data: jData } = await supabase.from('journals').select('id, name, type').in('type', ['Bank', 'Cash']);
+        // Fetch new Bank/Cash journals
+        const { data: jData } = await supabase.from('accounting_journals').select('id, name, type, code').in('type', ['Bank', 'Cash']);
         setJournals(jData || []);
         if (jData && jData.length > 0) setSelectedJournal(jData[0].id);
     };
@@ -56,13 +56,22 @@ export const Payments: React.FC = () => {
         try {
             if (!selectedPartner || !selectedJournal || !amount) throw new Error('Missing required fields');
 
+            // Find matching old journal to satisfy the NOT NULL constraint on journal_id
+            const newJournal = journals.find(j => j.id === selectedJournal);
+            const { data: oldJournal } = await supabase
+                .from('journals')
+                .select('id')
+                .eq('code', newJournal?.code || '')
+                .maybeSingle();
+
             const payload = {
                 payment_type: paymentType,
-                partner_type: 'customer', // Default for now, ideally derived from partner
+                partner_type: paymentType === 'inbound' ? 'customer' : 'vendor',
                 partner_id: selectedPartner,
                 amount: Number(amount),
                 date: date,
-                journal_id: selectedJournal,
+                journal_id: oldJournal?.id || selectedJournal, // Fallback
+                accounting_journal_id: selectedJournal,
                 notes: notes,
                 state: 'draft'
             };
@@ -86,7 +95,7 @@ export const Payments: React.FC = () => {
         e.stopPropagation();
         if (!confirm('Confirm Post? This will generate a Journal Entry.')) return;
 
-        const { error } = await supabase.rpc('rpc_post_payment', { p_payment_id: id });
+        const { error } = await supabase.rpc('rpc_post_accounting_payment', { p_payment_id: id });
         if (error) alert('Error posting: ' + error.message);
         else fetchPayments();
     };
@@ -124,7 +133,7 @@ export const Payments: React.FC = () => {
                         ) : payments.map(pay => (
                             <tr key={pay.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors">
                                 <td className="px-6 py-4 text-slate-500">{pay.date}</td>
-                                <td className="px-6 py-4 font-medium">{pay.name || '-'}</td>
+                                <td className="px-6 py-4 font-medium">{pay.name || `PAY-${pay.id.slice(0, 5).toUpperCase()}`}</td>
                                 <td className="px-6 py-4">{pay.partner?.name}</td>
                                 <td className="px-6 py-4 text-slate-500">{pay.journal?.code}</td>
                                 <td className={`px-6 py-4 text-right font-bold ${pay.payment_type === 'inbound' ? 'text-emerald-600' : 'text-slate-700 dark:text-slate-300'
@@ -136,8 +145,8 @@ export const Payments: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-4">
                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${pay.state === 'posted'
-                                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                             : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                                         }`}>
                                         {pay.state === 'posted' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                                         {pay.state}

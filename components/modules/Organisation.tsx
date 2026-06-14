@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
     Building2, MapPin, LayoutGrid, Users, Settings, Plus, Check, Edit3, X, Shield, User, Database, GitMerge, PlayCircle, StopCircle, ArrowRight, Bell, Clock, Save, Search, Trash2, Sparkles, Radio, BarChart2, Loader2, KeyRound,
-    Banknote, Package, Factory, ShoppingCart, Calendar
+    Banknote, Package, Factory, ShoppingCart, Calendar, Sliders
 }
     from 'lucide-react';
 import { PollsView } from './organization/PollsView';
@@ -11,6 +11,7 @@ import { KudosCategoriesView } from './organization/KudosCategoriesView';
 import { FiscalYears } from './organisation/accounting/FiscalYears';
 import { TaxMasters } from './organisation/accounting/TaxMasters';
 import { JournalMasters } from './organisation/accounting/JournalMasters';
+import { AccountingMasters } from './organisation/AccountingMasters';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { Department, Location, Role, Employee as AppUser } from '../hrms/types';
@@ -2195,6 +2196,7 @@ export const Organisation: React.FC = () => {
         { id: 'AI_SETTINGS', icon: Sparkles, label: 'AI Settings', permission: 'org.settings.manage' },
         { id: 'ATT_SETTINGS', icon: Calendar, label: 'Attendance Settings', permission: 'org.settings.manage' },
         { id: 'SETTINGS', icon: Settings, label: 'Payroll Settings', permission: 'finance.payroll.manage' },
+        { id: 'ACCOUNTING_MASTERS', icon: Sliders, label: 'Accounting Masters', permission: 'finance.setup.manage' },
         { id: 'ACCOUNTING', icon: BarChart2, label: 'Accounting Setup', permission: 'finance.setup.manage' },
         { id: 'ADD_COMPANY', icon: Plus, label: 'Add Company', permission: '*' }, // Restricted to Admin/Owner effectively via *
     ].filter(item => hasPermission(item.permission) || hasPermission('*')), [hasPermission]);
@@ -3482,6 +3484,9 @@ export const Organisation: React.FC = () => {
                 )}
                 {activeTab === 'AI_SETTINGS' && (
                     <AISettingsView />
+                )}
+                {activeTab === 'ACCOUNTING_MASTERS' && (
+                    <AccountingMasters />
                 )}
                 {activeTab === 'ACCOUNTING' && (
                     <div className="p-8 h-full overflow-y-auto animate-page-enter">

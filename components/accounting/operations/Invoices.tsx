@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
-import { Plus, Search, Filter, FileText, CheckCircle, Clock, AlertCircle } from 'lucide-react';
+import { Plus, Search, Filter, FileText, CheckCircle, Clock } from 'lucide-react';
 import { Modal } from '../../ui/Modal';
-import { Partners } from '../masters/Partners'; // We might want a selector, but for now we'll load partners in the select
 
 export const Invoices: React.FC = () => {
     const [invoices, setInvoices] = useState<any[]>([]);
@@ -13,6 +12,8 @@ export const Invoices: React.FC = () => {
     const [partners, setPartners] = useState<any[]>([]);
     const [items, setItems] = useState<any[]>([]);
     const [journals, setJournals] = useState<any[]>([]); // To select Sales Journal
+    const [costCenters, setCostCenters] = useState<any[]>([]);
+    const [arAccount, setArAccount] = useState<any>(null);
 
     // Form State
     const [selectedPartner, setSelectedPartner] = useState('');
@@ -21,7 +22,7 @@ export const Invoices: React.FC = () => {
     const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
 
     // Line Items
-    const [lines, setLines] = useState<any[]>([{ item_id: '', quantity: 1, unit_price: 0 }]);
+    const [lines, setLines] = useState<any[]>([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '' }]);
 
     useEffect(() => {
         fetchInvoices();
@@ -31,11 +32,11 @@ export const Invoices: React.FC = () => {
     const fetchInvoices = async () => {
         setLoading(true);
         const { data, error } = await supabase
-            .from('accounting_moves')
+            .from('accounting_journal_entries')
             .select(`
                 *,
                 partner:accounting_partners(name),
-                journal:journals(code)
+                journal:accounting_journals(code)
             `)
             .eq('move_type', 'out_invoice')
             .order('date', { ascending: false });
@@ -52,16 +53,28 @@ export const Invoices: React.FC = () => {
             .or('partner_type.eq.Customer,partner_type.eq.Both');
         setPartners(pData || []);
 
-        const { data: iData } = await supabase.from('item_master').select('id, name, code, income_account_id'); // We might need price later
+        const { data: iData } = await supabase.from('item_master').select('id, name, code, income_account_id');
         setItems(iData || []);
 
-        const { data: jData } = await supabase.from('journals').select('id, name').eq('type', 'Sale');
+        const { data: jData } = await supabase.from('accounting_journals').select('id, name').eq('type', 'Sale');
         setJournals(jData || []);
         if (jData && jData.length > 0) setSelectedJournal(jData[0].id);
+
+        const { data: ccData } = await supabase.from('accounting_cost_centers').select('id, name, code, type').eq('is_active', true);
+        setCostCenters(ccData || []);
+
+        // Load new Accounts Receivable account for credit limit check
+        const { data: arData } = await supabase
+            .from('accounting_chart_of_accounts')
+            .select('id')
+            .eq('subtype', 'Receivable')
+            .limit(1)
+            .maybeSingle();
+        if (arData) setArAccount(arData);
     };
 
     const handleAddLine = () => {
-        setLines([...lines, { item_id: '', quantity: 1, unit_price: 0 }]);
+        setLines([...lines, { item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '' }]);
     };
 
     const handleLineChange = (index: number, field: string, value: any) => {
@@ -77,11 +90,12 @@ export const Invoices: React.FC = () => {
 
             // Credit Limit Check
             const partner = partners.find(p => p.id === selectedPartner);
-            if (partner && partner.credit_limit > 0) {
-                // Get current balance
-                const { data: balanceData } = await (supabase.rpc as any)('rpc_get_account_balance', {
-                    p_account_id: partner.property_account_receivable_id, // We need this account ID
-                    p_date: new Date().toISOString().split('T')[0]
+            if (partner && partner.credit_limit > 0 && arAccount) {
+                // Get current balance in new tables
+                const { data: balanceData } = await supabase.rpc('rpc_get_accounting_account_balance', {
+                    p_account_id: arAccount.id,
+                    p_date: new Date().toISOString().split('T')[0],
+                    p_partner_id: partner.id
                 });
                 
                 const currentBalance = Number(balanceData || 0);
@@ -103,17 +117,20 @@ export const Invoices: React.FC = () => {
                 p_lines: lines.map(l => ({
                     item_id: l.item_id,
                     quantity: Number(l.quantity),
-                    unit_price: Number(l.unit_price) // Note: In real app, we'd fetch price from item master if not set
+                    unit_price: Number(l.unit_price),
+                    cost_center_id: l.cost_center_id || null,
+                    project_cost_center_id: l.project_cost_center_id || null,
+                    contract_cost_center_id: l.contract_cost_center_id || null
                 }))
             };
 
-            const { data, error } = await supabase.rpc('rpc_create_invoice', payload);
+            const { data, error } = await supabase.rpc('rpc_create_accounting_invoice', payload);
 
             if (error) throw error;
 
             alert('Invoice Created! ID: ' + data);
             setIsModalOpen(false);
-            setLines([{ item_id: '', quantity: 1, unit_price: 0 }]);
+            setLines([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '' }]);
             fetchInvoices();
 
         } catch (err: any) {
@@ -126,9 +143,8 @@ export const Invoices: React.FC = () => {
         e.stopPropagation();
         if (!confirm('Confirm Post? This will lock the invoice.')) return;
 
-        const { data, error } = await supabase.rpc('rpc_post_move', { 
-            p_move_id: id,
-            p_user_id: (await supabase.auth.getUser()).data.user?.id 
+        const { data, error } = await supabase.rpc('rpc_post_accounting_entry', { 
+            p_entry_id: id
         });
         if (error) alert('Error posting: ' + error.message);
         else {
@@ -138,6 +154,10 @@ export const Invoices: React.FC = () => {
             fetchInvoices();
         }
     };
+
+    const genericCC = costCenters.filter(cc => cc.type === 'GENERIC');
+    const projectCC = costCenters.filter(cc => cc.type === 'PROJECT');
+    const contractCC = costCenters.filter(cc => cc.type === 'CONTRACT');
 
     return (
         <div className="space-y-6">
@@ -171,14 +191,14 @@ export const Invoices: React.FC = () => {
                         ) : invoices.map(inv => (
                             <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors">
                                 <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-300">
-                                    {inv.reference || 'Draft'}
+                                    {inv.reference || `INV-${inv.id.slice(0, 5).toUpperCase()}`}
                                 </td>
                                 <td className="px-6 py-4">{inv.partner?.name}</td>
                                 <td className="px-6 py-4 text-slate-500">{inv.date}</td>
                                 <td className="px-6 py-4">
                                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${inv.state === 'Posted'
-                                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
+                                             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
+                                             : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400'
                                         }`}>
                                         {inv.state === 'Posted' ? <CheckCircle className="w-3 h-3" /> : <Clock className="w-3 h-3" />}
                                         {inv.state}
@@ -205,7 +225,7 @@ export const Invoices: React.FC = () => {
 
             {/* Create Modal */}
             {isModalOpen && (
-                <Modal title="Create Customer Invoice" onClose={() => setIsModalOpen(false)}>
+                <Modal title="Create Customer Invoice" onClose={() => setIsModalOpen(false)} maxWidth="5xl">
                     <form onSubmit={handleCreateInvoice} className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -249,8 +269,8 @@ export const Invoices: React.FC = () => {
 
                             <div className="bg-slate-50 dark:bg-zinc-800/50 rounded-xl p-4 space-y-3">
                                 {lines.map((line, idx) => (
-                                    <div key={idx} className="flex gap-2 items-end">
-                                        <div className="flex-1">
+                                    <div key={idx} className="flex flex-wrap md:flex-nowrap gap-2 items-end border-b border-slate-100 dark:border-zinc-800 pb-3 md:pb-0 md:border-b-0">
+                                        <div className="w-full md:flex-1 min-w-[150px]">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase">Item</label>
                                             <select
                                                 value={line.item_id}
@@ -261,7 +281,40 @@ export const Invoices: React.FC = () => {
                                                 {items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
                                             </select>
                                         </div>
-                                        <div className="w-24">
+                                        <div className="w-full md:w-36">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Project CC</label>
+                                            <select
+                                                value={line.project_cost_center_id}
+                                                onChange={e => handleLineChange(idx, 'project_cost_center_id', e.target.value)}
+                                                className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
+                                            >
+                                                <option value="">None</option>
+                                                {projectCC.map(cc => <option key={cc.id} value={cc.id}>{cc.code}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="w-full md:w-36">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Contract CC</label>
+                                            <select
+                                                value={line.contract_cost_center_id}
+                                                onChange={e => handleLineChange(idx, 'contract_cost_center_id', e.target.value)}
+                                                className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
+                                            >
+                                                <option value="">None</option>
+                                                {contractCC.map(cc => <option key={cc.id} value={cc.id}>{cc.code}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="w-full md:w-36">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Cost Center</label>
+                                            <select
+                                                value={line.cost_center_id}
+                                                onChange={e => handleLineChange(idx, 'cost_center_id', e.target.value)}
+                                                className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
+                                            >
+                                                <option value="">None</option>
+                                                {genericCC.map(cc => <option key={cc.id} value={cc.id}>{cc.code}</option>)}
+                                            </select>
+                                        </div>
+                                        <div className="w-20">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase">Qty</label>
                                             <input
                                                 type="number"
@@ -271,7 +324,7 @@ export const Invoices: React.FC = () => {
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             />
                                         </div>
-                                        <div className="w-32">
+                                        <div className="w-28">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase">Price</label>
                                             <div className="relative">
                                                 <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400">$</span>
@@ -290,7 +343,7 @@ export const Invoices: React.FC = () => {
                                                 const newLines = lines.filter((_, i) => i !== idx);
                                                 setLines(newLines);
                                             }}
-                                            className="p-2 text-rose-500 hover:bg-rose-50 rounded-md"
+                                            className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-md mb-0.5"
                                         >
                                             &times;
                                         </button>
