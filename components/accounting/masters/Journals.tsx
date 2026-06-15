@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { BookOpen, Plus, X, Save, Loader, Edit2, CheckCircle, XCircle } from 'lucide-react';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 interface Account { id: string; name: string; code: string; }
 interface Journal {
@@ -21,6 +24,7 @@ const TYPE_ICONS: Record<string, string> = { sale:'🧾', purchase:'🛒', cash:
 const EMPTY = { name:'', code:'', type:'general', sequence_prefix:'', default_account_id:'' };
 
 export const Journals: React.FC = () => {
+  const { currentCompanyId } = useAuth();
   const [journals, setJournals] = useState<Journal[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -31,15 +35,16 @@ export const Journals: React.FC = () => {
   const [err, setErr]           = useState('');
 
   const fetchAll = useCallback(async () => {
+    if (!currentCompanyId) return;
     setLoading(true);
     const [{ data: j }, { data: a }] = await Promise.all([
-      (supabase as any).from('journals').select('*, chart_of_accounts!default_account_id(name,code)').order('type').order('name'),
-      (supabase as any).from('chart_of_accounts').select('id,name,code').order('code'),
+      supabase.from('accounting_journals').select('*, accounting_chart_of_accounts!default_account_id(name,code)').eq('company_id', currentCompanyId).order('type').order('name'),
+      supabase.from('accounting_chart_of_accounts').select('id,name,code').eq('company_id', currentCompanyId).order('code'),
     ]);
-    setJournals((j || []).map((x: any) => ({ ...x, account_name: x.chart_of_accounts?.name, account_code: x.chart_of_accounts?.code })));
+    setJournals((j || []).map((x: any) => ({ ...x, account_name: x.accounting_chart_of_accounts?.name, account_code: x.accounting_chart_of_accounts?.code })));
     setAccounts(a || []);
     setLoading(false);
-  }, []);
+  }, [currentCompanyId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -51,19 +56,20 @@ export const Journals: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (!currentCompanyId) { setErr('No company context'); return; }
     if (!form.name.trim() || !form.code.trim()) { setErr('Name and code are required.'); return; }
     setSaving(true); setErr('');
-    const payload = { name: form.name, code: form.code.toUpperCase(), type: form.type, sequence_prefix: form.sequence_prefix || null, default_account_id: form.default_account_id || null };
+    const payload = { name: form.name, code: form.code.toUpperCase(), type: form.type, sequence_prefix: form.sequence_prefix || null, default_account_id: form.default_account_id || null, company_id: currentCompanyId };
     const { error } = editing
-      ? await (supabase as any).from('journals').update(payload).eq('id', editing.id)
-      : await (supabase as any).from('journals').insert(payload);
+      ? await supabase.from('accounting_journals').update(payload).eq('id', editing.id)
+      : await supabase.from('accounting_journals').insert([payload]);
     if (error) { setErr(error.message); setSaving(false); return; }
     setSaving(false); setShowModal(false); fetchAll();
   };
 
   const deleteJournal = async (id: string) => {
     if (!confirm('Delete this journal? This cannot be undone.')) return;
-    const { error } = await (supabase as any).from('journals').delete().eq('id', id);
+    const { error } = await supabase.from('accounting_journals').delete().eq('id', id);
     if (error) { alert(error.message); return; }
     fetchAll();
   };
@@ -81,9 +87,12 @@ export const Journals: React.FC = () => {
           <h2 className="text-lg font-bold text-slate-700 dark:text-white">Journals</h2>
           <p className="text-xs text-slate-400">Configure accounting journals for each transaction type</p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-700 transition-colors">
-          <Plus className="w-4 h-4" /> New Journal
-        </button>
+        <div className="flex items-center gap-3 no-print">
+          <PrintButton />
+          <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-700 transition-colors">
+            <Plus className="w-4 h-4" /> New Journal
+          </button>
+        </div>
       </div>
 
       {loading ? (

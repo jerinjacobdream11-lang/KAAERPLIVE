@@ -55,6 +55,208 @@ export type Database = {
           },
         ]
       }
+      accounting_account_groups: {
+        Row: {
+          code_prefix_end: string | null
+          code_prefix_start: string | null
+          company_id: string
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+          type: string
+        }
+        Insert: {
+          code_prefix_end?: string | null
+          code_prefix_start?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          type: string
+        }
+        Update: {
+          code_prefix_end?: string | null
+          code_prefix_start?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_account_groups_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_account_groups_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_account_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_chart_of_accounts: {
+        Row: {
+          account_group_id: string | null
+          code: string
+          company_id: string
+          created_at: string
+          currency_id: string | null
+          id: string
+          is_active: boolean | null
+          is_reconcilable: boolean | null
+          name: string
+          subtype: string | null
+          type: string
+        }
+        Insert: {
+          account_group_id?: string | null
+          code: string
+          company_id: string
+          created_at?: string
+          currency_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_reconcilable?: boolean | null
+          name: string
+          subtype?: string | null
+          type: string
+        }
+        Update: {
+          account_group_id?: string | null
+          code?: string
+          company_id?: string
+          created_at?: string
+          currency_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_reconcilable?: boolean | null
+          name?: string
+          subtype?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_chart_of_accounts_account_group_id_fkey"
+            columns: ["account_group_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_account_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_chart_of_accounts_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_chart_of_accounts_currency_id_fkey"
+            columns: ["currency_id"]
+            isOneToOne: false
+            referencedRelation: "financial_masters_currencies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_cost_centers: {
+        Row: {
+          code: string
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          parent_id: string | null
+          type: string
+        }
+        Insert: {
+          code: string
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          parent_id?: string | null
+          type: string
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          parent_id?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_cost_centers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_cost_centers_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_direct_expense_ledgers: {
+        Row: {
+          account_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          account_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          account_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_direct_expense_ledgers_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_direct_expense_ledgers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounting_entries: {
         Row: {
           amount: number
@@ -107,6 +309,321 @@ export type Database = {
             columns: ["reference_id"]
             isOneToOne: false
             referencedRelation: "inventory_transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_fiscal_years: {
+        Row: {
+          company_id: string
+          created_at: string
+          end_date: string
+          id: string
+          is_closed: boolean | null
+          name: string
+          start_date: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          is_closed?: boolean | null
+          name: string
+          start_date: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          is_closed?: boolean | null
+          name?: string
+          start_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_fiscal_years_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_indirect_income_ledgers: {
+        Row: {
+          account_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          account_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          account_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_indirect_income_ledgers_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_indirect_income_ledgers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_journal_entries: {
+        Row: {
+          amount_residual: number
+          amount_total: number
+          approval_status: string
+          company_id: string
+          created_at: string
+          date: string
+          due_date: string | null
+          id: string
+          invoice_date: string | null
+          journal_id: string
+          move_type: string
+          notes: string | null
+          partner_id: string | null
+          period_id: string | null
+          reference: string | null
+          state: string
+        }
+        Insert: {
+          amount_residual?: number
+          amount_total?: number
+          approval_status?: string
+          company_id: string
+          created_at?: string
+          date?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          journal_id: string
+          move_type?: string
+          notes?: string | null
+          partner_id?: string | null
+          period_id?: string | null
+          reference?: string | null
+          state?: string
+        }
+        Update: {
+          amount_residual?: number
+          amount_total?: number
+          approval_status?: string
+          company_id?: string
+          created_at?: string
+          date?: string
+          due_date?: string | null
+          id?: string
+          invoice_date?: string | null
+          journal_id?: string
+          move_type?: string
+          notes?: string | null
+          partner_id?: string | null
+          period_id?: string | null
+          reference?: string | null
+          state?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_journal_entries_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_journal_entries_journal_id_fkey"
+            columns: ["journal_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_journals"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_journal_entries_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_journal_entries_period_id_fkey"
+            columns: ["period_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_periods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_journal_lines: {
+        Row: {
+          account_id: string
+          balance: number | null
+          company_id: string
+          contract_cost_center_id: string | null
+          cost_center_id: string | null
+          created_at: string
+          credit: number
+          debit: number
+          entry_id: string
+          id: string
+          name: string | null
+          partner_id: string | null
+          project_cost_center_id: string | null
+        }
+        Insert: {
+          account_id: string
+          balance?: number | null
+          company_id: string
+          contract_cost_center_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          credit?: number
+          debit?: number
+          entry_id: string
+          id?: string
+          name?: string | null
+          partner_id?: string | null
+          project_cost_center_id?: string | null
+        }
+        Update: {
+          account_id?: string
+          balance?: number | null
+          company_id?: string
+          contract_cost_center_id?: string | null
+          cost_center_id?: string | null
+          created_at?: string
+          credit?: number
+          debit?: number
+          entry_id?: string
+          id?: string
+          name?: string | null
+          partner_id?: string | null
+          project_cost_center_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_journal_lines_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_journal_lines_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_journal_lines_contract_cost_center_id_fkey"
+            columns: ["contract_cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_journal_lines_cost_center_id_fkey"
+            columns: ["cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_cost_centers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_journal_lines_entry_id_fkey"
+            columns: ["entry_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_journal_lines_partner_id_fkey"
+            columns: ["partner_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_partners"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_journal_lines_project_cost_center_id_fkey"
+            columns: ["project_cost_center_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_cost_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_journals: {
+        Row: {
+          code: string
+          company_id: string
+          created_at: string
+          default_account_id: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          sequence_prefix: string | null
+          type: string
+        }
+        Insert: {
+          code: string
+          company_id: string
+          created_at?: string
+          default_account_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          sequence_prefix?: string | null
+          type: string
+        }
+        Update: {
+          code?: string
+          company_id?: string
+          created_at?: string
+          default_account_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          sequence_prefix?: string | null
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_journals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_journals_default_account_id_fkey"
+            columns: ["default_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_chart_of_accounts"
             referencedColumns: ["id"]
           },
         ]
@@ -383,14 +900,51 @@ export type Database = {
           },
         ]
       }
+      accounting_payment_terms: {
+        Row: {
+          company_id: string
+          created_at: string
+          days: number
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          days: number
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          days?: number
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_payment_terms_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       accounting_payments: {
         Row: {
+          accounting_entry_id: string | null
+          accounting_journal_id: string | null
           amount: number
           company_id: string
           created_at: string
           date: string
           id: string
-          journal_id: string
+          journal_id: string | null
           move_id: string | null
           name: string | null
           notes: string | null
@@ -401,12 +955,14 @@ export type Database = {
           state: string | null
         }
         Insert: {
+          accounting_entry_id?: string | null
+          accounting_journal_id?: string | null
           amount: number
           company_id?: string
           created_at?: string
           date?: string
           id?: string
-          journal_id: string
+          journal_id?: string | null
           move_id?: string | null
           name?: string | null
           notes?: string | null
@@ -417,12 +973,14 @@ export type Database = {
           state?: string | null
         }
         Update: {
+          accounting_entry_id?: string | null
+          accounting_journal_id?: string | null
           amount?: number
           company_id?: string
           created_at?: string
           date?: string
           id?: string
-          journal_id?: string
+          journal_id?: string | null
           move_id?: string | null
           name?: string | null
           notes?: string | null
@@ -433,6 +991,20 @@ export type Database = {
           state?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "accounting_payments_accounting_entry_id_fkey"
+            columns: ["accounting_entry_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_journal_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_payments_accounting_journal_id_fkey"
+            columns: ["accounting_journal_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_journals"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "accounting_payments_journal_id_fkey"
             columns: ["journal_id"]
@@ -458,6 +1030,7 @@ export type Database = {
       }
       accounting_periods: {
         Row: {
+          accounting_fiscal_year_id: string | null
           code: string | null
           company_id: string
           created_at: string
@@ -469,6 +1042,7 @@ export type Database = {
           status: string | null
         }
         Insert: {
+          accounting_fiscal_year_id?: string | null
           code?: string | null
           company_id?: string
           created_at?: string
@@ -480,6 +1054,7 @@ export type Database = {
           status?: string | null
         }
         Update: {
+          accounting_fiscal_year_id?: string | null
           code?: string | null
           company_id?: string
           created_at?: string
@@ -492,10 +1067,277 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "accounting_periods_accounting_fiscal_year_id_fkey"
+            columns: ["accounting_fiscal_year_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_fiscal_years"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "accounting_periods_fiscal_year_id_fkey"
             columns: ["fiscal_year_id"]
             isOneToOne: false
             referencedRelation: "fiscal_years"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_purchase_ledgers: {
+        Row: {
+          account_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          account_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          account_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_purchase_ledgers_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_purchase_ledgers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_sales_ledgers: {
+        Row: {
+          account_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+        }
+        Insert: {
+          account_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+        }
+        Update: {
+          account_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_sales_ledgers_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_sales_ledgers_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_stock_categories: {
+        Row: {
+          adjustment_account_id: string | null
+          asset_account_id: string | null
+          cogs_account_id: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          item_category: string
+          name: string
+        }
+        Insert: {
+          adjustment_account_id?: string | null
+          asset_account_id?: string | null
+          cogs_account_id?: string | null
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          item_category: string
+          name: string
+        }
+        Update: {
+          adjustment_account_id?: string | null
+          asset_account_id?: string | null
+          cogs_account_id?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          item_category?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_stock_categories_adjustment_account_id_fkey"
+            columns: ["adjustment_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_stock_categories_asset_account_id_fkey"
+            columns: ["asset_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_stock_categories_cogs_account_id_fkey"
+            columns: ["cogs_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_stock_categories_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accounting_taxes: {
+        Row: {
+          account_id: string | null
+          amount: number
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean | null
+          name: string
+          refund_account_id: string | null
+          scope: string
+          type: string
+        }
+        Insert: {
+          account_id?: string | null
+          amount: number
+          company_id: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name: string
+          refund_account_id?: string | null
+          scope?: string
+          type?: string
+        }
+        Update: {
+          account_id?: string | null
+          amount?: number
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          refund_account_id?: string | null
+          scope?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accounting_taxes_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_taxes_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "accounting_taxes_refund_account_id_fkey"
+            columns: ["refund_account_id"]
+            isOneToOne: false
+            referencedRelation: "accounting_chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      activity_logs: {
+        Row: {
+          action: string
+          company_id: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          new_data: Json | null
+          old_data: Json | null
+          record_id: string | null
+          table_name: string | null
+          user_email: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          company_id?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          new_data?: Json | null
+          old_data?: Json | null
+          record_id?: string | null
+          table_name?: string | null
+          user_email?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activity_logs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
             referencedColumns: ["id"]
           },
         ]
@@ -1466,6 +2308,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      delete_audit_logs: {
+        Row: {
+          deleted_at: string
+          deleted_by_email: string
+          deleted_by_uid: string
+          id: string
+          record_id: string
+          record_name: string | null
+          record_type: string
+        }
+        Insert: {
+          deleted_at?: string
+          deleted_by_email: string
+          deleted_by_uid: string
+          id?: string
+          record_id: string
+          record_name?: string | null
+          record_type: string
+        }
+        Update: {
+          deleted_at?: string
+          deleted_by_email?: string
+          deleted_by_uid?: string
+          id?: string
+          record_id?: string
+          record_name?: string | null
+          record_type?: string
+        }
+        Relationships: []
       }
       departments: {
         Row: {
@@ -2538,6 +3410,134 @@ export type Database = {
         }
         Relationships: []
       }
+      fixed_asset_depreciation: {
+        Row: {
+          amount: number
+          asset_id: string
+          company_id: string
+          created_at: string
+          id: string
+          notes: string | null
+          period_date: string
+        }
+        Insert: {
+          amount: number
+          asset_id: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_date: string
+        }
+        Update: {
+          amount?: number
+          asset_id?: string
+          company_id?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          period_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_asset_depreciation_asset_id_fkey"
+            columns: ["asset_id"]
+            isOneToOne: false
+            referencedRelation: "fixed_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fixed_assets: {
+        Row: {
+          account_id: string | null
+          accumulated_depreciation: number
+          asset_code: string | null
+          category: string
+          company_id: string
+          created_at: string
+          depreciation_account_id: string | null
+          depreciation_method: string
+          description: string | null
+          disposal_date: string | null
+          disposal_value: number | null
+          id: string
+          location: string | null
+          name: string
+          net_book_value: number | null
+          purchase_date: string
+          purchase_value: number
+          salvage_value: number
+          status: string
+          supplier: string | null
+          useful_life_years: number
+          warranty_expiry: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          accumulated_depreciation?: number
+          asset_code?: string | null
+          category?: string
+          company_id?: string
+          created_at?: string
+          depreciation_account_id?: string | null
+          depreciation_method?: string
+          description?: string | null
+          disposal_date?: string | null
+          disposal_value?: number | null
+          id?: string
+          location?: string | null
+          name: string
+          net_book_value?: number | null
+          purchase_date: string
+          purchase_value?: number
+          salvage_value?: number
+          status?: string
+          supplier?: string | null
+          useful_life_years?: number
+          warranty_expiry?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          accumulated_depreciation?: number
+          asset_code?: string | null
+          category?: string
+          company_id?: string
+          created_at?: string
+          depreciation_account_id?: string | null
+          depreciation_method?: string
+          description?: string | null
+          disposal_date?: string | null
+          disposal_value?: number | null
+          id?: string
+          location?: string | null
+          name?: string
+          net_book_value?: number | null
+          purchase_date?: string
+          purchase_value?: number
+          salvage_value?: number
+          status?: string
+          supplier?: string | null
+          useful_life_years?: number
+          warranty_expiry?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fixed_assets_account_id_fkey"
+            columns: ["account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fixed_assets_depreciation_account_id_fkey"
+            columns: ["depreciation_account_id"]
+            isOneToOne: false
+            referencedRelation: "chart_of_accounts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       grni_reconciliation: {
         Row: {
           amount: number
@@ -2646,6 +3646,455 @@ export type Database = {
             columns: ["company_id"]
             isOneToOne: false
             referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hrms_benefit_claims: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          benefit_id: string | null
+          claim_amount: number
+          claim_date: string
+          company_id: string
+          created_at: string
+          description: string | null
+          employee_id: string
+          id: string
+          receipt_url: string | null
+          status: string
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          benefit_id?: string | null
+          claim_amount: number
+          claim_date?: string
+          company_id: string
+          created_at?: string
+          description?: string | null
+          employee_id: string
+          id?: string
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          benefit_id?: string | null
+          claim_amount?: number
+          claim_date?: string
+          company_id?: string
+          created_at?: string
+          description?: string | null
+          employee_id?: string
+          id?: string
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hrms_benefit_claims_approved_by_fkey"
+            columns: ["approved_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hrms_benefit_claims_benefit_id_fkey"
+            columns: ["benefit_id"]
+            isOneToOne: false
+            referencedRelation: "hrms_benefits"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hrms_benefit_claims_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hrms_benefit_claims_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hrms_benefits: {
+        Row: {
+          annual_limit: number | null
+          balance: number | null
+          benefit_type: string
+          company_contribution: number | null
+          company_id: string
+          coverage_details: Json | null
+          created_at: string
+          employee_contribution: number | null
+          employee_id: string
+          id: string
+          status: string
+          tier_name: string
+          updated_at: string
+        }
+        Insert: {
+          annual_limit?: number | null
+          balance?: number | null
+          benefit_type: string
+          company_contribution?: number | null
+          company_id: string
+          coverage_details?: Json | null
+          created_at?: string
+          employee_contribution?: number | null
+          employee_id: string
+          id?: string
+          status?: string
+          tier_name: string
+          updated_at?: string
+        }
+        Update: {
+          annual_limit?: number | null
+          balance?: number | null
+          benefit_type?: string
+          company_contribution?: number | null
+          company_id?: string
+          coverage_details?: Json | null
+          created_at?: string
+          employee_contribution?: number | null
+          employee_id?: string
+          id?: string
+          status?: string
+          tier_name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hrms_benefits_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hrms_benefits_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hrms_perf_cycles: {
+        Row: {
+          company_id: string
+          created_at: string
+          end_date: string
+          id: string
+          name: string
+          start_date: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          end_date: string
+          id?: string
+          name: string
+          start_date: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          end_date?: string
+          id?: string
+          name?: string
+          start_date?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hrms_perf_cycles_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hrms_perf_goals: {
+        Row: {
+          company_id: string
+          created_at: string
+          current_value: number | null
+          description: string | null
+          due_date: string
+          employee_id: string
+          id: string
+          status: string
+          target_value: number
+          title: string
+          unit: string | null
+          updated_at: string
+          weightage: number | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          current_value?: number | null
+          description?: string | null
+          due_date: string
+          employee_id: string
+          id?: string
+          status?: string
+          target_value: number
+          title: string
+          unit?: string | null
+          updated_at?: string
+          weightage?: number | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          current_value?: number | null
+          description?: string | null
+          due_date?: string
+          employee_id?: string
+          id?: string
+          status?: string
+          target_value?: number
+          title?: string
+          unit?: string | null
+          updated_at?: string
+          weightage?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hrms_perf_goals_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hrms_perf_goals_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hrms_perf_reviews: {
+        Row: {
+          company_id: string
+          created_at: string
+          cycle_id: string
+          employee_id: string
+          final_rating: number | null
+          id: string
+          manager_comments: string | null
+          manager_rating: number | null
+          self_comments: string | null
+          self_rating: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          cycle_id: string
+          employee_id: string
+          final_rating?: number | null
+          id?: string
+          manager_comments?: string | null
+          manager_rating?: number | null
+          self_comments?: string | null
+          self_rating?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          cycle_id?: string
+          employee_id?: string
+          final_rating?: number | null
+          id?: string
+          manager_comments?: string | null
+          manager_rating?: number | null
+          self_comments?: string | null
+          self_rating?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hrms_perf_reviews_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hrms_perf_reviews_cycle_id_fkey"
+            columns: ["cycle_id"]
+            isOneToOne: false
+            referencedRelation: "hrms_perf_cycles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hrms_perf_reviews_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hrms_travel_expenses: {
+        Row: {
+          amount: number
+          category: string
+          company_id: string
+          created_at: string
+          currency: string | null
+          description: string | null
+          exchange_rate: number | null
+          expense_date: string
+          id: string
+          receipt_url: string | null
+          status: string
+          travel_request_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          company_id: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          exchange_rate?: number | null
+          expense_date?: string
+          id?: string
+          receipt_url?: string | null
+          status?: string
+          travel_request_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          company_id?: string
+          created_at?: string
+          currency?: string | null
+          description?: string | null
+          exchange_rate?: number | null
+          expense_date?: string
+          id?: string
+          receipt_url?: string | null
+          status?: string
+          travel_request_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hrms_travel_expenses_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hrms_travel_expenses_travel_request_id_fkey"
+            columns: ["travel_request_id"]
+            isOneToOne: false
+            referencedRelation: "hrms_travel_requests"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      hrms_travel_requests: {
+        Row: {
+          company_id: string
+          created_at: string
+          departure_date: string
+          destination: string
+          employee_id: string
+          estimated_cost: number | null
+          flight_details: string | null
+          hotel_details: string | null
+          id: string
+          need_flight: boolean | null
+          need_hotel: boolean | null
+          purpose: string
+          return_date: string
+          status: string
+          updated_at: string
+          workflow_instance_id: string | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          departure_date: string
+          destination: string
+          employee_id: string
+          estimated_cost?: number | null
+          flight_details?: string | null
+          hotel_details?: string | null
+          id?: string
+          need_flight?: boolean | null
+          need_hotel?: boolean | null
+          purpose: string
+          return_date: string
+          status?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          departure_date?: string
+          destination?: string
+          employee_id?: string
+          estimated_cost?: number | null
+          flight_details?: string | null
+          hotel_details?: string | null
+          id?: string
+          need_flight?: boolean | null
+          need_hotel?: boolean | null
+          purpose?: string
+          return_date?: string
+          status?: string
+          updated_at?: string
+          workflow_instance_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hrms_travel_requests_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "hrms_travel_requests_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
             referencedColumns: ["id"]
           },
         ]
@@ -3851,6 +5300,98 @@ export type Database = {
           },
           {
             foreignKeyName: "mrp_production_orders_work_center_id_fkey"
+            columns: ["work_center_id"]
+            isOneToOne: false
+            referencedRelation: "mrp_work_centers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mrp_routing: {
+        Row: {
+          code: string | null
+          company_id: string
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          notes: string | null
+          product_id: string | null
+        }
+        Insert: {
+          code?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          notes?: string | null
+          product_id?: string | null
+        }
+        Update: {
+          code?: string | null
+          company_id?: string
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          notes?: string | null
+          product_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mrp_routing_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "item_master"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      mrp_routing_lines: {
+        Row: {
+          company_id: string
+          created_at: string
+          duration_hours: number
+          id: string
+          notes: string | null
+          operation_name: string
+          routing_id: string | null
+          sequence: number
+          work_center_id: string | null
+        }
+        Insert: {
+          company_id?: string
+          created_at?: string
+          duration_hours?: number
+          id?: string
+          notes?: string | null
+          operation_name: string
+          routing_id?: string | null
+          sequence?: number
+          work_center_id?: string | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          duration_hours?: number
+          id?: string
+          notes?: string | null
+          operation_name?: string
+          routing_id?: string | null
+          sequence?: number
+          work_center_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mrp_routing_lines_routing_id_fkey"
+            columns: ["routing_id"]
+            isOneToOne: false
+            referencedRelation: "mrp_routing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mrp_routing_lines_work_center_id_fkey"
             columns: ["work_center_id"]
             isOneToOne: false
             referencedRelation: "mrp_work_centers"
@@ -5142,45 +6683,57 @@ export type Database = {
           company_id: string
           created_at: string | null
           employee_id: string | null
+          fixed_allowance: number | null
           gross_earning: number | null
           id: string
           loan_deduction: number | null
+          lop_days: number | null
           month_year: string
           net_pay: number | null
           ot_amount: number | null
+          payable_days: number | null
           payment_date: string | null
           status: string | null
           total_deduction: number | null
+          variable_allowance: number | null
         }
         Insert: {
           basic_salary?: number | null
           company_id: string
           created_at?: string | null
           employee_id?: string | null
+          fixed_allowance?: number | null
           gross_earning?: number | null
           id?: string
           loan_deduction?: number | null
+          lop_days?: number | null
           month_year: string
           net_pay?: number | null
           ot_amount?: number | null
+          payable_days?: number | null
           payment_date?: string | null
           status?: string | null
           total_deduction?: number | null
+          variable_allowance?: number | null
         }
         Update: {
           basic_salary?: number | null
           company_id?: string
           created_at?: string | null
           employee_id?: string | null
+          fixed_allowance?: number | null
           gross_earning?: number | null
           id?: string
           loan_deduction?: number | null
+          lop_days?: number | null
           month_year?: string
           net_pay?: number | null
           ot_amount?: number | null
+          payable_days?: number | null
           payment_date?: string | null
           status?: string | null
           total_deduction?: number | null
+          variable_allowance?: number | null
         }
         Relationships: [
           {
@@ -5733,6 +7286,138 @@ export type Database = {
             columns: ["warehouse_id"]
             isOneToOne: false
             referencedRelation: "warehouses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_applicants: {
+        Row: {
+          company_id: string
+          cover_letter: string | null
+          created_at: string
+          email: string
+          id: string
+          interview_date: string | null
+          interviewer_notes: string | null
+          job_id: string
+          name: string
+          phone: string | null
+          rating: number | null
+          resume_url: string
+          stage: string
+          updated_at: string
+        }
+        Insert: {
+          company_id: string
+          cover_letter?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          interview_date?: string | null
+          interviewer_notes?: string | null
+          job_id: string
+          name: string
+          phone?: string | null
+          rating?: number | null
+          resume_url: string
+          stage?: string
+          updated_at?: string
+        }
+        Update: {
+          company_id?: string
+          cover_letter?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          interview_date?: string | null
+          interviewer_notes?: string | null
+          job_id?: string
+          name?: string
+          phone?: string | null
+          rating?: number | null
+          resume_url?: string
+          stage?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_applicants_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_applicants_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "recruitment_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recruitment_jobs: {
+        Row: {
+          company_id: string
+          created_at: string
+          department_id: number | null
+          description: string
+          employment_type: string
+          id: string
+          location: string
+          requirements: string | null
+          salary_range_max: number | null
+          salary_range_min: number | null
+          status: string
+          title: string
+          updated_at: string
+          views: number | null
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          department_id?: number | null
+          description: string
+          employment_type: string
+          id?: string
+          location: string
+          requirements?: string | null
+          salary_range_max?: number | null
+          salary_range_min?: number | null
+          status?: string
+          title: string
+          updated_at?: string
+          views?: number | null
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          department_id?: number | null
+          description?: string
+          employment_type?: string
+          id?: string
+          location?: string
+          requirements?: string | null
+          salary_range_max?: number | null
+          salary_range_min?: number | null
+          status?: string
+          title?: string
+          updated_at?: string
+          views?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recruitment_jobs_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "recruitment_jobs_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
         ]
@@ -6873,7 +8558,28 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      vw_hr_payroll_reports: {
+        Row: {
+          basic_salary: number | null
+          company_id: string | null
+          department_name: string | null
+          employee_code: string | null
+          employee_name: string | null
+          fixed_allowance: number | null
+          gross_earning: number | null
+          id: string | null
+          loan_deduction: number | null
+          lop_days: number | null
+          month_year: string | null
+          net_pay: number | null
+          ot_amount: number | null
+          payable_days: number | null
+          status: string | null
+          total_deduction: number | null
+          variable_allowance: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_create_user: {
@@ -6888,6 +8594,7 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_delete_user: { Args: { p_user_id: string }; Returns: Json }
       admin_update_user: {
         Args: {
           p_employee_id?: string
@@ -6906,6 +8613,7 @@ export type Database = {
         Returns: boolean
       }
       get_current_company_id: { Args: never; Returns: string }
+      get_database_schema_info: { Args: never; Returns: Json }
       get_my_company_id: { Args: never; Returns: string }
       get_period_for_date: {
         Args: { p_company_id: string; p_date: string }
@@ -6920,6 +8628,36 @@ export type Database = {
         Args: { p_company_id: string; p_items: Json }
         Returns: Json
       }
+      rpc_cancel_production_order: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      rpc_cancel_purchase_order: { Args: { p_order_id: string }; Returns: Json }
+      rpc_cancel_sales_order: { Args: { p_order_id: string }; Returns: Json }
+      rpc_complete_production: {
+        Args: { p_order_id: string; p_qty_produced?: number }
+        Returns: Json
+      }
+      rpc_confirm_production_order: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      rpc_confirm_purchase_order: {
+        Args: { p_order_id: string }
+        Returns: Json
+      }
+      rpc_confirm_sales_order: { Args: { p_order_id: string }; Returns: Json }
+      rpc_create_accounting_invoice: {
+        Args: {
+          p_date: string
+          p_due_date: string
+          p_journal_id: string
+          p_lines: Json
+          p_move_type: string
+          p_partner_id: string
+        }
+        Returns: string
+      }
       rpc_create_invoice: {
         Args: {
           p_date: string
@@ -6931,6 +8669,45 @@ export type Database = {
         }
         Returns: string
       }
+      rpc_create_production_order: {
+        Args: {
+          p_bom_id: string
+          p_date_planned: string
+          p_notes?: string
+          p_product_id: string
+          p_quantity: number
+          p_work_center_id?: string
+        }
+        Returns: Json
+      }
+      rpc_create_purchase_order: {
+        Args: {
+          p_expected_date: string
+          p_lines?: Json
+          p_notes?: string
+          p_partner_id: string
+          p_warehouse_id?: string
+        }
+        Returns: Json
+      }
+      rpc_create_sales_order: {
+        Args: {
+          p_commitment_date?: string
+          p_lines?: Json
+          p_notes?: string
+          p_partner_id: string
+          p_warehouse_id?: string
+        }
+        Returns: Json
+      }
+      rpc_dispose_asset: {
+        Args: {
+          p_asset_id: string
+          p_disposal_date: string
+          p_disposal_value?: number
+        }
+        Returns: Json
+      }
       rpc_finance_dashboard_summary: {
         Args: { p_company_id: string }
         Returns: Json
@@ -6940,6 +8717,7 @@ export type Database = {
         Returns: string
       }
       rpc_fix_my_access: { Args: never; Returns: string }
+      rpc_fixed_assets_summary: { Args: never; Returns: Json }
       rpc_generate_payroll: {
         Args: { p_company_id: string; p_month_year: string }
         Returns: string
@@ -6948,12 +8726,48 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      rpc_get_accounting_account_balance: {
+        Args: { p_account_id: string; p_date: string }
+        Returns: number
+      }
+      rpc_get_accounting_balance_sheet: {
+        Args: { p_date: string }
+        Returns: Json
+      }
+      rpc_get_accounting_expense_analysis: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
+      rpc_get_accounting_partner_aging: {
+        Args: { p_date: string; p_partner_type: string }
+        Returns: Json
+      }
+      rpc_get_accounting_profit_loss: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
+      rpc_get_accounting_purchase_ledger_report: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
+      rpc_get_accounting_sales_ledger_report: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
+      rpc_get_accounting_trial_balance: {
+        Args: { p_date: string }
+        Returns: Json
+      }
       rpc_get_balance_sheet: { Args: { p_date: string }; Returns: Json }
       rpc_get_cash_book: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
       }
       rpc_get_device_sync_status: {
+        Args: { p_company_id: string }
+        Returns: Json
+      }
+      rpc_get_inventory_valuation: {
         Args: { p_company_id: string }
         Returns: Json
       }
@@ -6974,6 +8788,10 @@ export type Database = {
         Returns: Json
       }
       rpc_get_profit_loss: {
+        Args: { p_end_date: string; p_start_date: string }
+        Returns: Json
+      }
+      rpc_get_qatar_vat_report: {
         Args: { p_end_date: string; p_start_date: string }
         Returns: Json
       }
@@ -7012,8 +8830,15 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      rpc_invoice_sales_order: { Args: { p_order_id: string }; Returns: Json }
+      rpc_manufacturing_summary: { Args: never; Returns: Json }
       rpc_mark_all_present: {
         Args: { p_company_id: string; p_date: string }
+        Returns: string
+      }
+      rpc_post_accounting_entry: { Args: { p_entry_id: string }; Returns: Json }
+      rpc_post_accounting_payment: {
+        Args: { p_payment_id: string }
         Returns: string
       }
       rpc_post_move: {
@@ -7035,9 +8860,14 @@ export type Database = {
         }
         Returns: Json
       }
+      rpc_procurement_summary: { Args: never; Returns: Json }
       rpc_punch_action: {
         Args: { p_company_id: string; p_employee_id: string }
         Returns: string
+      }
+      rpc_receive_purchase_order: {
+        Args: { p_order_id: string }
+        Returns: Json
       }
       rpc_reconcile_statement_line: {
         Args: { p_payment_id: string; p_statement_line_id: string }
@@ -7047,9 +8877,31 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: Json
       }
+      rpc_run_depreciation: { Args: { p_period_date: string }; Returns: Json }
       rpc_run_leave_accrual: {
         Args: { p_company_id: string; p_year?: number }
         Returns: number
+      }
+      rpc_seed_accounting_masters: {
+        Args: { v_company_id: string }
+        Returns: undefined
+      }
+      rpc_seed_company_data: {
+        Args: { v_company_id: string }
+        Returns: undefined
+      }
+      rpc_seed_company_data_wrapper: {
+        Args: { v_company_id: string }
+        Returns: undefined
+      }
+      rpc_seed_vat_demo_data: {
+        Args: { p_target_company_id?: string }
+        Returns: Json
+      }
+      rpc_ship_sales_order: { Args: { p_order_id: string }; Returns: Json }
+      rpc_start_production_order: {
+        Args: { p_order_id: string }
+        Returns: Json
       }
       rpc_stock_movement_trend: {
         Args: { p_company_id: string }

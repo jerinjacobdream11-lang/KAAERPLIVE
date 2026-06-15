@@ -3,6 +3,8 @@ import { supabase } from '../../../lib/supabase';
 import { Receipt, PieChart as PieIcon } from 'lucide-react';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 const COLORS = ['#8b5cf6','#f43f5e','#06b6d4','#f59e0b','#10b981','#6366f1','#ec4899','#14b8a6'];
 
@@ -21,18 +23,21 @@ export const ExpenseReport: React.FC = () => {
         if (!currentCompanyId) return;
         setLoading(true);
         try {
-            // Fetch posted expense move lines joined to expense-type accounts
+            // Fetch posted expense journal lines joined to expense-type accounts
             const { data: lines, error } = await supabase
-                .from('accounting_move_lines')
-                .select('debit, credit, account:chart_of_accounts(id, code, name, type)')
-                .eq('company_id', currentCompanyId)
-                .gte('date', startDate).lte('date', endDate);
+                .from('accounting_journal_lines')
+                .select('debit, credit, account:accounting_chart_of_accounts(id, code, name, type), entry:accounting_journal_entries!entry_id(date, state)')
+                .eq('company_id', currentCompanyId);
             if (error) throw error;
 
             // Group by expense accounts only
             const grouped: Record<string, { name: string; code: string; amount: number }> = {};
             (lines || []).forEach((l: any) => {
                 if (l.account?.type !== 'Expense') return;
+                const entryDate = l.entry?.date;
+                const entryState = l.entry?.state;
+                if (!entryDate || entryDate < startDate || entryDate > endDate || entryState !== 'Posted') return;
+
                 const key = l.account.id;
                 if (!grouped[key]) grouped[key] = { name: l.account.name, code: l.account.code, amount: 0 };
                 grouped[key].amount += Number(l.debit) - Number(l.credit);
@@ -48,12 +53,15 @@ export const ExpenseReport: React.FC = () => {
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
-            <div className="flex items-center gap-3">
-                <Receipt className="w-6 h-6 text-rose-500" />
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Expense Report</h2>
+            <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <Receipt className="w-6 h-6 text-rose-500" />
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Expense Report</h2>
+                </div>
+                <PrintButton />
             </div>
 
-            <div className="flex items-end gap-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-800">
+            <div className="flex items-end gap-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-800 no-print">
                 <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">From</label><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" /></div>
                 <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">To</label><input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" /></div>
                 <div className="bg-rose-50 dark:bg-rose-900/20 px-4 py-2.5 rounded-lg">

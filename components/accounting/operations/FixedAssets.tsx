@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import {
   Building2, Plus, X, Save, Loader, Edit2, Trash2,
   Search, ChevronDown, ChevronUp, TrendingDown,
   AlertTriangle, CheckCircle2, Archive, Play,
   Calendar, DollarSign, BarChart3, Tag
 } from 'lucide-react';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 /* ─── Types ─────────────────────────────────────────────── */
 interface CoAAccount { id: string; name: string; code: string; }
@@ -44,6 +47,7 @@ const pct    = (a: number, b: number) => b > 0 ? Math.min(100, (a/b)*100).toFixe
 
 /* ─── Component ─────────────────────────────────────────── */
 export const FixedAssets: React.FC = () => {
+  const { currentCompanyId } = useAuth();
   const [assets, setAssets]         = useState<Asset[]>([]);
   const [accounts, setAccounts]     = useState<CoAAccount[]>([]);
   const [summary, setSummary]       = useState<Summary|null>(null);
@@ -72,25 +76,34 @@ export const FixedAssets: React.FC = () => {
 
   /* ─── Fetch ──────────────────────────────────────────── */
   const fetchAll = useCallback(async () => {
+    if (!currentCompanyId) return;
     setLoading(true);
     const [{ data: a }, { data: acc }, { data: sum }] = await Promise.all([
-      (supabase as any).from('fixed_assets').select('*').order('purchase_date', { ascending: false }),
-      (supabase as any).from('chart_of_accounts').select('id,name,code').order('code'),
-      (supabase as any).rpc('rpc_fixed_assets_summary'),
+      supabase.from('fixed_assets').select('*').eq('company_id', currentCompanyId).order('purchase_date', { ascending: false }),
+      supabase.from('accounting_chart_of_accounts').select('id,name,code').eq('company_id', currentCompanyId).order('code'),
+      supabase.rpc('rpc_fixed_assets_summary'),
     ]);
     setAssets(a || []);
     setAccounts(acc || []);
-    if (sum) setSummary(sum);
+    if (sum) setSummary(sum as unknown as Summary);
     setLoading(false);
-  }, []);
+  }, [currentCompanyId]);
 
-  useEffect(() => { fetchAll(); }, [fetchAll]);
+  useEffect(() => {
+    if (currentCompanyId) {
+      fetchAll();
+    }
+  }, [currentCompanyId, fetchAll]);
 
   const loadDepHistory = async (assetId: string) => {
     if (depCache[assetId]) return;
-    const { data } = await (supabase as any)
+    if (!currentCompanyId) return;
+    const { data } = await supabase
       .from('fixed_asset_depreciation')
-      .select('*').eq('asset_id', assetId).order('period_date', { ascending: false });
+      .select('*')
+      .eq('company_id', currentCompanyId)
+      .eq('asset_id', assetId)
+      .order('period_date', { ascending: false });
     setDepCache(prev => ({ ...prev, [assetId]: data || [] }));
   };
 
@@ -119,6 +132,7 @@ export const FixedAssets: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (!currentCompanyId) { setErr('No company context'); return; }
     if (!form.name.trim())      { setErr('Asset name is required.'); return; }
     if (!form.purchase_date)    { setErr('Purchase date is required.'); return; }
     if (form.purchase_value<=0) { setErr('Purchase value must be > 0.'); return; }
@@ -131,17 +145,18 @@ export const FixedAssets: React.FC = () => {
       location: form.location||null, supplier: form.supplier||null,
       warranty_expiry: form.warranty_expiry||null,
       account_id: form.account_id||null, depreciation_account_id: form.depreciation_account_id||null,
+      company_id: currentCompanyId,
     };
     const { error } = editing
-      ? await (supabase as any).from('fixed_assets').update(payload).eq('id', editing.id)
-      : await (supabase as any).from('fixed_assets').insert(payload);
+      ? await supabase.from('fixed_assets').update(payload).eq('id', editing.id)
+      : await supabase.from('fixed_assets').insert([payload]);
     if (error) { setErr(error.message); setSaving(false); return; }
     setSaving(false); setShowModal(false); fetchAll();
   };
 
   const deleteAsset = async (id: string) => {
     if (!confirm('Delete this asset? All depreciation records will be removed.')) return;
-    await (supabase as any).from('fixed_assets').delete().eq('id', id);
+    await supabase.from('fixed_assets').delete().eq('id', id);
     setDepCache(prev => { const n={...prev}; delete n[id]; return n; });
     fetchAll();
   };
@@ -213,15 +228,18 @@ export const FixedAssets: React.FC = () => {
           <h2 className="text-lg font-bold text-slate-700 dark:text-white">Fixed Assets</h2>
           <p className="text-xs text-slate-400">Asset register, depreciation schedules &amp; disposal management</p>
         </div>
-        <div className="flex gap-2">
-          <button onClick={() => { setDepPeriod(new Date().toISOString().slice(0,10)); setDepResult(null); setShowDepModal(true); }}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-amber-400 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors">
-            <Play className="w-3.5 h-3.5"/>Run Depreciation
-          </button>
-          <button onClick={openNew}
-            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors">
-            <Plus className="w-4 h-4"/> New Asset
-          </button>
+        <div className="flex gap-2 items-center">
+          <div className="flex gap-2 no-print">
+            <button onClick={() => { setDepPeriod(new Date().toISOString().slice(0,10)); setDepResult(null); setShowDepModal(true); }}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-amber-400 text-amber-600 dark:text-amber-400 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/30 transition-colors">
+              <Play className="w-3.5 h-3.5"/>Run Depreciation
+            </button>
+            <button onClick={openNew}
+              className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors">
+              <Plus className="w-4 h-4"/> New Asset
+            </button>
+          </div>
+          <PrintButton />
         </div>
       </div>
 

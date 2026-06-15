@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { PrintButton } from '../ui/PrintButton';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -167,7 +168,7 @@ export const FinanceDashboard: React.FC = () => {
                 supabase.rpc('rpc_ar_aging', { p_company_id: currentCompanyId }),
                 supabase.rpc('rpc_revenue_expense_trend', { p_company_id: currentCompanyId }),
                 supabase
-                    .from('accounting_moves')
+                    .from('accounting_journal_entries')
                     .select('id, reference, due_date, amount_residual, partner:accounting_partners(name)')
                     .eq('company_id', currentCompanyId)
                     .eq('move_type', 'out_invoice')
@@ -177,7 +178,7 @@ export const FinanceDashboard: React.FC = () => {
                     .order('due_date', { ascending: true })
                     .limit(5),
                 supabase
-                    .from('accounting_moves')
+                    .from('accounting_journal_entries')
                     .select('id, reference, due_date, amount_residual, partner:accounting_partners(name)')
                     .eq('company_id', currentCompanyId)
                     .eq('move_type', 'in_invoice')
@@ -236,13 +237,16 @@ export const FinanceDashboard: React.FC = () => {
                         Current Financial Year · Updated {lastRefresh.toLocaleTimeString()}
                     </p>
                 </div>
-                <button
-                    onClick={fetchAll}
-                    className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
-                >
-                    <RefreshCw className="w-3.5 h-3.5" />
-                    Refresh
-                </button>
+                <div className="flex items-center gap-3 no-print">
+                    <button
+                        onClick={fetchAll}
+                        className="flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-violet-600 dark:hover:text-violet-400 transition-colors bg-white dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-3 py-2 rounded-lg shadow-sm"
+                    >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        Refresh
+                    </button>
+                    <PrintButton />
+                </div>
             </div>
 
             {/* KPI Cards */}

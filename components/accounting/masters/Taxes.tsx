@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Percent, Plus, X, Save, Loader, Edit2, CheckCircle, XCircle, AlertTriangle } from 'lucide-react';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 interface Account { id: string; name: string; code: string; }
 interface Tax {
@@ -15,6 +18,7 @@ const TAX_SCOPES = ['sale','purchase','both'] as const;
 const EMPTY = { name:'', type:'percentage', scope:'both', amount:0, account_id:'', refund_account_id:'', is_active:true };
 
 export const Taxes: React.FC = () => {
+  const { currentCompanyId } = useAuth();
   const [taxes, setTaxes]       = useState<Tax[]>([]);
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [loading, setLoading]   = useState(true);
@@ -25,21 +29,23 @@ export const Taxes: React.FC = () => {
   const [err, setErr]           = useState('');
 
   const fetchAll = useCallback(async () => {
+    if (!currentCompanyId) return;
     setLoading(true);
     const [{ data: t }, { data: a }] = await Promise.all([
-      (supabase as any).from('taxes')
-        .select('*, chart_of_accounts!account_id(name,code), chart_of_accounts!refund_account_id(name,code)')
+      supabase.from('accounting_taxes')
+        .select('*, accounting_chart_of_accounts!account_id(name,code), accounting_chart_of_accounts!refund_account_id(name,code)')
+        .eq('company_id', currentCompanyId)
         .order('name'),
-      (supabase as any).from('chart_of_accounts').select('id,name,code').order('code'),
+      supabase.from('accounting_chart_of_accounts').select('id,name,code').eq('company_id', currentCompanyId).order('code'),
     ]);
     setTaxes((t || []).map((x: any) => ({
       ...x,
-      account_name: x.chart_of_accounts?.name,
-      refund_account_name: x['chart_of_accounts1']?.name ?? x.chart_of_accounts?.name,
+      account_name: x.accounting_chart_of_accounts?.name,
+      refund_account_name: x['accounting_chart_of_accounts1']?.name ?? x.accounting_chart_of_accounts?.name,
     })));
     setAccounts(a || []);
     setLoading(false);
-  }, []);
+  }, [currentCompanyId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -51,18 +57,19 @@ export const Taxes: React.FC = () => {
   };
 
   const handleSave = async () => {
+    if (!currentCompanyId) { setErr('No company context'); return; }
     if (!form.name.trim()) { setErr('Name is required.'); return; }
     setSaving(true); setErr('');
-    const payload = { name: form.name, type: form.type, scope: form.scope, amount: form.amount, account_id: form.account_id || null, refund_account_id: form.refund_account_id || null, is_active: form.is_active };
+    const payload = { name: form.name, type: form.type, scope: form.scope, amount: form.amount, account_id: form.account_id || null, refund_account_id: form.refund_account_id || null, is_active: form.is_active, company_id: currentCompanyId };
     const { error } = editing
-      ? await (supabase as any).from('taxes').update(payload).eq('id', editing.id)
-      : await (supabase as any).from('taxes').insert(payload);
+      ? await supabase.from('accounting_taxes').update(payload).eq('id', editing.id)
+      : await supabase.from('accounting_taxes').insert([payload]);
     if (error) { setErr(error.message); setSaving(false); return; }
     setSaving(false); setShowModal(false); fetchAll();
   };
 
   const toggleActive = async (tax: Tax) => {
-    await (supabase as any).from('taxes').update({ is_active: !tax.is_active }).eq('id', tax.id);
+    await supabase.from('accounting_taxes').update({ is_active: !tax.is_active }).eq('id', tax.id);
     fetchAll();
   };
 
@@ -79,9 +86,12 @@ export const Taxes: React.FC = () => {
           <h2 className="text-lg font-bold text-slate-700 dark:text-white">Taxes</h2>
           <p className="text-xs text-slate-400">Configure VAT, WHT and other tax rates</p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-700 transition-colors">
-          <Plus className="w-4 h-4" /> New Tax
-        </button>
+        <div className="flex items-center gap-3 no-print">
+          <PrintButton />
+          <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-700 transition-colors">
+            <Plus className="w-4 h-4" /> New Tax
+          </button>
+        </div>
       </div>
 
       {loading ? (

@@ -3,6 +3,8 @@ import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
 import { Calendar, Filter, FileText, TrendingUp, TrendingDown, ChevronDown, ChevronRight } from 'lucide-react';
 import { QatarVATReport } from './QatarVATReport';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 export const FinancialReports: React.FC = () => {
     const { currentCompanyId } = useAuth();
@@ -178,7 +180,7 @@ export const FinancialReports: React.FC = () => {
     return (
         <div className="space-y-6 max-w-5xl mx-auto h-full flex flex-col p-4">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-slate-200 dark:border-zinc-800 shadow-sm animate-page-enter">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 no-print">
                     {[
                         { id: 'bs', label: 'Balance Sheet' },
                         { id: 'pl', label: 'Profit & Loss' },
@@ -202,7 +204,7 @@ export const FinancialReports: React.FC = () => {
                     ))}
                 </div>
 
-                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+                <div className="flex flex-wrap items-center gap-2 w-full md:w-auto no-print">
                     {activeReport === 'aging' && (
                         <select 
                             value={partnerType} 
@@ -219,11 +221,12 @@ export const FinancialReports: React.FC = () => {
                     {(activeReport === 'tb' || activeReport === 'bs') ? null : <span className="text-slate-400 hidden md:block">→</span>}
                     <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="p-2 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl text-xs focus:ring-2 ring-indigo-500/20 outline-none" />
                 </div>
+                <PrintButton className="w-full md:w-auto justify-center" />
             </div>
 
             {/* Cost Center Filters for Profit & Loss */}
             {activeReport === 'pl' && (
-                <div className="flex flex-wrap gap-4 bg-slate-50 dark:bg-zinc-800/40 p-4 rounded-xl border border-slate-200 dark:border-zinc-800 text-sm">
+                <div className="flex flex-wrap gap-4 bg-slate-50 dark:bg-zinc-800/40 p-4 rounded-xl border border-slate-200 dark:border-zinc-800 text-sm no-print">
                     <div className="flex items-center gap-2">
                         <span className="font-bold text-slate-500 uppercase text-xs">Project:</span>
                         <select

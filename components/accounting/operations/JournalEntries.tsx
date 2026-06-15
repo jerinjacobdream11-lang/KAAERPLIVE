@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Plus, Search, Filter, ArrowRight, Save, Trash2 } from 'lucide-react';
 import { Modal } from '../../ui/Modal';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 interface JournalEntry {
     id: string;
@@ -28,6 +31,7 @@ interface JournalEntryLine {
 }
 
 export const JournalEntries: React.FC = () => {
+    const { currentCompanyId } = useAuth();
     const [entries, setEntries] = useState<JournalEntry[]>([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [currentEntry, setCurrentEntry] = useState<Partial<JournalEntry>>({ lines: [] });
@@ -39,27 +43,32 @@ export const JournalEntries: React.FC = () => {
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        fetchEntries();
-        fetchMasters();
-    }, []);
+        if (currentCompanyId) {
+            fetchEntries();
+            fetchMasters();
+        }
+    }, [currentCompanyId]);
 
     const fetchEntries = async () => {
+        if (!currentCompanyId) return;
         const { data, error } = await supabase
             .from('accounting_journal_entries')
             .select(`
                 *,
                 journal:accounting_journals(name)
             `)
+            .eq('company_id', currentCompanyId)
             .order('date', { ascending: false });
         if (error) console.error(error);
         else setEntries((data || []) as any);
     };
 
     const fetchMasters = async () => {
+        if (!currentCompanyId) return;
         const [jRes, aRes, ccRes] = await Promise.all([
-            supabase.from('accounting_journals').select('*').eq('is_active', true),
-            supabase.from('accounting_chart_of_accounts').select('*').eq('is_active', true).order('code'),
-            supabase.from('accounting_cost_centers').select('*').eq('is_active', true)
+            supabase.from('accounting_journals').select('*').eq('company_id', currentCompanyId).eq('is_active', true),
+            supabase.from('accounting_chart_of_accounts').select('*').eq('company_id', currentCompanyId).eq('is_active', true).order('code'),
+            supabase.from('accounting_cost_centers').select('*').eq('company_id', currentCompanyId).eq('is_active', true)
         ]);
         if (jRes.data) setJournals(jRes.data);
         if (aRes.data) setAccounts(aRes.data);
@@ -122,6 +131,7 @@ export const JournalEntries: React.FC = () => {
         }
 
         try {
+            if (!currentCompanyId) throw new Error('No company context');
             // 1. Insert Header
             const moveData = {
                 journal_id: currentEntry.journal_id,
@@ -129,7 +139,8 @@ export const JournalEntries: React.FC = () => {
                 reference: currentEntry.reference,
                 notes: currentEntry.notes,
                 state: 'Draft',
-                amount_total: totals.totalDebit
+                amount_total: totals.totalDebit,
+                company_id: currentCompanyId
             };
 
             const { data: move, error: moveError } = await supabase
@@ -149,7 +160,8 @@ export const JournalEntries: React.FC = () => {
                 credit: line.credit,
                 cost_center_id: line.cost_center_id || null,
                 project_cost_center_id: line.project_cost_center_id || null,
-                contract_cost_center_id: line.contract_cost_center_id || null
+                contract_cost_center_id: line.contract_cost_center_id || null,
+                company_id: currentCompanyId
             }));
 
             const { error: linesError } = await supabase
@@ -188,8 +200,7 @@ export const JournalEntries: React.FC = () => {
 
     const handleDelete = async (id: string) => {
         const { data: { user: currentAuthUser } } = await supabase.auth.getUser();
-        if (!confirm('Are you sure you want to delete this journal entry? This will permanently delete the transaction and all its ledger lines from the database.')) return;
-
+        
         setLoading(true);
         try {
             const { data: entry } = await supabase
@@ -198,8 +209,19 @@ export const JournalEntries: React.FC = () => {
                 .eq('id', id)
                 .maybeSingle();
 
+            if (entry && entry.state !== 'Draft') {
+                alert('Only Draft entries can be deleted.');
+                setLoading(false);
+                return;
+            }
+
+            if (!confirm('Are you sure you want to delete this journal entry? This will permanently delete the transaction and all its ledger lines from the database.')) {
+                setLoading(false);
+                return;
+            }
+
             if (currentAuthUser && entry) {
-                await (supabase.from as any)('delete_audit_logs').insert([{
+                await supabase.from('delete_audit_logs').insert([{
                     deleted_by_email: currentAuthUser.email || 'unknown',
                     deleted_by_uid: currentAuthUser.id,
                     record_type: 'journal_entry',
@@ -236,9 +258,12 @@ export const JournalEntries: React.FC = () => {
                     <h3 className="text-lg font-semibold text-slate-800 dark:text-white">Journal Entries</h3>
                     <p className="text-sm text-slate-500">Record and manage financial transactions.</p>
                 </div>
-                <button onClick={handleOpenCreate} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
-                    <Plus className="w-4 h-4" /> New Entry
-                </button>
+                <div className="flex items-center gap-3 no-print">
+                    <PrintButton />
+                    <button onClick={handleOpenCreate} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        <Plus className="w-4 h-4" /> New Entry
+                    </button>
+                </div>
             </div>
 
             {/* List View */}
@@ -281,13 +306,15 @@ export const JournalEntries: React.FC = () => {
                                                 POST
                                             </button>
                                         )}
-                                        <button
-                                            onClick={() => handleDelete(entry.id)}
-                                            className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition"
-                                            title="Delete Entry"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                        </button>
+                                        {entry.state === 'Draft' && (
+                                            <button
+                                                onClick={() => handleDelete(entry.id)}
+                                                className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition"
+                                                title="Delete Entry"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
+                                        )}
                                     </div>
                                 </td>
                             </tr>

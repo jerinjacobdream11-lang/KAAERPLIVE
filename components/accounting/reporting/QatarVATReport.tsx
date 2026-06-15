@@ -47,7 +47,7 @@ export const QatarVATReport: React.FC<QatarVATReportProps> = ({
         try {
             // Count total moves for the current company
             const { count, error } = await supabase
-                .from('accounting_moves')
+                .from('accounting_journal_entries')
                 .select('*', { count: 'exact', head: true })
                 .eq('company_id', currentCompanyId);
                 

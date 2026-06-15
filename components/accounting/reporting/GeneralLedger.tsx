@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { BookOpen, Filter, Download } from 'lucide-react';
 import { useAuth } from '../../../contexts/AuthContext';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 interface GLEntry {
     date: string; journal_name: string; reference: string;
@@ -147,9 +149,12 @@ export const GeneralLedger: React.FC = () => {
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
             {/* Header */}
-            <div className="flex items-center gap-3">
-                <BookOpen className="w-6 h-6 text-violet-600" />
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">General Ledger</h2>
+            <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <BookOpen className="w-6 h-6 text-violet-600" />
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">General Ledger</h2>
+                </div>
+                <PrintButton />
             </div>
 
             {/* Filters */}

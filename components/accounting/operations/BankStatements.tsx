@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Plus, Search, Filter, CheckCircle, AlertCircle, ArrowRight } from 'lucide-react';
 import { Modal } from '../../ui/Modal';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 export const BankStatements: React.FC = () => {
+    const { currentCompanyId } = useAuth();
     const [statements, setStatements] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedStatement, setSelectedStatement] = useState<any | null>(null);
@@ -20,15 +24,19 @@ export const BankStatements: React.FC = () => {
     const [availablePayments, setAvailablePayments] = useState<any[]>([]);
 
     useEffect(() => {
-        fetchStatements();
-        fetchJournals();
-    }, []);
+        if (currentCompanyId) {
+            fetchStatements();
+            fetchJournals();
+        }
+    }, [currentCompanyId]);
 
     const fetchStatements = async () => {
+        if (!currentCompanyId) return;
         setLoading(true);
         const { data, error } = await supabase
             .from('bank_statements')
-            .select('*, journal:journals(name, code), lines:bank_statement_lines(count)')
+            .select('*, journal:accounting_journals(name, code), lines:bank_statement_lines(count)')
+            .eq('company_id', currentCompanyId)
             .order('date', { ascending: false });
         if (error) console.error(error);
         else setStatements(data || []);
@@ -36,7 +44,8 @@ export const BankStatements: React.FC = () => {
     };
 
     const fetchJournals = async () => {
-        const { data } = await supabase.from('journals').select('id, name').eq('type', 'Bank');
+        if (!currentCompanyId) return;
+        const { data } = await supabase.from('accounting_journals').select('id, name').eq('company_id', currentCompanyId).eq('type', 'Bank');
         setJournals(data || []);
     };
 
@@ -45,7 +54,7 @@ export const BankStatements: React.FC = () => {
             .from('bank_statements')
             .select(`
                 *,
-                journal:journals(name, code),
+                journal:accounting_journals(name, code),
                 lines:bank_statement_lines(
                     *,
                     payment:accounting_payments(name, amount)
@@ -59,9 +68,10 @@ export const BankStatements: React.FC = () => {
 
     const handleCreateStatement = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!currentCompanyId) return alert('No company context');
         try {
             const { data, error } = await supabase.from('bank_statements').insert([{
-                name, date, journal_id: journalId, state: 'open'
+                name, date, journal_id: journalId, state: 'open', company_id: currentCompanyId
             }]).select().single();
 
             if (error) throw error;
@@ -78,13 +88,15 @@ export const BankStatements: React.FC = () => {
         // Simplified: Add a dummy line for testing
         const amount = prompt('Amount (Positive for Deposit, Negative for Withdrawal):');
         if (!amount) return;
+        if (!currentCompanyId) return alert('No company context');
 
         const { error } = await supabase.from('bank_statement_lines').insert([{
             statement_id: statementId,
             date: new Date().toISOString().split('T')[0],
             amount: Number(amount),
             partner_name: 'Unknown',
-            payment_ref: 'REF-' + Math.floor(Math.random() * 1000)
+            payment_ref: 'REF-' + Math.floor(Math.random() * 1000),
+            company_id: currentCompanyId
         }]);
 
         if (error) alert(error.message);
@@ -92,11 +104,13 @@ export const BankStatements: React.FC = () => {
     };
 
     const openReconcileModal = async (line: any) => {
+        if (!currentCompanyId) return;
         setReconcileLine(line);
         // Fetch unreconciled payments
         const { data } = await supabase
             .from('accounting_payments')
             .select('*, partner:accounting_partners(name)')
+            .eq('company_id', currentCompanyId)
             .neq('state', 'reconciled')
             .order('date', { ascending: false });
 
@@ -123,12 +137,15 @@ export const BankStatements: React.FC = () => {
     if (selectedStatement) {
         return (
             <div className="flex flex-col h-full space-y-4">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => setSelectedStatement(null)} className="text-sm text-slate-500 hover:text-slate-800">
-                        &larr; Back to Statements
-                    </button>
-                    <h2 className="text-2xl font-bold">{selectedStatement.name}</h2>
-                    <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase">{selectedStatement.state}</span>
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => setSelectedStatement(null)} className="text-sm text-slate-500 hover:text-slate-800 no-print">
+                            &larr; Back to Statements
+                        </button>
+                        <h2 className="text-2xl font-bold">{selectedStatement.name}</h2>
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase no-print">{selectedStatement.state}</span>
+                    </div>
+                    <PrintButton />
                 </div>
 
                 <div className="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 flex-1 flex flex-col">
@@ -216,13 +233,16 @@ export const BankStatements: React.FC = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Bank Statements</h2>
-                <button
-                    onClick={() => setIsCreateModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                    Create Statement
-                </button>
+                <div className="flex items-center gap-3 no-print">
+                    <PrintButton />
+                    <button
+                        onClick={() => setIsCreateModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Create Statement
+                    </button>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { Filter, Search, Printer, FileText } from 'lucide-react';
+import { useAuth } from '../../../contexts/AuthContext';
+import { PrintButton } from '../../ui/PrintButton';
 
 export const CashBook: React.FC = () => {
+    const { currentCompanyId } = useAuth();
     const [loading, setLoading] = useState(true);
     const [records, setRecords] = useState<any[]>([]);
     
@@ -11,10 +14,13 @@ export const CashBook: React.FC = () => {
     const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
 
     useEffect(() => {
-        fetchCashBook();
-    }, [startDate, endDate]);
+        if (currentCompanyId) {
+            fetchCashBook();
+        }
+    }, [startDate, endDate, currentCompanyId]);
 
     const fetchCashBook = async () => {
+        if (!currentCompanyId) return;
         setLoading(true);
         try {
             const { data, error } = await supabase.rpc('rpc_get_cash_book', {
@@ -31,7 +37,7 @@ export const CashBook: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 print:space-y-4">
             <div className="flex justify-between items-center bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-sm">
                 <div className="flex items-center gap-2">
                     <FileText className="w-5 h-5 text-emerald-600" />
@@ -39,18 +45,19 @@ export const CashBook: React.FC = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 no-print">
                         <span className="text-xs font-bold text-slate-400 uppercase">From:</span>
-                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="p-2 border rounded-lg text-sm bg-slate-50" />
+                        <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="p-2 border rounded-lg text-sm bg-slate-50 dark:bg-zinc-800 dark:border-zinc-700" />
                     </div>
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 no-print">
                         <span className="text-xs font-bold text-slate-400 uppercase">To:</span>
-                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="p-2 border rounded-lg text-sm bg-slate-50" />
+                        <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="p-2 border rounded-lg text-sm bg-slate-50 dark:bg-zinc-800 dark:border-zinc-700" />
                     </div>
+                    <PrintButton />
                 </div>
             </div>
 
-            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 overflow-hidden shadow-sm">
+            <div className="bg-white dark:bg-zinc-900 rounded-xl border border-slate-200 dark:border-zinc-800 overflow-hidden shadow-sm print:border-none print:shadow-none">
                 <table className="w-full text-left text-sm border-collapse">
                     <thead className="bg-slate-50 dark:bg-zinc-800/50 text-slate-500 font-bold uppercase text-[10px]">
                         <tr>

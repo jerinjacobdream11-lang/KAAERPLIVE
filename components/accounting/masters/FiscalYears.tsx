@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Calendar, Plus, X, Save, Loader, Lock, Unlock, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 interface Period {
   id: string; name: string; code: string; start_date: string; end_date: string; status: string;
@@ -21,6 +24,7 @@ const EMPTY_FY  = { name:'', start_date:'', end_date:'' };
 const EMPTY_PER = { name:'', code:'', start_date:'', end_date:'', status:'open', fiscal_year_id:'' };
 
 export const FiscalYears: React.FC = () => {
+  const { currentCompanyId } = useAuth();
   const [years, setYears]         = useState<FiscalYear[]>([]);
   const [loading, setLoading]     = useState(true);
   const [expanded, setExpanded]   = useState<string|null>(null);
@@ -33,9 +37,10 @@ export const FiscalYears: React.FC = () => {
   const [err, setErr]             = useState('');
 
   const fetchAll = useCallback(async () => {
+    if (!currentCompanyId) return;
     setLoading(true);
-    const { data: fy } = await (supabase as any).from('fiscal_years').select('*').order('start_date', { ascending: false });
-    const { data: per } = await (supabase as any).from('accounting_periods').select('*').order('start_date');
+    const { data: fy } = await supabase.from('accounting_fiscal_years').select('*').eq('company_id', currentCompanyId).order('start_date', { ascending: false });
+    const { data: per } = await supabase.from('accounting_periods').select('*').eq('company_id', currentCompanyId).order('start_date');
     const perByFY: Record<string, Period[]> = {};
     (per || []).forEach((p: Period) => {
       if (!perByFY[p.fiscal_year_id]) perByFY[p.fiscal_year_id] = [];
@@ -43,7 +48,7 @@ export const FiscalYears: React.FC = () => {
     });
     setYears((fy || []).map((y: FiscalYear) => ({ ...y, periods: perByFY[y.id] || [] })));
     setLoading(false);
-  }, []);
+  }, [currentCompanyId]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
@@ -52,42 +57,45 @@ export const FiscalYears: React.FC = () => {
   const openNewPer = (fyId: string) => { setPerForm({ ...EMPTY_PER, fiscal_year_id: fyId }); setErr(''); setShowPerModal(true); };
 
   const saveFY = async () => {
+    if (!currentCompanyId) { setErr('No company context'); return; }
     if (!fyForm.name || !fyForm.start_date || !fyForm.end_date) { setErr('All fields required.'); return; }
     setSaving(true); setErr('');
-    const payload = { name: fyForm.name, start_date: fyForm.start_date, end_date: fyForm.end_date };
+    const payload = { name: fyForm.name, start_date: fyForm.start_date, end_date: fyForm.end_date, company_id: currentCompanyId };
     const { error } = editingFY
-      ? await (supabase as any).from('fiscal_years').update(payload).eq('id', editingFY.id)
-      : await (supabase as any).from('fiscal_years').insert({ ...payload, is_closed: false });
+      ? await supabase.from('accounting_fiscal_years').update(payload).eq('id', editingFY.id)
+      : await supabase.from('accounting_fiscal_years').insert([{ ...payload, is_closed: false }]);
     if (error) { setErr(error.message); setSaving(false); return; }
     setSaving(false); setShowFYModal(false); fetchAll();
   };
 
   const savePeriod = async () => {
+    if (!currentCompanyId) { setErr('No company context'); return; }
     if (!perForm.name || !perForm.start_date || !perForm.end_date) { setErr('Name and dates required.'); return; }
     setSaving(true); setErr('');
-    const { error } = await (supabase as any).from('accounting_periods').insert({
+    const { error } = await supabase.from('accounting_periods').insert([{
       name: perForm.name, code: perForm.code || perForm.name, start_date: perForm.start_date,
       end_date: perForm.end_date, status: perForm.status, fiscal_year_id: perForm.fiscal_year_id,
-    });
+      company_id: currentCompanyId,
+    }]);
     if (error) { setErr(error.message); setSaving(false); return; }
     setSaving(false); setShowPerModal(false); fetchAll();
   };
 
   const togglePeriodStatus = async (period: Period) => {
-    const next = period.status === 'open' ? 'closed' : period.status === 'closed' ? 'locked' : 'open';
-    await (supabase as any).from('accounting_periods').update({ status: next }).eq('id', period.id);
+    await supabase.from('accounting_periods').update({ status: period.status === 'open' ? 'closed' : period.status === 'closed' ? 'locked' : 'open' }).eq('id', period.id);
     fetchAll();
   };
 
   const closeFY = async (y: FiscalYear) => {
     if (!confirm(`Close fiscal year "${y.name}"? This will lock all its periods.`)) return;
-    await (supabase as any).from('fiscal_years').update({ is_closed: true }).eq('id', y.id);
-    await (supabase as any).from('accounting_periods').update({ status: 'locked' }).eq('fiscal_year_id', y.id);
+    await supabase.from('accounting_fiscal_years').update({ is_closed: true }).eq('id', y.id);
+    await supabase.from('accounting_periods').update({ status: 'locked' }).eq('fiscal_year_id', y.id);
     fetchAll();
   };
 
   // Auto-generate periods for a fiscal year (monthly)
   const autoGenPeriods = async (y: FiscalYear) => {
+    if (!currentCompanyId) return alert('No company context');
     if (!confirm(`Auto-generate monthly periods for "${y.name}"?`)) return;
     const start = new Date(y.start_date);
     const end   = new Date(y.end_date);
@@ -102,10 +110,11 @@ export const FiscalYears: React.FC = () => {
         start_date: cur.toISOString().slice(0, 10),
         end_date: (pEnd > end ? end : pEnd).toISOString().slice(0, 10),
         status: 'open',
+        company_id: currentCompanyId,
       });
       cur = new Date(cur.getFullYear(), cur.getMonth() + 1, 1);
     }
-    await (supabase as any).from('accounting_periods').insert(periods);
+    await supabase.from('accounting_periods').insert(periods);
     fetchAll();
   };
 
@@ -116,9 +125,12 @@ export const FiscalYears: React.FC = () => {
           <h2 className="text-lg font-bold text-slate-700 dark:text-white">Fiscal Years &amp; Periods</h2>
           <p className="text-xs text-slate-400">Manage accounting years and period locks</p>
         </div>
-        <button onClick={openNewFY} className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-700 transition-colors">
-          <Plus className="w-4 h-4" /> New Fiscal Year
-        </button>
+        <div className="flex items-center gap-3 no-print">
+          <PrintButton />
+          <button onClick={openNewFY} className="flex items-center gap-2 px-4 py-2 bg-violet-600 text-white rounded-lg text-sm font-semibold hover:bg-violet-700 transition-colors">
+            <Plus className="w-4 h-4" /> New Fiscal Year
+          </button>
+        </div>
       </div>
 
       {loading ? (

@@ -3,6 +3,8 @@ import { supabase } from '../../../lib/supabase';
 import { BarChart3, Calendar, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../../../contexts/AuthContext';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 export const DailySalesReport: React.FC = () => {
     const { currentCompanyId } = useAuth();
@@ -20,7 +22,7 @@ export const DailySalesReport: React.FC = () => {
         setLoading(true);
         try {
             const { data: invoices, error } = await supabase
-                .from('accounting_moves')
+                .from('accounting_journal_entries')
                 .select('date, amount_total, partner:accounting_partners(name)')
                 .eq('company_id', currentCompanyId)
                 .eq('move_type', 'out_invoice').eq('state', 'Posted')
@@ -48,12 +50,15 @@ export const DailySalesReport: React.FC = () => {
 
     return (
         <div className="space-y-6 max-w-6xl mx-auto">
-            <div className="flex items-center gap-3">
-                <BarChart3 className="w-6 h-6 text-emerald-600" />
-                <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Daily Sales Report</h2>
+            <div className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <BarChart3 className="w-6 h-6 text-emerald-600" />
+                    <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Daily Sales Report</h2>
+                </div>
+                <PrintButton />
             </div>
 
-            <div className="flex items-end gap-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-800">
+            <div className="flex items-end gap-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-slate-200 dark:border-zinc-800 no-print">
                 <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">From</label><input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" /></div>
                 <div><label className="block text-xs font-bold text-slate-500 uppercase mb-1">To</label><input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" /></div>
             </div>

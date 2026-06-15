@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Plus, Search, Edit3, Trash2, ChevronRight, ChevronDown, Layers, ToggleLeft, ToggleRight } from 'lucide-react';
 import { Modal } from '../../ui/Modal';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 interface Account {
     id: string; code: string; name: string;
@@ -20,6 +23,7 @@ const TC: Record<string, string> = {
 const TI: Record<string, string> = { Asset:'🏦', Liability:'📋', Equity:'💎', Income:'📈', Expense:'📉' };
 
 export const ChartOfAccounts: React.FC = () => {
+    const { currentCompanyId } = useAuth();
     const [accounts, setAccounts] = useState<Account[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -29,11 +33,16 @@ export const ChartOfAccounts: React.FC = () => {
     const [expanded, setExpanded] = useState<Set<string>>(new Set(['Asset','Liability','Equity','Income','Expense']));
     const [form, setForm] = useState({ code:'', name:'', type:'Asset', parent_id:'', is_active:true, currency:'QAR', description:'' });
 
-    useEffect(() => { fetch_(); }, []);
+    useEffect(() => {
+        if (currentCompanyId) {
+            fetch_();
+        }
+    }, [currentCompanyId]);
 
     const fetch_ = async () => {
+        if (!currentCompanyId) return;
         setLoading(true);
-        const { data } = await supabase.from('chart_of_accounts').select('*').order('code');
+        const { data } = await supabase.from('accounting_chart_of_accounts').select('*').eq('company_id', currentCompanyId).order('code');
         setAccounts((data || []) as unknown as Account[]);
         setLoading(false);
     };
@@ -43,18 +52,19 @@ export const ChartOfAccounts: React.FC = () => {
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!currentCompanyId) return alert('No company context');
         if (!form.code || !form.name) return alert('Code and Name are required');
-        const payload: any = { code:form.code, name:form.name, type:form.type, parent_id:form.parent_id||null, is_active:form.is_active, currency:form.currency, description:form.description };
+        const payload: any = { code:form.code, name:form.name, type:form.type, parent_id:form.parent_id||null, is_active:form.is_active, currency:form.currency, description:form.description, company_id: currentCompanyId };
         try {
-            if (editing) { const { error } = await supabase.from('chart_of_accounts').update(payload).eq('id', editing.id); if (error) throw error; }
-            else { const { error } = await supabase.from('chart_of_accounts').insert([payload]); if (error) throw error; }
+            if (editing) { const { error } = await supabase.from('accounting_chart_of_accounts').update(payload).eq('id', editing.id); if (error) throw error; }
+            else { const { error } = await supabase.from('accounting_chart_of_accounts').insert([payload]); if (error) throw error; }
             setIsModalOpen(false); fetch_();
         } catch (err: any) { alert('Error: ' + err.message); }
     };
 
     const handleDelete = async (id: string) => {
         if (!confirm('Delete this account? Accounts with posted transactions cannot be deleted.')) return;
-        const { error } = await supabase.from('chart_of_accounts').delete().eq('id', id);
+        const { error } = await supabase.from('accounting_chart_of_accounts').delete().eq('id', id);
         if (error) alert('Cannot delete: ' + error.message); else fetch_();
     };
 
@@ -75,10 +85,13 @@ export const ChartOfAccounts: React.FC = () => {
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><Layers className="w-6 h-6 text-violet-600" />Chart of Accounts</h2>
                     <p className="text-sm text-slate-500 mt-0.5">{accounts.length} accounts · {accounts.filter(a => a.is_active!==false).length} active</p>
                 </div>
-                <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"><Plus className="w-4 h-4" /> New Account</button>
+                <div className="flex items-center gap-3 no-print">
+                    <PrintButton />
+                    <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"><Plus className="w-4 h-4" /> New Account</button>
+                </div>
             </div>
 
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 no-print">
                 <div className="relative flex-1 min-w-[200px] max-w-md">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input type="text" placeholder="Search by code or name..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />

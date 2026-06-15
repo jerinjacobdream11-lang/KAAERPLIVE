@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Plus, Search, Filter, FileText, CheckCircle, Clock } from 'lucide-react';
 import { Modal } from '../../ui/Modal';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 export const Bills: React.FC = () => {
+    const { currentCompanyId } = useAuth();
     const [bills, setBills] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -24,11 +28,14 @@ export const Bills: React.FC = () => {
     const [lines, setLines] = useState<any[]>([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '' }]);
 
     useEffect(() => {
-        fetchBills();
-        fetchMasters();
-    }, []);
+        if (currentCompanyId) {
+            fetchBills();
+            fetchMasters();
+        }
+    }, [currentCompanyId]);
 
     const fetchBills = async () => {
+        if (!currentCompanyId) return;
         setLoading(true);
         const { data, error } = await supabase
             .from('accounting_journal_entries')
@@ -37,6 +44,7 @@ export const Bills: React.FC = () => {
                 partner:accounting_partners(name),
                 journal:accounting_journals(code)
             `)
+            .eq('company_id', currentCompanyId)
             .eq('move_type', 'in_invoice')
             .order('date', { ascending: false });
 
@@ -46,17 +54,18 @@ export const Bills: React.FC = () => {
     };
 
     const fetchMasters = async () => {
-        const { data: pData } = await supabase.from('accounting_partners').select('id, name').or('partner_type.eq.Vendor,partner_type.eq.Both');
+        if (!currentCompanyId) return;
+        const { data: pData } = await supabase.from('accounting_partners').select('id, name').eq('company_id', currentCompanyId).or('partner_type.eq.Vendor,partner_type.eq.Both');
         setPartners(pData || []);
 
-        const { data: iData } = await supabase.from('item_master').select('id, name, code, expense_account_id');
+        const { data: iData } = await supabase.from('item_master').select('id, name, code, expense_account_id').eq('company_id', currentCompanyId);
         setItems(iData || []);
 
-        const { data: jData } = await supabase.from('accounting_journals').select('id, name').eq('type', 'Purchase');
+        const { data: jData } = await supabase.from('accounting_journals').select('id, name').eq('company_id', currentCompanyId).eq('type', 'Purchase');
         setJournals(jData || []);
         if (jData && jData.length > 0) setSelectedJournal(jData[0].id);
 
-        const { data: ccData } = await supabase.from('accounting_cost_centers').select('id, name, code, type').eq('is_active', true);
+        const { data: ccData } = await supabase.from('accounting_cost_centers').select('id, name, code, type').eq('company_id', currentCompanyId).eq('is_active', true);
         setCostCenters(ccData || []);
     };
 
@@ -141,13 +150,16 @@ export const Bills: React.FC = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Vendor Bills</h2>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                    New Bill
-                </button>
+                <div className="flex items-center gap-3 no-print">
+                    <PrintButton />
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        New Bill
+                    </button>
+                </div>
             </div>
 
             {/* List */}

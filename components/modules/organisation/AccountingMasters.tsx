@@ -441,7 +441,7 @@ export const AccountingMasters: React.FC = () => {
         if (!currentCompanyId) return;
         setLoading(true);
         try {
-            let query = supabase.from(activeConfig.tableName).select('*').eq('company_id', currentCompanyId);
+            let query = (supabase as any).from(activeConfig.tableName).select('*').eq('company_id', currentCompanyId);
             if (activeConfig.filterField && activeConfig.filterValue) {
                 query = query.eq(activeConfig.filterField, activeConfig.filterValue);
             }
@@ -552,13 +552,13 @@ export const AccountingMasters: React.FC = () => {
             });
 
             if (editingItem) {
-                const { error } = await supabase
+                const { error } = await (supabase as any)
                     .from(activeConfig.tableName)
                     .update(payload)
                     .eq('id', editingItem.id);
                 if (error) throw error;
             } else {
-                const { error } = await supabase
+                const { error } = await (supabase as any)
                     .from(activeConfig.tableName)
                     .insert([payload]);
                 if (error) throw error;
@@ -576,7 +576,7 @@ export const AccountingMasters: React.FC = () => {
     const handleDelete = async (id: string) => {
         if (!confirm('Are you sure you want to delete this master record?')) return;
         try {
-            const { error } = await supabase.from(activeConfig.tableName).delete().eq('id', id);
+            const { error } = await (supabase as any).from(activeConfig.tableName).delete().eq('id', id);
             if (error) throw error;
             fetchItems();
             loadDynamicOptions();

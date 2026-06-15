@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Plus, Search, Filter, FileText, CheckCircle, Clock } from 'lucide-react';
 import { Modal } from '../../ui/Modal';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 export const Invoices: React.FC = () => {
+    const { currentCompanyId } = useAuth();
     const [invoices, setInvoices] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,11 +29,14 @@ export const Invoices: React.FC = () => {
     const [lines, setLines] = useState<any[]>([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '' }]);
 
     useEffect(() => {
-        fetchInvoices();
-        fetchMasters();
-    }, []);
+        if (currentCompanyId) {
+            fetchInvoices();
+            fetchMasters();
+        }
+    }, [currentCompanyId]);
 
     const fetchInvoices = async () => {
+        if (!currentCompanyId) return;
         setLoading(true);
         const { data, error } = await supabase
             .from('accounting_journal_entries')
@@ -38,6 +45,7 @@ export const Invoices: React.FC = () => {
                 partner:accounting_partners(name),
                 journal:accounting_journals(code)
             `)
+            .eq('company_id', currentCompanyId)
             .eq('move_type', 'out_invoice')
             .order('date', { ascending: false });
 
@@ -47,26 +55,29 @@ export const Invoices: React.FC = () => {
     };
 
     const fetchMasters = async () => {
+        if (!currentCompanyId) return;
         const { data: pData } = await supabase
             .from('accounting_partners')
             .select('id, name, credit_limit, property_account_receivable_id')
+            .eq('company_id', currentCompanyId)
             .or('partner_type.eq.Customer,partner_type.eq.Both');
         setPartners(pData || []);
 
-        const { data: iData } = await supabase.from('item_master').select('id, name, code, income_account_id');
+        const { data: iData } = await supabase.from('item_master').select('id, name, code, income_account_id').eq('company_id', currentCompanyId);
         setItems(iData || []);
 
-        const { data: jData } = await supabase.from('accounting_journals').select('id, name').eq('type', 'Sale');
+        const { data: jData } = await supabase.from('accounting_journals').select('id, name').eq('company_id', currentCompanyId).eq('type', 'Sale');
         setJournals(jData || []);
         if (jData && jData.length > 0) setSelectedJournal(jData[0].id);
 
-        const { data: ccData } = await supabase.from('accounting_cost_centers').select('id, name, code, type').eq('is_active', true);
+        const { data: ccData } = await supabase.from('accounting_cost_centers').select('id, name, code, type').eq('company_id', currentCompanyId).eq('is_active', true);
         setCostCenters(ccData || []);
 
         // Load new Accounts Receivable account for credit limit check
         const { data: arData } = await supabase
             .from('accounting_chart_of_accounts')
             .select('id')
+            .eq('company_id', currentCompanyId)
             .eq('subtype', 'Receivable')
             .limit(1)
             .maybeSingle();
@@ -163,13 +174,16 @@ export const Invoices: React.FC = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Customer Invoices</h2>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                    New Invoice
-                </button>
+                <div className="flex items-center gap-3 no-print">
+                    <PrintButton />
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        New Invoice
+                    </button>
+                </div>
             </div>
 
             {/* List */}

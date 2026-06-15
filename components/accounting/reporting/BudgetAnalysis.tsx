@@ -4,6 +4,8 @@ import { Target, Plus, Save, TrendingUp, TrendingDown, Minus } from 'lucide-reac
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { Modal } from '../../ui/Modal';
 import { useAuth } from '../../../contexts/AuthContext';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 interface BudgetLine {
     account_id: string; account_code: string; account_name: string;
@@ -21,11 +23,17 @@ export const BudgetAnalysis: React.FC = () => {
     const [year, setYear] = useState(new Date().getFullYear());
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => { fetchAccounts(); }, []);
+    useEffect(() => {
+        if (currentCompanyId) {
+            fetchAccounts();
+        }
+    }, [currentCompanyId]);
+    
     useEffect(() => { if (accounts.length > 0) fetchBudgetAnalysis(); }, [accounts, year]);
 
     const fetchAccounts = async () => {
-        const { data } = await supabase.from('chart_of_accounts').select('id, code, name, type').in('type', ['Income', 'Expense']).order('code');
+        if (!currentCompanyId) return;
+        const { data } = await supabase.from('accounting_chart_of_accounts').select('id, code, name, type').eq('company_id', currentCompanyId).in('type', ['Income', 'Expense']).order('code');
         setAccounts(data || []);
     };
 
@@ -35,12 +43,16 @@ export const BudgetAnalysis: React.FC = () => {
             const startDate = `${year}-01-01`;
             const endDate = `${year}-12-31`;
 
-            // Fetch actuals from move lines
-            const { data: actuals } = await supabase
-                .from('accounting_move_lines')
-                .select('account_id, debit, credit')
-                .eq('company_id', currentCompanyId)
-                .gte('date', startDate).lte('date', endDate);
+            // Fetch actuals from journal lines
+            const { data: actualsRaw } = await supabase
+                .from('accounting_journal_lines')
+                .select('account_id, debit, credit, entry:accounting_journal_entries!entry_id(date)')
+                .eq('company_id', currentCompanyId);
+
+            const actuals = (actualsRaw || []).filter((l: any) => {
+                const entryDate = l.entry?.date;
+                return entryDate && entryDate >= startDate && entryDate <= endDate;
+            });
 
             // Fetch budgets (from localStorage for now — DB table can be added later)
             const stored = localStorage.getItem(`budgets_${currentCompanyId}_${year}`);
@@ -99,12 +111,15 @@ export const BudgetAnalysis: React.FC = () => {
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Budget Analysis</h2>
                 </div>
                 <div className="flex items-center gap-3">
-                    <select value={year} onChange={e => setYear(Number(e.target.value))} className="px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm font-bold">
-                        {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>FY {y}</option>)}
-                    </select>
-                    <button onClick={openBudgetEntry} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors">
-                        <Plus className="w-4 h-4" /> Set Budgets
-                    </button>
+                    <div className="flex items-center gap-3 no-print">
+                        <select value={year} onChange={e => setYear(Number(e.target.value))} className="px-3 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg text-sm font-bold">
+                            {[2024, 2025, 2026, 2027].map(y => <option key={y} value={y}>FY {y}</option>)}
+                        </select>
+                        <button onClick={openBudgetEntry} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-bold transition-colors">
+                            <Plus className="w-4 h-4" /> Set Budgets
+                        </button>
+                    </div>
+                    <PrintButton />
                 </div>
             </div>
 

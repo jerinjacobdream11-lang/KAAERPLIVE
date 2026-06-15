@@ -1,9 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Plus, Search, Filter, ArrowUpRight, ArrowDownLeft, CheckCircle, Clock } from 'lucide-react';
 import { Modal } from '../../ui/Modal';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 export const Payments: React.FC = () => {
+    const { currentCompanyId } = useAuth();
     const [payments, setPayments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -21,11 +25,14 @@ export const Payments: React.FC = () => {
     const [notes, setNotes] = useState('');
 
     useEffect(() => {
-        fetchPayments();
-        fetchMasters();
-    }, []);
+        if (currentCompanyId) {
+            fetchPayments();
+            fetchMasters();
+        }
+    }, [currentCompanyId]);
 
     const fetchPayments = async () => {
+        if (!currentCompanyId) return;
         setLoading(true);
         const { data, error } = await supabase
             .from('accounting_payments')
@@ -34,6 +41,7 @@ export const Payments: React.FC = () => {
                 partner:accounting_partners(name),
                 journal:accounting_journals!accounting_journal_id(code)
             `)
+            .eq('company_id', currentCompanyId)
             .order('date', { ascending: false });
 
         if (error) console.error(error);
@@ -42,35 +50,29 @@ export const Payments: React.FC = () => {
     };
 
     const fetchMasters = async () => {
-        const { data: pData } = await supabase.from('accounting_partners').select('id, name, partner_type');
+        if (!currentCompanyId) return;
+        const { data: pData } = await supabase.from('accounting_partners').select('id, name, partner_type').eq('company_id', currentCompanyId);
         setPartners(pData || []);
 
         // Fetch new Bank/Cash journals
-        const { data: jData } = await supabase.from('accounting_journals').select('id, name, type, code').in('type', ['Bank', 'Cash']);
+        const { data: jData } = await supabase.from('accounting_journals').select('id, name, type, code').eq('company_id', currentCompanyId).in('type', ['Bank', 'Cash']);
         setJournals(jData || []);
         if (jData && jData.length > 0) setSelectedJournal(jData[0].id);
     };
 
     const handleCreatePayment = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!currentCompanyId) return alert('No company context');
         try {
             if (!selectedPartner || !selectedJournal || !amount) throw new Error('Missing required fields');
 
-            // Find matching old journal to satisfy the NOT NULL constraint on journal_id
-            const newJournal = journals.find(j => j.id === selectedJournal);
-            const { data: oldJournal } = await supabase
-                .from('journals')
-                .select('id')
-                .eq('code', newJournal?.code || '')
-                .maybeSingle();
-
             const payload = {
+                company_id: currentCompanyId,
                 payment_type: paymentType,
                 partner_type: paymentType === 'inbound' ? 'customer' : 'vendor',
                 partner_id: selectedPartner,
                 amount: Number(amount),
                 date: date,
-                journal_id: oldJournal?.id || selectedJournal, // Fallback
                 accounting_journal_id: selectedJournal,
                 notes: notes,
                 state: 'draft'
@@ -104,13 +106,16 @@ export const Payments: React.FC = () => {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <h2 className="text-2xl font-bold text-slate-800 dark:text-white">Payments</h2>
-                <button
-                    onClick={() => setIsModalOpen(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
-                >
-                    <Plus className="w-4 h-4" />
-                    New Payment
-                </button>
+                <div className="flex items-center gap-3 no-print">
+                    <PrintButton />
+                    <button
+                        onClick={() => setIsModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
+                    >
+                        <Plus className="w-4 h-4" />
+                        New Payment
+                    </button>
+                </div>
             </div>
 
             {/* List */}

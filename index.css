@@ -44,12 +44,40 @@
   border: 1px solid rgba(63, 63, 70, 0.5);
 }
 
-/* Print Styles - Hide app UI when printing */
+/* Print Styles - optimized for accounting reports */
 @media print {
-  body > #root {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  /* Hide sidebar, navigation, headers, filters, buttons, modal buttons */
+  aside,
+  nav,
+  header,
+  .no-print,
+  button,
+  .flex.justify-between.items-center button,
+  input,
+  select {
     display: none !important;
   }
-  .no-print {
-    display: none !important;
+  /* Reset container widths for full page printing */
+  main,
+  .main-content,
+  #root,
+  #root > div {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 100% !important;
+    box-shadow: none !important;
+    border: none !important;
+    position: static !important;
+  }
+  /* Keep printable areas visible */
+  .printable-area {
+    display: block !important;
+    width: 100% !important;
   }
 }

@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
+import { useAuth } from '../../../contexts/AuthContext';
 import { Bell, Send, Clock, AlertTriangle, CheckCircle, Mail } from 'lucide-react';
+import { PrintButton } from '../../ui/PrintButton';
+
 
 interface OverdueInvoice {
     id: string; reference: string; date: string; invoice_date_due: string;
@@ -10,31 +13,38 @@ interface OverdueInvoice {
 }
 
 export const PaymentReminders: React.FC = () => {
+    const { currentCompanyId } = useAuth();
     const [invoices, setInvoices] = useState<OverdueInvoice[]>([]);
     const [loading, setLoading] = useState(true);
     const [sending, setSending] = useState<Set<string>>(new Set());
     const [filter, setFilter] = useState<'all'|'overdue'|'critical'>('all');
 
-    useEffect(() => { fetchOverdue(); }, []);
+    useEffect(() => {
+        if (currentCompanyId) {
+            fetchOverdue();
+        }
+    }, [currentCompanyId]);
 
     const fetchOverdue = async () => {
+        if (!currentCompanyId) return;
         setLoading(true);
         const today = new Date().toISOString().split('T')[0];
         const { data, error } = await supabase
-            .from('accounting_moves')
-            .select('id, reference, date, invoice_date_due, amount_total, amount_residual, partner:accounting_partners(id, name, email)')
+            .from('accounting_journal_entries')
+            .select('id, reference, date, due_date, amount_total, amount_residual, partner:accounting_partners(id, name, email)')
+            .eq('company_id', currentCompanyId)
             .eq('move_type', 'out_invoice').eq('state', 'Posted').gt('amount_residual', 0)
-            .lte('invoice_date_due', today)
-            .order('invoice_date_due', { ascending: true });
+            .lte('due_date', today)
+            .order('due_date', { ascending: true });
 
         if (error) { console.error(error); setLoading(false); return; }
 
         setInvoices((data || []).map((d: any) => {
-            const due = new Date(d.invoice_date_due);
+            const due = new Date(d.due_date);
             const diff = Math.floor((new Date().getTime() - due.getTime()) / (1000*60*60*24));
             return {
                 id: d.id, reference: d.reference || 'INV', date: d.date,
-                invoice_date_due: d.invoice_date_due,
+                invoice_date_due: d.due_date,
                 amount_total: Number(d.amount_total), amount_residual: Number(d.amount_residual),
                 partner_name: d.partner?.name || 'Unknown', partner_email: d.partner?.email || '',
                 partner_id: d.partner?.id || '', days_overdue: diff, reminder_count: 0
@@ -77,12 +87,15 @@ export const PaymentReminders: React.FC = () => {
                     <h2 className="text-2xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><Bell className="w-6 h-6 text-amber-500" />Payment Reminders</h2>
                     <p className="text-sm text-slate-500 mt-0.5">{filtered.length} overdue invoices · Total: QAR {totalDue.toLocaleString()}</p>
                 </div>
-                <button onClick={sendBulk} disabled={filtered.length === 0} className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50">
-                    <Send className="w-4 h-4" /> Send All Reminders
-                </button>
+                <div className="flex items-center gap-3 no-print">
+                    <PrintButton />
+                    <button onClick={sendBulk} disabled={filtered.length === 0} className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-sm font-bold transition-colors disabled:opacity-50">
+                        <Send className="w-4 h-4" /> Send All Reminders
+                    </button>
+                </div>
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-2 no-print">
                 {(['all','overdue','critical'] as const).map(f => (
                     <button key={f} onClick={() => setFilter(f)} className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${filter === f ? 'bg-indigo-600 text-white shadow' : 'bg-slate-100 dark:bg-zinc-800 text-slate-600 dark:text-slate-400'}`}>{f === 'all' ? 'All Overdue' : f}</button>
                 ))}
