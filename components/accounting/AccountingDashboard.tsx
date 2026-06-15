@@ -31,7 +31,7 @@ export const AccountingDashboard: React.FC = () => {
     return (
         <div className="h-full flex flex-col bg-slate-50 dark:bg-zinc-950">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-between items-center">
+            <div className="px-6 py-4 border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-between items-center no-print">
                 <h1 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
                     <Calculator className="w-6 h-6 text-violet-600" />
                     Accounting
@@ -63,7 +63,7 @@ export const AccountingDashboard: React.FC = () => {
 
             {/* Sub-Header for Customers */}
             {activeTab === 'customers' && (
-                <div className="px-6 py-2 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex gap-4">
+                <div className="px-6 py-2 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex gap-4 no-print">
                     <button onClick={() => setSubTab('invoices')} className={`text-sm font-medium ${subTab === 'invoices' ? 'text-blue-600' : 'text-slate-500'}`}>Invoices</button>
                     <button onClick={() => setSubTab('reminders')} className={`text-sm font-medium ${subTab === 'reminders' ? 'text-blue-600' : 'text-slate-500'}`}>Payment Reminders</button>
                     <button onClick={() => setSubTab('partners')} className={`text-sm font-medium ${subTab === 'partners' ? 'text-blue-600' : 'text-slate-500'}`}>Customers</button>
@@ -72,7 +72,7 @@ export const AccountingDashboard: React.FC = () => {
 
             {/* Sub-Header for Vendors */}
             {activeTab === 'vendors' && (
-                <div className="px-6 py-2 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex gap-4">
+                <div className="px-6 py-2 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex gap-4 no-print">
                     <button onClick={() => setSubTab('bills')} className={`text-sm font-medium ${subTab === 'bills' ? 'text-blue-600' : 'text-slate-500'}`}>Bills</button>
                     <button onClick={() => setSubTab('partners')} className={`text-sm font-medium ${subTab === 'partners' ? 'text-blue-600' : 'text-slate-500'}`}>Vendors</button>
                 </div>
@@ -80,7 +80,7 @@ export const AccountingDashboard: React.FC = () => {
 
             {/* Sub-Header for Banking */}
             {activeTab === 'banking' && (
-                <div className="px-6 py-2 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex gap-4">
+                <div className="px-6 py-2 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex gap-4 no-print">
                     <button onClick={() => setSubTab('statements')} className={`text-sm font-medium ${subTab === 'statements' ? 'text-blue-600' : 'text-slate-500'}`}>Bank Statements</button>
                     <button onClick={() => setSubTab('cashbook')} className={`text-sm font-medium ${subTab === 'cashbook' ? 'text-blue-600' : 'text-slate-500'}`}>Cash Book</button>
                 </div>
@@ -88,7 +88,7 @@ export const AccountingDashboard: React.FC = () => {
 
             {/* Sub-Header for Reporting */}
             {activeTab === 'reporting' && (
-                <div className="px-6 py-2 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex gap-4 overflow-x-auto">
+                <div className="px-6 py-2 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex gap-4 overflow-x-auto no-print">
                     <button onClick={() => setSubTab('financial')} className={`text-sm font-medium whitespace-nowrap ${subTab === 'financial' ? 'text-blue-600' : 'text-slate-500'}`}>Financial Reports</button>
                     <button onClick={() => setSubTab('ledger')} className={`text-sm font-medium whitespace-nowrap ${subTab === 'ledger' ? 'text-blue-600' : 'text-slate-500'}`}>General Ledger</button>
                     <button onClick={() => setSubTab('daily_sales')} className={`text-sm font-medium whitespace-nowrap ${subTab === 'daily_sales' ? 'text-blue-600' : 'text-slate-500'}`}>Daily Sales</button>
@@ -99,7 +99,7 @@ export const AccountingDashboard: React.FC = () => {
 
             {/* Sub-Header for Masters */}
             {activeTab === 'masters' && (
-                <div className="px-6 py-2 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex gap-4 overflow-x-auto">
+                <div className="px-6 py-2 border-b border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-900/50 flex gap-4 overflow-x-auto no-print">
                     <button onClick={() => setSubTab('coa')} className={`text-sm font-medium whitespace-nowrap ${subTab === 'coa' ? 'text-blue-600' : 'text-slate-500'}`}>Chart of Accounts</button>
                     <button onClick={() => setSubTab('all_partners')} className={`text-sm font-medium whitespace-nowrap ${subTab === 'all_partners' ? 'text-blue-600' : 'text-slate-500'}`}>All Partners</button>
                     <button onClick={() => setSubTab('taxes')} className={`text-sm font-medium whitespace-nowrap ${subTab === 'taxes' ? 'text-blue-600' : 'text-slate-500'}`}>Taxes</button>
