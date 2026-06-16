@@ -180,13 +180,13 @@ export const Dashboard: React.FC = () => {
         try {
           const { data: salesData, error: salesError } = await supabase
             .from('sales_orders' as any)
-            .select('total_amount, status')
+            .select('total_amount, state')
             .eq('company_id', currentCompanyId);
           if (salesError) throw salesError;
           const salesArray = salesData as any[] | null;
           if (salesArray) {
             const totalVal = salesArray.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-            const pendingCount = salesArray.filter(order => order.status === 'Draft' || order.status === 'Confirmed').length;
+            const pendingCount = salesArray.filter(order => order.state === 'draft' || order.state === 'confirmed').length;
             const totalSales = 'QAR ' + new Intl.NumberFormat('en-US', {
               maximumFractionDigits: 0, notation: 'compact'
             }).format(totalVal);
