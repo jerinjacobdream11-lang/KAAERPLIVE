@@ -52,13 +52,13 @@ export const Routings: React.FC = () => {
   const fetchAll = useCallback(async () => {
     setLoading(true);
     const [{ data: r }, { data: wc }, { data: it }] = await Promise.all([
-      (supabase as any).from('mrp_routing').select('*, item_master!product_id(name,sku)').order('name'),
+      (supabase as any).from('mrp_routing').select('*, item_master!product_id(name,code)').order('name'),
       (supabase as any).from('mrp_work_centers').select('id,name,code,cost_per_hour').eq('is_active', true).order('name'),
-      (supabase as any).from('item_master').select('id,name,sku').order('name'),
+      (supabase as any).from('item_master').select('id,name,code').order('name'),
     ]);
-    setRoutings((r || []).map((x: any) => ({ ...x, product_name: x.item_master?.name })));
+    setRoutings((r || []).map((x: any) => ({ ...x, product_name: x.item_master?.name, product_sku: x.item_master?.code })));
     setWorkCenters(wc || []);
-    setItems(it || []);
+    setItems((it || []).map((x: any) => ({ ...x, sku: x.code })));
     setLoading(false);
   }, []);
 

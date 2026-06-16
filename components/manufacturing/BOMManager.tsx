@@ -23,8 +23,8 @@ export const BOMManager: React.FC = () => {
   const [search, setSearch] = useState('');
 
   const fetchItems = useCallback(async () => {
-    const { data } = await (supabase as any).from('item_master').select('id, name, sku').order('name');
-    setItems(data || []);
+    const { data } = await (supabase as any).from('item_master').select('id, name, code').order('name');
+    setItems((data || []).map((x: any) => ({ ...x, sku: x.code })));
   }, []);
 
   const fetchBOMs = useCallback(async () => {

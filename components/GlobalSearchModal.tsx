@@ -84,13 +84,13 @@ export const GlobalSearchModal: React.FC = () => {
                 if (q.length > 1) {
                     const { data: employees } = await supabase
                         .from('employees')
-                        .select('id, first_name, last_name, email, designation, department')
-                        .or(`first_name.ilike.%${query}%,last_name.ilike.%${query}%,email.ilike.%${query}%,designation.ilike.%${query}%`)
+                        .select('id, name, email, designation, department')
+                        .or(`name.ilike.%${query}%,email.ilike.%${query}%,designation.ilike.%${query}%`)
                         .limit(5);
 
                     if (employees) {
                         employees.forEach((emp: any) => {
-                            const name = [emp.first_name, emp.last_name].filter(Boolean).join(' ') || 'Unnamed';
+                            const name = emp.name || 'Unnamed';
                             searchCanvas.push({
                                 id: `emp-${emp.id}`,
                                 type: 'PEOPLE',

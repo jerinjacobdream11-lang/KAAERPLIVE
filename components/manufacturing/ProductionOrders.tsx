@@ -76,10 +76,10 @@ export const ProductionOrders: React.FC = () => {
   const fetchMasters = useCallback(async () => {
     const [{ data: b }, { data: i }, { data: w }] = await Promise.all([
       (supabase as any).from('mrp_bom').select('id, name, product_id').eq('is_active', true).order('name'),
-      (supabase as any).from('item_master').select('id, name, sku').order('name'),
+      (supabase as any).from('item_master').select('id, name, code').order('name'),
       (supabase as any).from('mrp_work_centers').select('id, name').eq('is_active', true).order('name'),
     ]);
-    setBoms(b || []); setItems(i || []); setWorkcenters(w || []);
+    setBoms(b || []); setItems((i || []).map((x: any) => ({ ...x, sku: x.code }))); setWorkcenters(w || []);
   }, []);
 
   useEffect(() => { fetchOrders(); fetchMasters(); }, [fetchOrders, fetchMasters]);

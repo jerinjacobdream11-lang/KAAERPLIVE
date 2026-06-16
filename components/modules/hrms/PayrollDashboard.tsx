@@ -61,7 +61,7 @@ export const PayrollDashboard: React.FC = () => {
     }, []);
 
     const fetchRuns = async () => {
-        const { data } = await (supabase as any).from('payroll_runs').select('*').order('month_year', { ascending: false });
+        const { data } = await (supabase as any).from('payroll_runs').select('*').order('period_start', { ascending: false });
         if (data) setRuns(data);
     };
 
@@ -178,7 +178,7 @@ export const PayrollDashboard: React.FC = () => {
         if (error) {
             alert('Error creating settlement: ' + error.message);
         } else {
-            alert('Full & Final Settlement added to current ' + selectedRun.month_year + ' batch.');
+            alert('Full & Final Settlement added to current ' + (selectedRun.name || selectedRun.month_year || selectedRun.period_start) + ' batch.');
             setShowSettlementModal(false);
             handleViewDetails(selectedRun);
         }
@@ -220,7 +220,7 @@ export const PayrollDashboard: React.FC = () => {
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `WPS_Qatar_${selectedRun.month_year.replace('-', '')}.csv`);
+        link.setAttribute("download", `WPS_Qatar_${(selectedRun.name || selectedRun.period_start || '').replace(/[^a-zA-Z0-9]/g, '')}.csv`);
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -232,11 +232,11 @@ export const PayrollDashboard: React.FC = () => {
         csvContent += "Employee Name,Employee Code,Bank Name,Account Number,Net Salary,Month\r\n";
         runDetails.forEach(rec => {
             const emp = rec.employee || {};
-            csvContent += `${emp.name || 'Unknown'},${(emp as any).employee_code || ''},${(emp as any).bank_name || ''},${(emp as any).account_number || ''},${rec.net_pay || 0},${selectedRun.month_year}\r\n`;
+            csvContent += `${emp.name || 'Unknown'},${(emp as any).employee_code || ''},${(emp as any).bank_name || ''},${(emp as any).account_number || ''},${rec.net_pay || 0},${selectedRun.name || selectedRun.period_start}\r\n`;
         });
         const link = document.createElement("a");
         link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", `Bank_Statement_${selectedRun.month_year.replace('-', '')}.csv`);
+        link.setAttribute("download", `Bank_Statement_${(selectedRun.name || selectedRun.period_start || '').replace(/[^a-zA-Z0-9]/g, '')}.csv`);
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
     };
 
@@ -251,7 +251,7 @@ export const PayrollDashboard: React.FC = () => {
         });
         const link = document.createElement("a");
         link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", `Cash_Statement_${selectedRun.month_year.replace('-', '')}.csv`);
+        link.setAttribute("download", `Cash_Statement_${(selectedRun.name || selectedRun.period_start || '').replace(/[^a-zA-Z0-9]/g, '')}.csv`);
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
     };
 
@@ -265,7 +265,7 @@ export const PayrollDashboard: React.FC = () => {
         });
         const link = document.createElement("a");
         link.setAttribute("href", encodeURI(csvContent));
-        link.setAttribute("download", `Monthly_Salary_Report_${selectedRun.month_year.replace('-', '')}.csv`);
+        link.setAttribute("download", `Monthly_Salary_Report_${(selectedRun.name || selectedRun.period_start || '').replace(/[^a-zA-Z0-9]/g, '')}.csv`);
         document.body.appendChild(link); link.click(); document.body.removeChild(link);
     };
 
@@ -343,7 +343,7 @@ export const PayrollDashboard: React.FC = () => {
                                     }`}
                             >
                                 <div className="flex justify-between items-start mb-2">
-                                    <h4 className="font-bold text-slate-700 dark:text-slate-200">{run.month_year}</h4>
+                                    <h4 className="font-bold text-slate-700 dark:text-slate-200">{run.name || run.month_year || run.period_start}</h4>
                                     <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider ${run.status === 'PAID' ? 'bg-emerald-100 text-emerald-700' :
                                         run.status === 'COMPLETED' ? 'bg-purple-100 text-purple-700' : 'bg-amber-100 text-amber-700'
                                         }`}>{run.status}</span>
@@ -351,7 +351,7 @@ export const PayrollDashboard: React.FC = () => {
                                 <div className="flex justify-between items-end">
                                     <div>
                                         <p className="text-xs text-slate-400 font-medium">Total Payout</p>
-                                        <p className="text-lg font-black text-slate-900 dark:text-white">{formatCurrency(run.total_net_pay || 0)}</p>
+                                        <p className="text-lg font-black text-slate-900 dark:text-white">{formatCurrency(run.total_net_pay || run.total_amount || run.total_net_amount || 0)}</p>
                                     </div>
                                     <ChevronRight className={`w-5 h-5 text-slate-300 transition-transform ${selectedRun?.id === run.id ? 'translate-x-1 text-indigo-500' : ''}`} />
                                 </div>
@@ -370,7 +370,7 @@ export const PayrollDashboard: React.FC = () => {
                             <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-center bg-slate-50/50 dark:bg-zinc-800/50">
                                 <div>
                                     <h3 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                                        {selectedRun.month_year} <span className="text-slate-400 font-normal text-sm">Details</span>
+                                        {selectedRun.name || selectedRun.month_year || selectedRun.period_start} <span className="text-slate-400 font-normal text-sm">Details</span>
                                     </h3>
                                     <p className="text-xs text-slate-500 mt-1">Generated on {new Date(selectedRun.created_at).toLocaleDateString()}</p>
                                 </div>
@@ -480,7 +480,7 @@ export const PayrollDashboard: React.FC = () => {
                                 <img src={companyLogo} alt="Logo" className="h-12 w-auto object-contain" />
                                 <div>
                                     <h3 className="text-2xl font-bold text-slate-900 dark:text-white">Payslip</h3>
-                                    <p className="text-slate-500 text-sm font-medium">{selectedRun?.month_year}</p>
+                                    <p className="text-slate-500 text-sm font-medium">{selectedRun?.name || selectedRun?.month_year || selectedRun?.period_start}</p>
                                 </div>
                             </div>
                             <button onClick={() => setShowPayslip(false)} className="p-2 bg-white dark:bg-zinc-800 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors">

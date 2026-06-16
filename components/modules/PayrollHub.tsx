@@ -58,7 +58,7 @@ export const PayrollHub: React.FC = () => {
         const { data: runsData } = await supabase.from('payroll_runs')
             .select('*')
             .eq('company_id', companyId)
-            .order('month_year', { ascending: false });
+            .order('period_start', { ascending: false });
         if (runsData) setRuns(runsData);
 
         // Fetch salary components
@@ -157,9 +157,9 @@ export const PayrollHub: React.FC = () => {
                         <div>
                             <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Last Payout</p>
                             <h3 className="text-2xl font-black text-slate-900 dark:text-white">
-                                {lastRun ? formatCurrency(lastRun.total_net_pay || 0) : '$0.00'}
+                                {lastRun ? formatCurrency(lastRun.total_net_pay || lastRun.total_amount || lastRun.total_net_amount || 0) : '$0.00'}
                             </h3>
-                            <p className="text-[10px] text-slate-500 mt-0.5">{lastRun ? `Month: ${lastRun.month_year}` : 'No runs processed yet'}</p>
+                            <p className="text-[10px] text-slate-500 mt-0.5">{lastRun ? `Month: ${lastRun.name || lastRun.month_year || lastRun.period_start}` : 'No runs processed yet'}</p>
                         </div>
                     </div>
                     <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl p-5 rounded-[1.5rem] border border-white/60 dark:border-zinc-800 shadow-sm flex items-center gap-4">
@@ -192,8 +192,8 @@ export const PayrollHub: React.FC = () => {
                             {runs.slice(0, 5).map(run => (
                                 <div key={run.id} className="flex items-center justify-between p-4 bg-white dark:bg-zinc-850 rounded-2xl border border-slate-100 dark:border-zinc-850 shadow-sm">
                                     <div>
-                                        <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{run.month_year}</p>
-                                        <p className="text-xs text-slate-500 mt-0.5">Payout: {formatCurrency(run.total_net_pay || 0)}</p>
+                                        <p className="font-bold text-sm text-slate-800 dark:text-slate-200">{run.name || run.month_year || run.period_start}</p>
+                                        <p className="text-xs text-slate-500 mt-0.5">Payout: {formatCurrency(run.total_net_pay || run.total_amount || run.total_net_amount || 0)}</p>
                                     </div>
                                     <span className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border ${
                                         run.status === 'PAID' || run.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20 border-emerald-100' :

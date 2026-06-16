@@ -56,11 +56,11 @@ export const SalesOrders: React.FC = () => {
   const fetchMasters = useCallback(async () => {
     const [{data:p},{data:i},{data:w}] = await Promise.all([
       (supabase as any).from('accounting_partners').select('id,name,partner_type').order('name'),
-      (supabase as any).from('item_master').select('id,name,sku,sale_price').order('name'),
+      (supabase as any).from('item_master').select('id,name,code').order('name'),
       (supabase as any).from('warehouses').select('id,name').order('name'),
     ]);
     setPartners((p||[]).filter((x:any)=>x.partner_type==='customer'||x.partner_type==='both'));
-    setItems(i||[]);
+    setItems((i||[]).map((x:any)=>({...x, sku: x.code, sale_price: 0})));
     setWarehouses(w||[]);
   }, []);
 

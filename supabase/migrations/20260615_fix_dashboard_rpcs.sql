@@ -213,10 +213,10 @@ BEGIN
     );
 
     -- Inventory
-    SELECT COALESCE(SUM(sm.quantity * COALESCE(im.buying_price, 0)), 0) INTO v_stock_value
-    FROM public.stock_movements sm
-    JOIN public.item_master im ON sm.item_id = im.id
-    WHERE sm.company_id = p_company_id;
+    SELECT COALESCE(SUM(total_value), 0) INTO v_stock_value
+    FROM public.inventory_transactions
+    WHERE company_id = p_company_id;
+
 
     SELECT COUNT(*) INTO v_low_stock_items
     FROM (

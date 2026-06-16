@@ -33,8 +33,8 @@ export const ProjectManagement: React.FC = () => {
         setLoading(true);
         const [projRes, taskRes, timeRes] = await Promise.all([
             supabase.from('pm_projects').select('*').eq('company_id', currentCompanyId).order('created_at', { ascending: false }),
-            supabase.from('pm_tasks').select('*, pm_projects(name), employees(first_name, last_name)').eq('company_id', currentCompanyId),
-            supabase.from('pm_timesheets').select('*, pm_tasks(name, pm_projects(name)), employees(first_name, last_name)').eq('company_id', currentCompanyId).order('date', { ascending: false })
+            supabase.from('pm_tasks').select('*, pm_projects(name), employees(name)').eq('company_id', currentCompanyId),
+            supabase.from('pm_timesheets').select('*, pm_tasks(name, pm_projects(name)), employees(name)').eq('company_id', currentCompanyId).order('date', { ascending: false })
         ]);
         if (projRes.data) setProjects(projRes.data);
         if (taskRes.data) setTasks(taskRes.data);
@@ -43,7 +43,7 @@ export const ProjectManagement: React.FC = () => {
     };
 
     const fetchEmployees = async () => {
-        const { data } = await supabase.from('employees').select('id, first_name, last_name').eq('company_id', currentCompanyId).eq('status', 'Active');
+        const { data } = await supabase.from('employees').select('id, name').eq('company_id', currentCompanyId).eq('status', 'Active');
         if (data) setEmployees(data);
     };
 
@@ -215,7 +215,7 @@ export const ProjectManagement: React.FC = () => {
                                             <td className="px-6 py-4 font-bold text-slate-800 dark:text-slate-200">{t.name}</td>
                                             <td className="px-6 py-4 text-slate-500">{t.pm_projects?.name}</td>
                                             <td className="px-6 py-4 text-slate-600 dark:text-slate-300">
-                                                {t.employees ? `${t.employees.first_name} ${t.employees.last_name}` : 'Unassigned'}
+                                                {t.employees ? t.employees.name : 'Unassigned'}
                                             </td>
                                             <td className="px-6 py-4 text-slate-500">{t.due_date ? new Date(t.due_date).toLocaleDateString() : '-'}</td>
                                             <td className="px-6 py-4 cursor-pointer" onClick={() => updateTaskStatus(t.id, t.status)}>
@@ -254,7 +254,7 @@ export const ProjectManagement: React.FC = () => {
                                     {timesheets.map(ts => (
                                         <tr key={ts.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/20">
                                             <td className="px-6 py-4 text-slate-600 font-medium">{new Date(ts.date).toLocaleDateString()}</td>
-                                            <td className="px-6 py-4 text-slate-800 dark:text-slate-200 font-bold">{ts.employees ? `${ts.employees.first_name} ${ts.employees.last_name}` : '-'}</td>
+                                            <td className="px-6 py-4 text-slate-800 dark:text-slate-200 font-bold">{ts.employees ? ts.employees.name : '-'}</td>
                                             <td className="px-6 py-4 text-slate-500">{ts.pm_tasks?.pm_projects?.name} - {ts.pm_tasks?.name}</td>
                                             <td className="px-6 py-4 text-slate-500">{ts.description}</td>
                                             <td className="px-6 py-4 text-right font-black text-indigo-600 dark:text-indigo-400">{Number(ts.hours).toFixed(1)}</td>
@@ -278,7 +278,7 @@ export const ProjectManagement: React.FC = () => {
                                     // Aggregate hours per employee across all projects
                                     const empHours: Record<string, { name: string; hours: number; taskCount: number }> = {};
                                     timesheets.forEach(ts => {
-                                        const empName = ts.employees ? `${ts.employees.first_name} ${ts.employees.last_name}` : 'Unknown';
+                                        const empName = ts.employees ? ts.employees.name : 'Unknown';
                                         const empId = ts.employee_id || 'unknown';
                                         if (!empHours[empId]) empHours[empId] = { name: empName, hours: 0, taskCount: 0 };
                                         empHours[empId].hours += Number(ts.hours);
@@ -401,7 +401,7 @@ export const ProjectManagement: React.FC = () => {
                         <input type="text" placeholder="Task Name" required value={newTask.name} onChange={e => setNewTask({...newTask, name: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700" />
                         <select value={newTask.assignee_id} onChange={e => setNewTask({...newTask, assignee_id: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700">
                             <option value="">Unassigned</option>
-                            {employees.map(e => <option key={e.id} value={e.id}>{e.first_name} {e.last_name}</option>)}
+                            {employees.map(e => <option key={e.id} value={e.id}>{e.name}</option>)}
                         </select>
                         <input type="date" value={newTask.due_date} onChange={e => setNewTask({...newTask, due_date: e.target.value})} className="w-full p-3 bg-slate-50 dark:bg-zinc-800 rounded-xl border border-slate-200 dark:border-zinc-700" />
                         <div className="flex justify-end gap-3 pt-4"><button type="button" onClick={() => setShowTaskModal(false)} className="px-5 py-2 font-bold text-slate-500">Cancel</button><button type="submit" className="px-6 py-2 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700">Save</button></div>
