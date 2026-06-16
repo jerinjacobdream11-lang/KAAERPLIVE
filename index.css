@@ -83,10 +83,6 @@
 }
 
 /* Global flex-shrink safety net to prevent elements from refusing to shrink */
-.flex {
-  min-width: 0;
-  min-height: 0;
-}
 .flex-1 {
   min-width: 0;
   min-height: 0;
