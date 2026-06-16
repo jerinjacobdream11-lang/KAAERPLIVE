@@ -1114,8 +1114,8 @@ export const ESSP: React.FC = () => {
                 {/* Missed Punch Request Modal */}
                 {showMissedPunch && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-md animate-fade-in" onClick={() => setShowMissedPunch(false)}>
-                        <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden border border-white/50 dark:border-zinc-800 animate-slide-up" onClick={e => e.stopPropagation()}>
-                            <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-center">
+                        <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl w-full max-w-md rounded-[2rem] shadow-2xl overflow-hidden border border-white/50 dark:border-zinc-800 animate-slide-up flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                            <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-center flex-shrink-0">
                                 <div>
                                     <h3 className="text-lg font-bold text-slate-900 dark:text-white">Request Missed Punch</h3>
                                     <p className="text-xs text-slate-500 mt-1">Submit a correction for a missed check-in or check-out</p>
@@ -1124,7 +1124,7 @@ export const ESSP: React.FC = () => {
                                     <X className="w-5 h-5 text-slate-500" />
                                 </button>
                             </div>
-                            <div className="p-6 space-y-5">
+                            <div className="p-6 space-y-5 overflow-y-auto flex-1">
                                 <div className="space-y-2">
                                     <label className="text-xs font-bold text-slate-500 uppercase tracking-wider">Date</label>
                                     <input
@@ -1748,61 +1748,65 @@ export const ESSP: React.FC = () => {
 
                 {/* Give Kudos Modal */}
                 {showGiveModal && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-                        <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-[2rem] p-8 shadow-2xl animate-scale-up relative">
-                            <button onClick={() => setShowGiveModal(false)} className="absolute top-6 right-6 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors"><LogOut className="w-4 h-4 text-slate-400 rotate-180" /></button>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in" onClick={() => setShowGiveModal(false)}>
+                        <div className="bg-white dark:bg-zinc-900 w-full max-w-lg rounded-[2rem] p-8 shadow-2xl animate-scale-up relative flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                            <button onClick={() => setShowGiveModal(false)} className="absolute top-6 right-6 p-2 bg-slate-50 hover:bg-slate-100 rounded-full transition-colors z-10"><LogOut className="w-4 h-4 text-slate-400 rotate-180" /></button>
 
-                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Give Kudos</h2>
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex-shrink-0">Give Kudos</h2>
 
-                            <form onSubmit={handleGiveKudos} className="space-y-6">
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select Peer</label>
-                                    <select
-                                        required
-                                        className="w-full p-4 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none text-slate-900 dark:text-white"
-                                        value={giveForm.receiverId}
-                                        onChange={e => setGiveForm({ ...giveForm, receiverId: e.target.value })}
-                                    >
-                                        <option value="">Choose a colleague...</option>
-                                        {peers.map(p => (
-                                            <option key={p.id} value={p.id}>{p.name} - {p.designation}</option>
-                                        ))}
-                                    </select>
-                                </div>
+                            <form onSubmit={handleGiveKudos} className="flex flex-col flex-1 overflow-hidden">
+                                <div className="flex-1 overflow-y-auto space-y-6 pr-1 pb-4">
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select Peer</label>
+                                        <select
+                                            required
+                                            className="w-full p-4 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none text-slate-900 dark:text-white"
+                                            value={giveForm.receiverId}
+                                            onChange={e => setGiveForm({ ...giveForm, receiverId: e.target.value })}
+                                        >
+                                            <option value="">Choose a colleague...</option>
+                                            {peers.map(p => (
+                                                <option key={p.id} value={p.id}>{p.name} - {p.designation}</option>
+                                            ))}
+                                        </select>
+                                    </div>
 
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select Category</label>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        {categories.map(cat => (
-                                            <div
-                                                key={cat.id}
-                                                onClick={() => setGiveForm({ ...giveForm, categoryId: cat.id })}
-                                                className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 ${String(giveForm.categoryId) === String(cat.id)
-                                                    ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500'
-                                                    : 'bg-white border-slate-200 hover:border-indigo-300'
-                                                    }`}
-                                            >
-                                                <span className="text-xl">{cat.icon || '🏆'}</span>
-                                                <span className="text-sm font-bold text-slate-700">{cat.name}</span>
-                                            </div>
-                                        ))}
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Select Category</label>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {categories.map(cat => (
+                                                <div
+                                                    key={cat.id}
+                                                    onClick={() => setGiveForm({ ...giveForm, categoryId: cat.id })}
+                                                    className={`p-3 rounded-xl border cursor-pointer transition-all flex items-center gap-3 ${String(giveForm.categoryId) === String(cat.id)
+                                                        ? 'bg-indigo-50 border-indigo-500 ring-1 ring-indigo-500'
+                                                        : 'bg-white border-slate-200 hover:border-indigo-300'
+                                                        }`}
+                                                >
+                                                    <span className="text-xl">{cat.icon || '🏆'}</span>
+                                                    <span className="text-sm font-bold text-slate-700">{cat.name}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Message</label>
+                                        <textarea
+                                            required
+                                            placeholder="What did they do great?"
+                                            className="w-full p-4 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none h-32 resize-none text-slate-900 dark:text-white"
+                                            value={giveForm.message}
+                                            onChange={e => setGiveForm({ ...giveForm, message: e.target.value })}
+                                        ></textarea>
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Message</label>
-                                    <textarea
-                                        required
-                                        placeholder="What did they do great?"
-                                        className="w-full p-4 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none h-32 resize-none text-slate-900 dark:text-white"
-                                        value={giveForm.message}
-                                        onChange={e => setGiveForm({ ...giveForm, message: e.target.value })}
-                                    ></textarea>
+                                <div className="pt-4 border-t border-slate-100 dark:border-zinc-800 flex-shrink-0">
+                                    <button type="submit" className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition-colors active:scale-95">
+                                        Send Kudos 🚀
+                                    </button>
                                 </div>
-
-                                <button type="submit" className="w-full py-4 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition-colors active:scale-95">
-                                    Send Kudos 🚀
-                                </button>
                             </form>
                         </div>
                     </div>
@@ -2273,14 +2277,14 @@ export const ESSP: React.FC = () => {
         <div className="flex h-full relative z-10 overflow-hidden bg-slate-50 dark:bg-black">
             {/* Expanded Sidebar for ESSP */}
             <div className="w-20 lg:w-72 flex-shrink-0 bg-white/80 dark:bg-zinc-900/80 border-r border-slate-200 dark:border-zinc-800 flex flex-col overflow-hidden backdrop-blur-xl">
-                <div className="p-6">
+                <div className="p-6 flex flex-col h-full overflow-hidden">
                     <div className="flex items-center gap-3 mb-8">
                         <div className="bg-white border border-slate-100 shadow-sm rounded-xl p-1.5 flex items-center justify-center h-10 w-10 shrink-0">
                             <img src={KAA_LOGO_URL} alt="Logo" className="h-full w-full object-contain" />
                         </div>
                         <span className="text-xl font-black text-slate-800 dark:text-white tracking-tighter hidden lg:block">ESSP</span>
                     </div>
-                    <div className="flex flex-col gap-1 overflow-y-auto h-[calc(100vh-140px)] pr-2 scrollbar-hide">
+                    <div className="flex flex-col gap-1 overflow-y-auto flex-1 pr-2 scrollbar-hide">
                         {navItems.map(item => (
                             <button
                                 key={item.id}

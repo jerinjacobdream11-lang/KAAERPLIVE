@@ -515,13 +515,13 @@ export const FixedAssets: React.FC = () => {
 
       {/* ── Run Depreciation Modal ──────────────────────────── */}
       {showDepModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={()=>setShowDepModal(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
               <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2"><TrendingDown className="w-5 h-5 text-amber-500"/>Run Monthly Depreciation</h3>
               <button onClick={()=>setShowDepModal(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-5 h-5"/></button>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
               <p className="text-sm text-slate-500 dark:text-slate-400">Posts straight-line depreciation for all active assets for the selected period. Already-posted periods are skipped automatically.</p>
               <div>
                 <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Depreciation Period</label>
@@ -534,7 +534,7 @@ export const FixedAssets: React.FC = () => {
                 </div>
               )}
             </div>
-            <div className="flex justify-end gap-3 p-5 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex justify-end gap-3 p-5 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
               <button onClick={()=>setShowDepModal(false)} className="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">Close</button>
               <button onClick={runDepreciation} disabled={depRunning||!depPeriod}
                 className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-lg text-sm font-semibold hover:bg-amber-700 transition-colors disabled:opacity-60">
@@ -547,13 +547,13 @@ export const FixedAssets: React.FC = () => {
 
       {/* ── Dispose Modal ───────────────────────────────────── */}
       {showDisposeModal && disposeAsset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md">
-            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4" onClick={()=>setShowDisposeModal(false)}>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-md flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700 flex-shrink-0">
               <h3 className="font-bold text-slate-800 dark:text-white flex items-center gap-2"><Archive className="w-5 h-5 text-red-500"/>Dispose Asset</h3>
               <button onClick={()=>setShowDisposeModal(false)} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg"><X className="w-5 h-5"/></button>
             </div>
-            <div className="p-5 space-y-4">
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
               <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg text-sm text-amber-700 dark:text-amber-300">
                 Disposing: <strong>{disposeAsset.name}</strong><br/>
                 <span className="text-xs">NBV at disposal: {fmtQAR(disposeAsset.net_book_value)}</span>
@@ -574,7 +574,7 @@ export const FixedAssets: React.FC = () => {
                 </p>
               )}
             </div>
-            <div className="flex justify-end gap-3 p-5 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex justify-end gap-3 p-5 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
               <button onClick={()=>setShowDisposeModal(false)} className="px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors">Cancel</button>
               <button onClick={handleDispose} disabled={disposing||!disposeDate}
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-semibold hover:bg-red-700 transition-colors disabled:opacity-60">

@@ -81,3 +81,35 @@
     width: 100% !important;
   }
 }
+
+/* Global flex-shrink safety net to prevent elements from refusing to shrink */
+.flex {
+  min-width: 0;
+  min-height: 0;
+}
+.flex-1 {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Responsive p-8 overrides: scale padding down on smaller devices to maximize viewport usage */
+@media (max-width: 1023px) {
+  .p-8 {
+    padding: 1.5rem !important; /* equivalent to p-6 */
+  }
+  .p-8.md\:p-12 {
+    padding: 1.5rem !important;
+  }
+  .mb-8 {
+    margin-bottom: 1.5rem !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .p-8 {
+    padding: 1rem !important; /* equivalent to p-4 */
+  }
+  .mb-8 {
+    margin-bottom: 1rem !important;
+  }
+}

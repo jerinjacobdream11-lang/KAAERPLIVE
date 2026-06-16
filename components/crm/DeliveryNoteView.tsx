@@ -146,14 +146,14 @@ const DeliveryNoteView: React.FC<Props> = ({ companyId }) => {
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-                    <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/10 dark:to-violet-900/10">
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-2xl shadow-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-gradient-to-r from-purple-50 to-violet-50 dark:from-purple-900/10 dark:to-violet-900/10 flex-shrink-0">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Truck size={20} className="text-purple-500" /> {activeDN.id ? 'Edit Delivery Note' : 'New Delivery Note'}
                                 {activeDN.status && <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[activeDN.status] || ''}`}>{activeDN.status}</span>}
                             </h3>
                         </div>
-                        <div className="p-6 space-y-5 max-h-[65vh] overflow-auto">
+                        <div className="p-6 space-y-5 flex-1 overflow-y-auto">
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-slate-500">Customer</label>

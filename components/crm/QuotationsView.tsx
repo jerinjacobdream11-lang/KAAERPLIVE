@@ -181,14 +181,14 @@ const QuotationsView: React.FC<Props> = ({ companyId, onConvert }) => {
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-                    <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-3xl shadow-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10">
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-3xl shadow-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 flex-shrink-0">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <FileText size={20} className="text-blue-500" /> {activeQuot.id ? 'Edit Quotation' : 'New Quotation'}
                                 {activeQuot.status && <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[activeQuot.status] || ''}`}>{activeQuot.status}</span>}
                             </h3>
                         </div>
-                        <div className="p-6 space-y-5 max-h-[65vh] overflow-auto">
+                        <div className="p-6 space-y-5 flex-1 overflow-y-auto">
                             {/* Header Fields */}
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-1">

@@ -54,8 +54,8 @@ export const CompensationChangeModal: React.FC<CompensationChangeModalProps> = (
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm" onClick={(e) => { e.stopPropagation(); onClose(); }}>
-            <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-2xl shadow-xl border border-slate-200 dark:border-zinc-800 flex flex-col" onClick={(e) => e.stopPropagation()}>
-                <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-center">
+            <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-2xl shadow-xl border border-slate-200 dark:border-zinc-800 flex flex-col max-h-[90vh] overflow-hidden" onClick={(e) => e.stopPropagation()}>
+                <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-center flex-shrink-0">
                     <h2 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
                         <DollarSign className="w-5 h-5 text-emerald-600" />
                         Update Compensation
@@ -65,58 +65,60 @@ export const CompensationChangeModal: React.FC<CompensationChangeModalProps> = (
                     </button>
                 </div>
 
-                <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Reason</label>
-                        <select
-                            value={reason}
-                            onChange={(e) => setReason(e.target.value)}
-                            className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/50 outline-none"
-                        >
-                            <option value="INCREMENT">Annual Increment</option>
-                            <option value="CORRECTION">Correction</option>
-                            <option value="PROMOTION">Promotion Adjustment</option>
-                        </select>
-                    </div>
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                    <div className="flex-1 overflow-y-auto p-6 space-y-4 pr-1 pb-4">
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Reason</label>
+                            <select
+                                value={reason}
+                                onChange={(e) => setReason(e.target.value)}
+                                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/50 outline-none text-slate-900 dark:text-white"
+                            >
+                                <option value="INCREMENT">Annual Increment</option>
+                                <option value="CORRECTION">Correction</option>
+                                <option value="PROMOTION">Promotion Adjustment</option>
+                            </select>
+                        </div>
 
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Effective Date</label>
-                        <input
-                            type="date"
-                            required
-                            value={effectiveDate}
-                            onChange={(e) => setEffectiveDate(e.target.value)}
-                            className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/50"
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">New CTC (Annual)</label>
-                        <div className="relative">
-                            <span className="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Effective Date</label>
                             <input
-                                type="number"
+                                type="date"
                                 required
-                                value={newCtc}
-                                onChange={(e) => setNewCtc(e.target.value)}
-                                className="w-full pl-8 p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/50 font-mono font-bold"
-                                placeholder="0.00"
+                                value={effectiveDate}
+                                onChange={(e) => setEffectiveDate(e.target.value)}
+                                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/50 text-slate-900 dark:text-white"
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">New CTC (Annual)</label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-2.5 text-slate-400 font-bold">$</span>
+                                <input
+                                    type="number"
+                                    required
+                                    value={newCtc}
+                                    onChange={(e) => setNewCtc(e.target.value)}
+                                    className="w-full pl-8 p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/50 font-mono font-bold text-slate-900 dark:text-white"
+                                    placeholder="0.00"
+                                />
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Remarks</label>
+                            <textarea
+                                rows={2}
+                                value={remarks}
+                                onChange={(e) => setRemarks(e.target.value)}
+                                className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/50 text-slate-900 dark:text-white"
+                                placeholder="Optional notes..."
                             />
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-1">Remarks</label>
-                        <textarea
-                            rows={2}
-                            value={remarks}
-                            onChange={(e) => setRemarks(e.target.value)}
-                            className="w-full p-2.5 rounded-xl border border-slate-200 dark:border-zinc-700 bg-slate-50 dark:bg-zinc-800/50"
-                            placeholder="Optional notes..."
-                        />
-                    </div>
-
-                    <div className="pt-4 flex justify-end gap-3">
+                    <div className="p-6 pt-4 border-t border-slate-100 dark:border-zinc-800 flex justify-end gap-3 flex-shrink-0">
                         <button
                             type="button"
                             onClick={onClose}

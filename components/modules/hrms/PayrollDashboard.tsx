@@ -473,9 +473,9 @@ export const PayrollDashboard: React.FC = () => {
 
             {/* Payslip Modal */}
             {showPayslip && selectedPayslip && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-scale-in">
-                        <div className="p-8 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-start bg-slate-50/50 dark:bg-zinc-800/50">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowPayslip(false)}>
+                    <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden animate-scale-in flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="p-8 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-start bg-slate-50/50 dark:bg-zinc-800/50 flex-shrink-0">
                             <div className="flex items-center gap-4">
                                 <img src={companyLogo} alt="Logo" className="h-12 w-auto object-contain" />
                                 <div>
@@ -491,7 +491,7 @@ export const PayrollDashboard: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className="p-8 space-y-8">
+                        <div className="p-8 space-y-8 flex-1 overflow-y-auto">
                             {/* Employee Info */}
                             <div className="grid grid-cols-2 gap-8 pb-8 border-b border-slate-100 dark:border-zinc-800">
                                 <div>
@@ -544,7 +544,7 @@ export const PayrollDashboard: React.FC = () => {
                                 <p className="text-3xl font-black text-slate-900 dark:text-white">{formatCurrency(selectedPayslip.net_pay)}</p>
                             </div>
                         </div>
-                        <div className="p-6 bg-slate-50 dark:bg-zinc-800/50 border-t border-slate-100 dark:border-zinc-800 flex justify-end gap-3">
+                        <div className="p-6 bg-slate-50 dark:bg-zinc-800/50 border-t border-slate-100 dark:border-zinc-800 flex justify-end gap-3 flex-shrink-0">
                             <button className="px-6 py-3 bg-white dark:bg-zinc-700 border border-slate-200 dark:border-zinc-600 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-200 hover:border-indigo-400 transition-colors">Download PDF</button>
                             <button onClick={() => setShowPayslip(false)} className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold text-sm hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20">Close</button>
                         </div>
@@ -554,15 +554,15 @@ export const PayrollDashboard: React.FC = () => {
 
             {/* Edit Pay Modal */}
             {showEditModal && editRecord && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
-                        <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-center bg-slate-50/50 dark:bg-zinc-800/50">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowEditModal(false)}>
+                    <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-center bg-slate-50/50 dark:bg-zinc-800/50 flex-shrink-0">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white">Adjust Payroll Record</h3>
                             <button onClick={() => setShowEditModal(false)} className="p-2 bg-white dark:bg-zinc-800 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors">
                                 <X className="h-5 w-5 text-slate-500" />
                             </button>
                         </div>
-                        <div className="p-6 space-y-4">
+                        <div className="p-6 space-y-4 flex-1 overflow-y-auto">
                             <div>
                                 <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-1">Employee</p>
                                 <p className="font-bold text-slate-800 dark:text-white">{editRecord.employee?.name}</p>
@@ -604,7 +604,7 @@ export const PayrollDashboard: React.FC = () => {
                                 <span className="font-black text-emerald-600 dark:text-emerald-400">{formatCurrency(editForm.gross_earning - editForm.total_deduction)}</span>
                             </div>
                         </div>
-                        <div className="p-6 bg-slate-50 dark:bg-zinc-800/50 border-t border-slate-100 dark:border-zinc-800 flex justify-end gap-3">
+                        <div className="p-6 bg-slate-50 dark:bg-zinc-800/50 border-t border-slate-100 dark:border-zinc-800 flex justify-end gap-3 flex-shrink-0">
                             <button onClick={handleSaveEdit} className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors shadow-lg shadow-blue-500/20 w-full text-center">Save Adjustments</button>
                         </div>
                     </div>
@@ -613,15 +613,15 @@ export const PayrollDashboard: React.FC = () => {
 
             {/* Final Settlement Modal */}
             {showSettlementModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in">
-                    <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in">
-                        <div className="p-6 border-b border-rose-100 dark:border-rose-900/30 flex justify-between items-center bg-rose-50/50 dark:bg-rose-900/10">
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-fade-in" onClick={() => setShowSettlementModal(false)}>
+                    <div className="bg-white dark:bg-zinc-900 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden animate-scale-in flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="p-6 border-b border-rose-100 dark:border-rose-900/30 flex justify-between items-center bg-rose-50/50 dark:bg-rose-900/10 flex-shrink-0">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white">Full & Final Settlement</h3>
                             <button onClick={() => setShowSettlementModal(false)} className="p-2 bg-white dark:bg-zinc-800 rounded-full hover:bg-slate-100 dark:hover:bg-zinc-700 transition-colors">
                                 <X className="h-5 w-5 text-slate-500" />
                             </button>
                         </div>
-                        <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
+                        <div className="p-6 space-y-4 flex-1 overflow-y-auto">
                             <div className="p-4 bg-amber-50 dark:bg-amber-900/20 text-amber-800 dark:text-amber-200 text-sm font-medium rounded-xl border border-amber-200 dark:border-amber-900/50 flex items-start gap-3">
                                 <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                                 <p>Ensure a Draft Payroll batch is selected or generated for the current month. The settlement will be attached to it.</p>
@@ -630,7 +630,7 @@ export const PayrollDashboard: React.FC = () => {
                             <div>
                                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">Select Employee</label>
                                 <select 
-                                    className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-3 text-sm font-medium outline-none focus:ring-2 focus:ring-rose-500/20"
+                                    className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-3 text-sm font-medium outline-none focus:ring-2 focus:ring-rose-500/20 text-slate-900 dark:text-white"
                                     value={settlementForm.employee_id}
                                     onChange={e => setSettlementForm(prev => ({...prev, employee_id: e.target.value}))}
                                 >
@@ -644,15 +644,15 @@ export const PayrollDashboard: React.FC = () => {
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">Notice Period Pay</label>
-                                    <input type="number" value={settlementForm.notice_pay} onChange={e => setSettlementForm(prev => ({...prev, notice_pay: Number(e.target.value)}))} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none" />
+                                    <input type="number" value={settlementForm.notice_pay} onChange={e => setSettlementForm(prev => ({...prev, notice_pay: Number(e.target.value)}))} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none text-slate-900 dark:text-white" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">Leave Encashment</label>
-                                    <input type="number" value={settlementForm.leave_encashment} onChange={e => setSettlementForm(prev => ({...prev, leave_encashment: Number(e.target.value)}))} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none" />
+                                    <input type="number" value={settlementForm.leave_encashment} onChange={e => setSettlementForm(prev => ({...prev, leave_encashment: Number(e.target.value)}))} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none text-slate-900 dark:text-white" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">Gratuity Amount</label>
-                                    <input type="number" value={settlementForm.gratuity} onChange={e => setSettlementForm(prev => ({...prev, gratuity: Number(e.target.value)}))} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none" />
+                                    <input type="number" value={settlementForm.gratuity} onChange={e => setSettlementForm(prev => ({...prev, gratuity: Number(e.target.value)}))} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none text-slate-900 dark:text-white" />
                                 </div>
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 mb-1">Loan Recovery / Dues</label>
@@ -667,7 +667,7 @@ export const PayrollDashboard: React.FC = () => {
                                 </span>
                             </div>
                         </div>
-                        <div className="p-6 bg-slate-50 dark:bg-zinc-800/50 border-t border-slate-100 dark:border-zinc-800 flex justify-end gap-3">
+                        <div className="p-6 bg-slate-50 dark:bg-zinc-800/50 border-t border-slate-100 dark:border-zinc-800 flex justify-end gap-3 flex-shrink-0">
                             <button onClick={handleProcessSettlement} className="px-6 py-3 bg-rose-600 text-white rounded-xl font-bold text-sm hover:bg-rose-700 transition-colors shadow-lg shadow-rose-500/20 w-full">Finalize Offboarding Pay</button>
                         </div>
                     </div>

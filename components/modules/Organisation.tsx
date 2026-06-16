@@ -1334,9 +1334,8 @@ const GenericMastersView = ({
 
                     <SearchBar value={search} onChange={setSearch} placeholder={`Search ${config?.displayName?.toLowerCase() || ''}...`} />
 
-                    {/* Generic Table */}
-                    <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl rounded-[2rem] border border-white/60 dark:border-zinc-800 shadow-xl shadow-slate-200/50 dark:shadow-black/30 overflow-hidden flex-1">
-                        <div className="overflow-y-auto h-full">
+                    <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl rounded-[2rem] border border-white/60 dark:border-zinc-800 shadow-xl shadow-slate-200/50 dark:shadow-black/30 overflow-hidden flex-1 flex flex-col">
+                        <div className="overflow-auto flex-1 h-full">
                             <table className="w-full text-left">
                                 <thead className="bg-slate-50/80 dark:bg-zinc-800/80 sticky top-0 z-10 backdrop-blur-sm border-b border-slate-200/60 dark:border-zinc-700">
                                     <tr>
@@ -3112,7 +3111,7 @@ export const Organisation: React.FC = () => {
                     </div>
                 </header>
 
-                <div className="flex-1 overflow-hidden p-8">
+                <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
                     {subTab === 'ANNOUNCEMENTS' && (
                         <GenericMastersView
                             activeTab="ANNOUNCEMENTS"

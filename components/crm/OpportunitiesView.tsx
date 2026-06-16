@@ -181,7 +181,7 @@ export default function OpportunitiesView({ companyId, onConvert }: Opportunitie
                             <p className="text-sm mt-1">Configure stages in Organisation settings</p>
                         </div>
                     ) : (
-                        <div className="flex gap-4 h-full min-w-max">
+                        <div className="flex gap-4 h-full min-w-full pr-4">
                             {stages.map(stage => (
                                 <div
                                     key={stage.id}

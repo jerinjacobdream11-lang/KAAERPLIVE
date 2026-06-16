@@ -184,14 +184,14 @@ const SalesInvoiceView: React.FC<Props> = ({ companyId, onConvert }) => {
             {/* Modal */}
             {showModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowModal(false)}>
-                    <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-3xl shadow-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/10 dark:to-teal-900/10">
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-3xl shadow-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/10 dark:to-teal-900/10 flex-shrink-0">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <Receipt size={20} className="text-emerald-500" /> {activeInv.id ? 'Edit Invoice' : 'New Invoice'}
                                 {activeInv.status && <span className={`ml-2 px-2 py-0.5 rounded-full text-[10px] font-bold ${statusColors[activeInv.status] || ''}`}>{activeInv.status}</span>}
                             </h3>
                         </div>
-                        <div className="p-6 space-y-5 max-h-[65vh] overflow-auto">
+                        <div className="p-6 space-y-5 flex-1 overflow-y-auto">
                             <div className="grid grid-cols-3 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-xs font-medium text-slate-500">Customer *</label>

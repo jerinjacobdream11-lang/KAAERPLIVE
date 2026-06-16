@@ -421,8 +421,8 @@ export const Partners: React.FC<{ type?: 'Customer' | 'Vendor' }> = ({ type }) =
             {/* Import Modal */}
             {showImportModal && (
                 <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowImportModal(false)}>
-                    <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden" onClick={e => e.stopPropagation()}>
-                        <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/50 flex justify-between items-center">
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-zinc-800 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/50 flex justify-between items-center flex-shrink-0">
                             <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                                 <UploadCloud size={20} className="text-indigo-500" /> Import Partners
                             </h3>
@@ -430,7 +430,7 @@ export const Partners: React.FC<{ type?: 'Customer' | 'Vendor' }> = ({ type }) =
                                 <Download size={14} /> Template
                             </button>
                         </div>
-                        <div className="p-6 space-y-6">
+                        <div className="p-6 space-y-6 flex-1 overflow-y-auto">
                             <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
                                 <h4 className="text-sm font-semibold text-indigo-800 dark:text-indigo-400 mb-2">Instructions</h4>
                                 <p className="text-xs text-indigo-600/80 dark:text-indigo-300/80 mb-3">
@@ -473,8 +473,8 @@ export const Partners: React.FC<{ type?: 'Customer' | 'Vendor' }> = ({ type }) =
                                 )}
                             </div>
                         </div>
-                        <div className="px-6 py-4 border-t border-slate-100 dark:border-zinc-800 flex justify-end">
-                            <button onClick={() => setShowImportModal(false)} disabled={importing} className="px-5 py-2 text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-colors font-medium text-sm">Close</button>
+                        <div className="px-6 py-4 border-t border-slate-100 dark:border-zinc-800 flex justify-end flex-shrink-0">
+                            <button onClick={() => setShowImportModal(false)} disabled={importing} className="px-5 py-2 text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-colors font-medium text-sm font-semibold">Close</button>
                         </div>
                     </div>
                 </div>

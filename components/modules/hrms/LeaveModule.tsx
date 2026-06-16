@@ -110,8 +110,8 @@ const LeavePolicySettings: React.FC<{ onClose: () => void }> = ({ onClose }) => 
 
     return (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-            <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-4xl shadow-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden" onClick={e => e.stopPropagation()}>
-                <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/10 dark:to-violet-900/10">
+            <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-4xl shadow-2xl border border-slate-200 dark:border-zinc-800 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 flex items-center justify-between bg-gradient-to-r from-indigo-50 to-violet-50 dark:from-indigo-900/10 dark:to-violet-900/10 flex-shrink-0">
                     <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
                         <Settings className="w-5 h-5 text-indigo-600" /> Leave Policy Settings
                     </h3>
@@ -120,7 +120,7 @@ const LeavePolicySettings: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                     </button>
                 </div>
 
-                <div className="p-6 max-h-[65vh] overflow-auto">
+                <div className="p-6 flex-1 overflow-y-auto">
                     {error && (
                         <div className="mb-4 px-4 py-2 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-800 rounded-xl text-sm text-rose-600 dark:text-rose-400">
                             {error}
@@ -132,8 +132,8 @@ const LeavePolicySettings: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                             <Loader2 className="w-7 h-7 text-indigo-500 animate-spin" />
                         </div>
                     ) : (
-                        <div className="border border-slate-200 dark:border-zinc-700 rounded-xl overflow-hidden">
-                            <table className="w-full text-sm">
+                        <div className="border border-slate-200 dark:border-zinc-700 rounded-xl overflow-x-auto">
+                            <table className="w-full text-sm min-w-[600px]">
                                 <thead>
                                     <tr className="bg-slate-50 dark:bg-zinc-800 text-left text-xs text-slate-500 uppercase tracking-wider">
                                         <th className="px-4 py-3">Leave Type</th>
@@ -199,10 +199,10 @@ const LeavePolicySettings: React.FC<{ onClose: () => void }> = ({ onClose }) => 
                     </button>
                 </div>
 
-                <div className="px-6 py-4 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-end gap-3">
-                    <button onClick={onClose} className="px-5 py-2.5 text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-colors font-medium text-sm">Cancel</button>
+                <div className="px-6 py-4 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-end gap-3 flex-shrink-0">
+                    <button onClick={onClose} className="px-5 py-2.5 text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-colors font-medium text-sm font-semibold">Cancel</button>
                     <button onClick={handleSave} disabled={saving}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium text-sm shadow-lg shadow-indigo-500/20 disabled:opacity-50">
+                        className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-medium text-sm shadow-lg shadow-indigo-500/20 disabled:opacity-50 font-semibold">
                         {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
                         Save Changes
                     </button>

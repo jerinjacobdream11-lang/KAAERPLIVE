@@ -498,8 +498,8 @@ export const CRM: React.FC = () => {
             {/* Contact Detail Modal */}
             {selectedContact && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-md animate-fade-in" onClick={() => setSelectedContact(null)}>
-                    <div className="bg-white/95 backdrop-blur-xl w-full max-w-2xl rounded-[3rem] shadow-2xl overflow-hidden animate-slide-up border border-white/60" onClick={e => e.stopPropagation()}>
-                        <div className="p-8 border-b border-slate-100 flex justify-between items-start bg-slate-50/50">
+                    <div className="bg-white/95 backdrop-blur-xl w-full max-w-3xl rounded-[3rem] shadow-2xl overflow-hidden animate-slide-up border border-white/60 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="p-8 flex-1 overflow-y-auto flex justify-between items-start bg-slate-50/50">
                             <div className="flex items-center gap-5">
                                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center text-3xl font-bold text-indigo-600 border-4 border-white shadow-lg">
                                     {selectedContact.name.charAt(0)}
@@ -706,9 +706,12 @@ export const CRM: React.FC = () => {
                 {/* Add Deal Modal */}
                 {isDealModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in" onClick={() => setIsDealModalOpen(false)}>
-                        <div className="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-lg border border-slate-100" onClick={e => e.stopPropagation()}>
-                            <h2 className="text-2xl font-bold text-slate-900 mb-6">Add New Deal</h2>
-                            <form onSubmit={handleCreateDeal} className="space-y-4">
+                        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                            <div className="p-6 pb-2 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+                                <h2 className="text-xl font-bold text-slate-900">Add New Deal</h2>
+                                <button onClick={() => setIsDealModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+                            </div>
+                            <form onSubmit={handleCreateDeal} className="p-6 space-y-4 overflow-y-auto flex-1">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1">Deal Title</label>
                                     <input required name="title" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="e.g. Enterprise License Q3" />
@@ -736,9 +739,12 @@ export const CRM: React.FC = () => {
                 {/* New Task Modal */}
                 {isTaskModalOpen && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in" onClick={() => setIsTaskModalOpen(false)}>
-                        <div className="bg-white p-8 rounded-[2rem] shadow-2xl w-full max-w-lg border border-slate-100" onClick={e => e.stopPropagation()}>
-                            <h2 className="text-2xl font-bold text-slate-900 mb-6">Create New Task</h2>
-                            <form onSubmit={handleCreateTask} className="space-y-4">
+                        <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg border border-slate-100 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                            <div className="p-6 pb-2 border-b border-slate-100 flex justify-between items-center flex-shrink-0">
+                                <h2 className="text-xl font-bold text-slate-900">Create New Task</h2>
+                                <button onClick={() => setIsTaskModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+                            </div>
+                            <form onSubmit={handleCreateTask} className="p-6 space-y-4 overflow-y-auto flex-1">
                                 <div>
                                     <label className="block text-sm font-bold text-slate-700 mb-1">Task Title</label>
                                     <input required name="title" className="w-full px-4 py-3 rounded-xl bg-slate-50 border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20" placeholder="e.g. Follow up with client" />

@@ -259,9 +259,12 @@ export const CRM: React.FC = () => {
             {/* Document Modal */}
             {showDocModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-md animate-fade-in" onClick={() => setShowDocModal(false)}>
-                    <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-slide-up border border-white/60 dark:border-zinc-800 p-8" onClick={e => e.stopPropagation()}>
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Upload Document</h2>
-                        <div className="space-y-4">
+                    <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-slide-up border border-white/60 dark:border-zinc-800 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="p-8 pb-4 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-center flex-shrink-0">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Upload Document</h2>
+                            <button onClick={() => setShowDocModal(false)} className="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+                        </div>
+                        <div className="p-8 pt-4 space-y-4 overflow-y-auto flex-1">
                             <input type="text" placeholder="Document Name" className="w-full p-3 rounded-xl border bg-slate-50" value={newDoc.name || ''} onChange={e => setNewDoc({ ...newDoc, name: e.target.value })} />
                             <input type="text" placeholder="File URL (e.g. https://...)" className="w-full p-3 rounded-xl border bg-slate-50" value={newDoc.file_url || ''} onChange={e => setNewDoc({ ...newDoc, file_url: e.target.value })} />
                             <div className="flex gap-4">
@@ -347,14 +350,14 @@ export const CRM: React.FC = () => {
             {/* Create Contact Modal */}
             {showContactModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-md animate-fade-in" onClick={() => setShowContactModal(false)}>
-                    <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-slide-up border border-white/60 dark:border-zinc-800 p-8" onClick={e => e.stopPropagation()}>
-                        <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Add Contact</h2>
+                    <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl w-full max-w-lg rounded-[2.5rem] shadow-2xl overflow-hidden animate-slide-up border border-white/60 dark:border-zinc-800 flex flex-col max-h-[90vh]" onClick={e => e.stopPropagation()}>
+                        <div className="p-8 pb-4 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-center flex-shrink-0">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Add Contact</h2>
                             <button onClick={() => setShowContactModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-full text-slate-400 transition-colors">
-                                <X className="w-6 h-6" />
+                                <X className="w-5 h-5" />
                             </button>
                         </div>
-                        <div className="space-y-4">
+                        <div className="p-8 pt-4 space-y-4 overflow-y-auto flex-1">
                             <input type="text" placeholder="Name" className="w-full p-3 rounded-xl border bg-slate-50" value={newContact.name || ''} onChange={e => setNewContact({ ...newContact, name: e.target.value })} />
                             <input type="email" placeholder="Email" className="w-full p-3 rounded-xl border bg-slate-50" value={newContact.email || ''} onChange={e => setNewContact({ ...newContact, email: e.target.value })} />
                             <input type="text" placeholder="Role/Job Title" className="w-full p-3 rounded-xl border bg-slate-50" value={newContact.role || ''} onChange={e => setNewContact({ ...newContact, role: e.target.value })} />
@@ -399,53 +402,58 @@ export const CRM: React.FC = () => {
         };
 
         return (
-            <div className="p-8 h-full flex flex-col animate-page-enter">
+            <div className="p-4 md:p-6 lg:p-8 h-full flex flex-col animate-page-enter">
                 <div className="flex justify-between items-center mb-8">
-                    <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Workflows & Automations</h1>
+                    <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">Workflows & Automations</h1>
                     <button onClick={() => setShowAutoModal(true)} className="bg-indigo-600 text-white px-5 py-3 rounded-2xl font-bold text-sm flex items-center gap-2 hover:bg-indigo-700 shadow-lg">
                         <Plus className="w-4 h-4" /> Create Automation
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {automations.map(auto => (
-                        <div key={auto.id} className="bg-white dark:bg-zinc-900 p-6 rounded-[1.5rem] border border-slate-200 dark:border-zinc-800 relative overflow-hidden group">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                                <Workflow className="w-24 h-24 rotate-12" />
-                            </div>
-                            <div className="relative z-10">
-                                <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">{auto.name}</h3>
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center"><Sparkles className="w-4 h-4" /></span>
-                                        <div>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trigger</span>
-                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{auto.trigger_event.replace(/_/g, ' ')}</p>
+                <div className="flex-1 overflow-y-auto pr-1">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {automations.map(auto => (
+                            <div key={auto.id} className="bg-white dark:bg-zinc-900 p-6 rounded-[1.5rem] border border-slate-200 dark:border-zinc-800 relative overflow-hidden group">
+                                <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                                    <Workflow className="w-24 h-24 rotate-12" />
+                                </div>
+                                <div className="relative z-10">
+                                    <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-2">{auto.name}</h3>
+                                    <div className="space-y-4">
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center"><Sparkles className="w-4 h-4" /></span>
+                                            <div>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Trigger</span>
+                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{auto.trigger_event.replace(/_/g, ' ')}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-center"><ChevronDown className="w-4 h-4 text-slate-300" /></div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center"><CheckSquare className="w-4 h-4" /></span>
+                                            <div>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Action</span>
+                                                <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{auto.action_type.replace(/_/g, ' ')}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="flex justify-center"><ChevronDown className="w-4 h-4 text-slate-300" /></div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center"><CheckSquare className="w-4 h-4" /></span>
-                                        <div>
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Action</span>
-                                            <p className="text-sm font-bold text-slate-700 dark:text-slate-300">{auto.action_type.replace(/_/g, ' ')}</p>
-                                        </div>
+                                    <div className="mt-6 pt-4 border-t border-slate-100 dark:border-zinc-800 flex justify-between items-center">
+                                        <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">Active</span>
+                                        <button className="text-slate-400 hover:text-rose-500"><X className="w-4 h-4" /></button>
                                     </div>
                                 </div>
-                                <div className="mt-6 pt-4 border-t border-slate-100 dark:border-zinc-800 flex justify-between items-center">
-                                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">Active</span>
-                                    <button className="text-slate-400 hover:text-rose-500"><X className="w-4 h-4" /></button>
-                                </div>
                             </div>
-                        </div>
-                    ))}
+                        ))}
+                    </div>
                 </div>
 
                 {showAutoModal && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/20 backdrop-blur-md" onClick={() => setShowAutoModal(false)}>
-                        <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-3xl p-8 shadow-2xl" onClick={e => e.stopPropagation()}>
-                            <h2 className="text-xl font-bold mb-6">New Automation</h2>
-                            <div className="space-y-4">
+                        <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                            <div className="p-8 pb-4 border-b border-slate-100 dark:border-zinc-800 flex justify-between items-center flex-shrink-0">
+                                <h2 className="text-xl font-bold mb-0">New Automation</h2>
+                                <button onClick={() => setShowAutoModal(false)} className="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+                            </div>
+                            <div className="p-8 pt-4 space-y-4 overflow-y-auto flex-1">
                                 <input className="w-full p-3 bg-slate-50 rounded-xl border" placeholder="Name (e.g. Auto-Task)" value={newAuto.name} onChange={e => setNewAuto({ ...newAuto, name: e.target.value })} />
                                 <div>
                                     <label className="text-xs font-bold text-slate-500 uppercase">When...</label>

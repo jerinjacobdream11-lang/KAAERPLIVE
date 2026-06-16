@@ -190,35 +190,37 @@ const AddCategoryModal = ({ category, onClose, onSuccess }: { category: KudosCat
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-            <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[2rem] p-8 shadow-2xl animate-scale-up relative">
-                <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-slate-50 dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 rounded-full transition-colors">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in" onClick={onClose}>
+            <div className="bg-white dark:bg-zinc-900 w-full max-w-md rounded-[2rem] p-8 shadow-2xl animate-scale-up relative flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                <button onClick={onClose} className="absolute top-6 right-6 p-2 bg-slate-50 dark:bg-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-700 rounded-full transition-colors z-10">
                     <XCircle className="w-4 h-4 text-slate-400" />
                 </button>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6 flex-shrink-0">
                     {category ? 'Edit Category' : 'New Kudos Category'}
                 </h2>
 
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Category Name</label>
-                        <input required className="w-full p-4 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-900 dark:text-white" placeholder="e.g. Team Player" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
-                    </div>
-                    <div>
-                        <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Description</label>
-                        <textarea required className="w-full p-4 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-900 dark:text-white resize-none h-24" placeholder="For outstanding teamwork..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
+                <form onSubmit={handleSubmit} className="flex flex-col flex-1 overflow-hidden">
+                    <div className="flex-1 overflow-y-auto space-y-4 pr-1 pb-4">
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Icon (Emoji)</label>
-                            <input required className="w-full p-4 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-900 dark:text-white text-center text-xl" value={formData.icon} onChange={e => setFormData({ ...formData, icon: e.target.value })} />
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Category Name</label>
+                            <input required className="w-full p-4 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-900 dark:text-white" placeholder="e.g. Team Player" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} />
                         </div>
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Points Awarded</label>
-                            <input type="number" min="0" required className="w-full p-4 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-900 dark:text-white" value={formData.points} onChange={e => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })} />
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Description</label>
+                            <textarea required className="w-full p-4 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-900 dark:text-white resize-none h-24" placeholder="For outstanding teamwork..." value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Icon (Emoji)</label>
+                                <input required className="w-full p-4 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-900 dark:text-white text-center text-xl" value={formData.icon} onChange={e => setFormData({ ...formData, icon: e.target.value })} />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Points Awarded</label>
+                                <input type="number" min="0" required className="w-full p-4 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none focus:ring-2 focus:ring-amber-500/20 text-slate-900 dark:text-white" value={formData.points} onChange={e => setFormData({ ...formData, points: parseInt(e.target.value) || 0 })} />
+                            </div>
                         </div>
                     </div>
-                    <div className="pt-4">
+                    <div className="pt-4 border-t border-slate-100 dark:border-zinc-800 flex-shrink-0">
                         <button disabled={saving} type="submit" className="w-full py-4 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 transition-colors">
                             {saving ? 'Saving...' : (category ? 'Update Category' : 'Create Category')}
                         </button>

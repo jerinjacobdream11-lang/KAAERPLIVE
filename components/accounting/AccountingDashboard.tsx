@@ -31,14 +31,14 @@ export const AccountingDashboard: React.FC = () => {
     return (
         <div className="h-full flex flex-col bg-slate-50 dark:bg-zinc-950">
             {/* Header */}
-            <div className="px-6 py-4 border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex justify-between items-center no-print">
-                <h1 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-                    <Calculator className="w-6 h-6 text-violet-600" />
+            <div className="px-4 py-3 md:px-6 md:py-4 border-b border-slate-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 flex flex-col lg:flex-row lg:justify-between lg:items-center gap-3 no-print">
+                <h1 className="text-lg md:text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
+                    <Calculator className="w-5 h-5 md:w-6 h-6 text-violet-600" />
                     Accounting
                 </h1>
 
                 {/* Tabs */}
-                <div className="flex flex-wrap gap-0.5 bg-slate-100 dark:bg-zinc-800 p-1 rounded-lg overflow-x-auto">
+                <div className="flex flex-wrap gap-0.5 bg-slate-100 dark:bg-zinc-800 p-1 rounded-lg overflow-x-auto max-w-full">
                     {['overview', 'customers', 'vendors', 'payments', 'journal', 'banking', 'assets', 'reporting', 'masters', 'settings'].map(tab => (
                         <button
                             key={tab}
@@ -51,7 +51,7 @@ export const AccountingDashboard: React.FC = () => {
                                 else if (tab === 'masters') setSubTab('coa');
                                 else setSubTab('');
                             }}
-                            className={`px-3 py-1.5 rounded-md text-sm font-bold capitalize transition-all whitespace-nowrap ${activeTab === tab
+                            className={`px-2 py-1 md:px-3 md:py-1.5 rounded-md text-xs md:text-sm font-bold capitalize transition-all whitespace-nowrap ${activeTab === tab
                                 ? 'bg-white dark:bg-zinc-700 text-violet-600 dark:text-violet-400 shadow-sm'
                                 : 'text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                         >
@@ -109,7 +109,7 @@ export const AccountingDashboard: React.FC = () => {
             )}
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6">
                 {activeTab === 'overview' && <FinanceDashboard />}
 
                 {activeTab === 'customers' && subTab === 'invoices' && <Invoices />}

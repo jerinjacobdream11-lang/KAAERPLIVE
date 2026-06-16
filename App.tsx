@@ -160,7 +160,7 @@ const AppContent: React.FC = () => {
             return (
               <div
                 key={module.id}
-                className="absolute inset-0 w-full h-full overflow-hidden"
+                className="absolute inset-0 w-full h-full overflow-auto"
                 style={{ 
                   display: location.pathname === module.path ? 'block' : 'none',
                   visibility: location.pathname === module.path ? 'visible' : 'hidden' 
