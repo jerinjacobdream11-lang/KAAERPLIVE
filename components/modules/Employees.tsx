@@ -26,6 +26,8 @@ import { ReportsListView } from './reports/ReportsListView';
 import { KAA_LOGO_URL } from '../../constants';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDelayLoading } from '../../contexts/GlobalLoadingContext';
+import { TableSkeleton, DashboardSkeleton } from '../ui/LoadingSkeletons';
 
 export const Employees: React.FC = () => {
     const [activeTab, setActiveTab] = useState<EmployeesViewMode>('OVERVIEW');
@@ -72,6 +74,7 @@ export const Employees: React.FC = () => {
     const [weekoffRules, setWeekoffRules] = useState<WeekoffRule[]>([]);
 
     const [loading, setLoading] = useState(true);
+    const delayedLoading = useDelayLoading(loading, 300);
     const { user, hasPermission } = useAuth();
 
     useEffect(() => {
@@ -397,21 +400,27 @@ export const Employees: React.FC = () => {
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden relative">
-                {activeTab === 'OVERVIEW' && renderDashboard()}
-                {activeTab === 'PEOPLE' && <EmployeeDirectory
-                    employees={employees}
-                    roles={roles}
-                    departments={departments}
-                    designations={designations}
-                    onSelectEmployee={setSelectedEmployee}
-                    onAddEmployee={hasPermission('hrms.employees.manage') ? () => { setShowEmployeeForm(true); setEditingEmployee(null); } : undefined}
-                />}
-                {activeTab === 'APPROVALS' && <ApprovalsModule currentEmployee={currentEmployee} />}
-                {activeTab === 'ASSETS' && <AssetModule assets={assets} employees={employees} refreshData={refreshData} />}
-                {activeTab === 'HELPDESK' && <HelpDeskModule employees={employees} currentEmployee={currentEmployee} />}
-                {activeTab === 'REPORTS' && <ReportsListView moduleFilter="EMPLOYEES" />}
-                {activeTab === 'EXIT' && <ExitModule employees={employees} currentEmployee={currentEmployee} />}
-                {activeTab === 'SETTINGS' && <SettingsModule />}
+                {delayedLoading ? (
+                    activeTab === 'OVERVIEW' ? <DashboardSkeleton /> : <TableSkeleton />
+                ) : (
+                    <>
+                        {activeTab === 'OVERVIEW' && renderDashboard()}
+                        {activeTab === 'PEOPLE' && <EmployeeDirectory
+                            employees={employees}
+                            roles={roles}
+                            departments={departments}
+                            designations={designations}
+                            onSelectEmployee={setSelectedEmployee}
+                            onAddEmployee={hasPermission('hrms.employees.manage') ? () => { setShowEmployeeForm(true); setEditingEmployee(null); } : undefined}
+                        />}
+                        {activeTab === 'APPROVALS' && <ApprovalsModule currentEmployee={currentEmployee} />}
+                        {activeTab === 'ASSETS' && <AssetModule assets={assets} employees={employees} refreshData={refreshData} />}
+                        {activeTab === 'HELPDESK' && <HelpDeskModule employees={employees} currentEmployee={currentEmployee} />}
+                        {activeTab === 'REPORTS' && <ReportsListView moduleFilter="EMPLOYEES" />}
+                        {activeTab === 'EXIT' && <ExitModule employees={employees} currentEmployee={currentEmployee} />}
+                        {activeTab === 'SETTINGS' && <SettingsModule />}
+                    </>
+                )}
             </div>
 
             {/* Modals */}

@@ -14,6 +14,8 @@ import { JournalMasters } from './organisation/accounting/JournalMasters';
 import { AccountingMasters } from './organisation/AccountingMasters';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDelayLoading } from '../../contexts/GlobalLoadingContext';
+import { TableSkeleton, DashboardSkeleton } from '../ui/LoadingSkeletons';
 import { Department, Location, Role, Employee as AppUser } from '../hrms/types';
 import { OrgAISettings } from '../../types';
 import { KAA_LOGO_URL } from '../../constants';
@@ -2277,6 +2279,7 @@ export const Organisation: React.FC = () => {
     const [currentMasterConfig, setCurrentMasterConfig] = useState<MasterTableConfig | null>(null);
 
     const [loading, setLoading] = useState(true);
+    const delayedLoading = useDelayLoading(loading, 300);
 
     useEffect(() => {
         refreshData();
@@ -3309,7 +3312,11 @@ export const Organisation: React.FC = () => {
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden relative">
-                {activeTab === 'STRUCTURE' && (
+                {delayedLoading ? (
+                    activeTab === 'STRUCTURE' ? <DashboardSkeleton /> : <TableSkeleton />
+                ) : (
+                    <>
+                        {activeTab === 'STRUCTURE' && (
                     <StructureView />
                 )}
                 {activeTab === 'PROFILE' && (
@@ -3563,6 +3570,8 @@ export const Organisation: React.FC = () => {
                             </form>
                         </div>
                     </div>
+                )}
+                    </>
                 )}
             </div>
 

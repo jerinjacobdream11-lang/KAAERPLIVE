@@ -13,6 +13,8 @@ import { Modal } from '../ui/Modal';
 import { KAA_LOGO_URL } from '../../constants';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDelayLoading } from '../../contexts/GlobalLoadingContext';
+import { TableSkeleton, DashboardSkeleton } from '../ui/LoadingSkeletons';
 
 export const LeaveHub: React.FC = () => {
     const [activeTab, setActiveTab] = useState<LeaveViewMode>('OVERVIEW');
@@ -22,6 +24,7 @@ export const LeaveHub: React.FC = () => {
     const [companyId, setCompanyId] = useState<string>('');
     const [currentEmployee, setCurrentEmployee] = useState<Employee | null>(null);
     const [loading, setLoading] = useState(true);
+    const delayedLoading = useDelayLoading(loading, 300);
     const [showLeaveModal, setShowLeaveModal] = useState(false);
     
     const { user, hasPermission } = useAuth();
@@ -305,41 +308,47 @@ export const LeaveHub: React.FC = () => {
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden relative">
-                {activeTab === 'OVERVIEW' && renderOverview()}
-                {activeTab === 'APPLICATIONS' && (
-                    <LeaveModule 
-                        leaves={leaves} 
-                        leaveTypes={leaveTypes} 
-                        setShowLeaveModal={setShowLeaveModal} 
-                        onUpdateStatus={handleUpdateLeaveStatus} 
-                        formatDate={formatDate} 
-                    />
+                {delayedLoading ? (
+                    activeTab === 'OVERVIEW' ? <DashboardSkeleton /> : <TableSkeleton />
+                ) : (
+                    <>
+                        {activeTab === 'OVERVIEW' && renderOverview()}
+                        {activeTab === 'APPLICATIONS' && (
+                            <LeaveModule 
+                                leaves={leaves} 
+                                leaveTypes={leaveTypes} 
+                                setShowLeaveModal={setShowLeaveModal} 
+                                onUpdateStatus={handleUpdateLeaveStatus} 
+                                formatDate={formatDate} 
+                            />
+                        )}
+                        {activeTab === 'APPROVALS' && (
+                            <div className="p-8 h-full flex flex-col overflow-y-auto">
+                                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Pending Leave Approvals</h2>
+                                <LeaveModule 
+                                    leaves={pendingLeaves} 
+                                    leaveTypes={leaveTypes} 
+                                    setShowLeaveModal={setShowLeaveModal} 
+                                    onUpdateStatus={handleUpdateLeaveStatus} 
+                                    formatDate={formatDate} 
+                                />
+                            </div>
+                        )}
+                        {activeTab === 'CALENDAR' && (
+                            <div className="p-8 h-full flex flex-col overflow-y-auto">
+                                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Holiday Calendar</h2>
+                                <HolidayCalendar />
+                            </div>
+                        )}
+                        {activeTab === 'BALANCES' && (
+                            <div className="p-8 h-full flex flex-col overflow-y-auto">
+                                <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Leave Accruals & Policy</h2>
+                                <LeaveAccrualManager />
+                            </div>
+                        )}
+                        {activeTab === 'REPORTS' && <ReportsListView moduleFilter="LEAVE" />}
+                    </>
                 )}
-                {activeTab === 'APPROVALS' && (
-                    <div className="p-8 h-full flex flex-col overflow-y-auto">
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Pending Leave Approvals</h2>
-                        <LeaveModule 
-                            leaves={pendingLeaves} 
-                            leaveTypes={leaveTypes} 
-                            setShowLeaveModal={setShowLeaveModal} 
-                            onUpdateStatus={handleUpdateLeaveStatus} 
-                            formatDate={formatDate} 
-                        />
-                    </div>
-                )}
-                {activeTab === 'CALENDAR' && (
-                    <div className="p-8 h-full flex flex-col overflow-y-auto">
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Holiday Calendar</h2>
-                        <HolidayCalendar />
-                    </div>
-                )}
-                {activeTab === 'BALANCES' && (
-                    <div className="p-8 h-full flex flex-col overflow-y-auto">
-                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-6">Leave Accruals & Policy</h2>
-                        <LeaveAccrualManager />
-                    </div>
-                )}
-                {activeTab === 'REPORTS' && <ReportsListView moduleFilter="LEAVE" />}
             </div>
 
             {showLeaveModal && <AddLeaveModal />}

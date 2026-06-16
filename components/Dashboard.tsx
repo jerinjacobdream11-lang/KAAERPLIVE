@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { KAA_LOGO_URL, MODULES } from '../constants';
 import { AppView } from '../types';
-import { Search, Command, Bell, Settings, Building2 } from 'lucide-react';
+import { Search, Command, Bell, Settings, Building2, XCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import {
   EmployeesWidget, AttendanceWidget, LeaveWidget, PayrollWidget, CRMWidget, OrganisationWidget, ESSPWidget, UpcomingWidget,
@@ -13,6 +13,7 @@ import { useUI } from '../contexts/UIContext';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { getDeals } from './crm/services';
+import { useGlobalLoading } from '../contexts/GlobalLoadingContext';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -62,6 +63,16 @@ const INITIAL_STATS: GlobalStats = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+const ErrorWidget: React.FC<{ name: string }> = ({ name }) => (
+  <div className="bg-rose-50/50 dark:bg-rose-950/20 rounded-[2rem] p-6 border border-rose-100 dark:border-rose-900/30 flex flex-col justify-center items-center text-center space-y-2 min-h-[160px] animate-fade-in md:col-span-1">
+    <div className="p-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 rounded-full">
+      <XCircle className="w-6 h-6" />
+    </div>
+    <p className="text-sm font-semibold text-slate-800 dark:text-white">Unable to load {name}</p>
+    <p className="text-xs text-slate-400 dark:text-slate-500">API request failed</p>
+  </div>
+);
+
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const { toggleSearch, toggleNotifications } = useUI();
@@ -70,6 +81,8 @@ export const Dashboard: React.FC = () => {
   const [stats, setStats] = useState<GlobalStats>(INITIAL_STATS);
 
   const [companyLogo, setCompanyLogo] = useState<string | null>(null);
+  const { setInitialDataLoaded } = useGlobalLoading();
+  const [errors, setErrors] = useState<Record<string, boolean>>({});
 
   // ── Greet ──
   useEffect(() => {
@@ -82,9 +95,13 @@ export const Dashboard: React.FC = () => {
   // ── Fetch all dashboard data ──
   useEffect(() => {
     const fetchDashboardData = async () => {
-      try {
-        // Try the global RPC first (most efficient single round-trip)
-        if (currentCompanyId) {
+      if (!currentCompanyId) return;
+      
+      const promises = [];
+
+      // 1. Global RPC / fallback
+      const fetchGlobal = async () => {
+        try {
           const { data: globalData, error: rpcError } = await supabase
             .rpc('rpc_global_dashboard', { p_company_id: currentCompanyId });
 
@@ -101,26 +118,27 @@ export const Dashboard: React.FC = () => {
               lowStockItems: gd.inventory?.low_stock_items ?? 0,
               pendingTransitions: gd.approvals?.pending_transitions ?? 0,
             }));
-
-            // Fetch Company Logo
-            const { data: comp } = await supabase.from('companies').select('logo_url').eq('id', currentCompanyId).maybeSingle();
-            if (comp) setCompanyLogo(comp.logo_url);
-
           } else {
-            // Fallback: fetch HR stats directly if RPC not yet deployed
+            // Fallback
             const today = new Date().toISOString().split('T')[0];
-            const [empRes, attRes] = await Promise.allSettled([
+            const [empRes, attRes] = await Promise.all([
               supabase.from('employees').select('*', { count: 'exact', head: true }).eq('status', 'Active').eq('company_id', currentCompanyId),
               supabase.from('attendance').select('*', { count: 'exact', head: true }).eq('date', today).eq('status', 'Present').eq('company_id', currentCompanyId),
             ]);
-            const empCount = empRes.status === 'fulfilled' ? (empRes.value.count ?? 0) : 0;
-            const attCount = attRes.status === 'fulfilled' ? (attRes.value.count ?? 0) : 0;
+            const empCount = empRes.count ?? 0;
+            const attCount = attRes.count ?? 0;
             const attPct = empCount > 0 ? Math.round((attCount / empCount) * 100) : 0;
             setStats(prev => ({ ...prev, activeEmployees: empCount, attendancePercentage: attPct }));
           }
+        } catch (e) {
+          console.error('Global stats load failed:', e);
+          setErrors(prev => ({ ...prev, global: true }));
         }
+      };
+      promises.push(fetchGlobal());
 
-        // CRM deals (separate service, may fail gracefully)
+      // 2. CRM
+      const fetchCRM = async () => {
         try {
           const allDeals = await getDeals();
           const dealCount = allDeals.length;
@@ -130,73 +148,86 @@ export const Dashboard: React.FC = () => {
           }).format(totalValue);
           setStats(prev => ({ ...prev, pipelineValue, dealCount }));
         } catch (e) {
-          console.warn('[Dashboard] CRM data unavailable:', e);
+          console.error('CRM stats load failed:', e);
+          setErrors(prev => ({ ...prev, crm: true }));
         }
+      };
+      promises.push(fetchCRM());
 
-        // Projects & Documents counts
+      // 3. Projects & Documents
+      const fetchProjDocs = async () => {
         try {
-          if (currentCompanyId) {
-            const [projRes, docRes] = await Promise.all([
-              supabase.from('pm_projects').select('*', { count: 'exact', head: true }).eq('company_id', currentCompanyId).neq('status', 'Completed'),
-              supabase.from('doc_documents').select('*', { count: 'exact', head: true }).eq('company_id', currentCompanyId)
-            ]);
-            setStats(prev => ({
-              ...prev,
-              projectCount: projRes.count ?? 0,
-              documentCount: docRes.count ?? 0
-            }));
-          }
+          const [projRes, docRes] = await Promise.all([
+            supabase.from('pm_projects').select('*', { count: 'exact', head: true }).eq('company_id', currentCompanyId).neq('status', 'Completed'),
+            supabase.from('doc_documents').select('*', { count: 'exact', head: true }).eq('company_id', currentCompanyId)
+          ]);
+          if (projRes.error) throw projRes.error;
+          if (docRes.error) throw docRes.error;
+          setStats(prev => ({
+            ...prev,
+            projectCount: projRes.count ?? 0,
+            documentCount: docRes.count ?? 0
+          }));
         } catch (e) {
-          console.warn('[Dashboard] Projects/Docs counts unavailable:', e);
+          console.error('Projects/Docs load failed:', e);
+          setErrors(prev => ({ ...prev, projDocs: true }));
         }
+      };
+      promises.push(fetchProjDocs());
 
-        // Sales Orders Stats
+      // 4. Sales Orders
+      const fetchSales = async () => {
         try {
-          if (currentCompanyId) {
-            const { data: salesData } = await supabase
-              .from('sales_orders' as any)
-              .select('total_amount, status')
-              .eq('company_id', currentCompanyId);
-            
-            const salesArray = salesData as any[] | null;
-            if (salesArray) {
-              const totalVal = salesArray.reduce((sum, order) => sum + (order.total_amount || 0), 0);
-              const pendingCount = salesArray.filter(order => order.status === 'Draft' || order.status === 'Confirmed').length;
-              const totalSales = 'QAR ' + new Intl.NumberFormat('en-US', {
-                maximumFractionDigits: 0, notation: 'compact'
-              }).format(totalVal);
-              
-              setStats(prev => ({
-                ...prev,
-                totalSales,
-                pendingSalesOrders: pendingCount
-              }));
-            }
-          }
-        } catch (e) {
-          console.warn('[Dashboard] Sales data unavailable:', e);
-        }
-
-        // Help Desk Tickets Stats
-        try {
-          if (currentCompanyId) {
-            const { count: openTicketsCount } = await supabase
-              .from('tickets')
-              .select('*', { count: 'exact', head: true })
-              .eq('company_id', currentCompanyId)
-              .eq('status', 'Open');
+          const { data: salesData, error: salesError } = await supabase
+            .from('sales_orders' as any)
+            .select('total_amount, status')
+            .eq('company_id', currentCompanyId);
+          if (salesError) throw salesError;
+          const salesArray = salesData as any[] | null;
+          if (salesArray) {
+            const totalVal = salesArray.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+            const pendingCount = salesArray.filter(order => order.status === 'Draft' || order.status === 'Confirmed').length;
+            const totalSales = 'QAR ' + new Intl.NumberFormat('en-US', {
+              maximumFractionDigits: 0, notation: 'compact'
+            }).format(totalVal);
             
             setStats(prev => ({
               ...prev,
-              openTickets: openTicketsCount ?? 0
+              totalSales,
+              pendingSalesOrders: pendingCount
             }));
           }
         } catch (e) {
-          console.warn('[Dashboard] Help Desk stats unavailable:', e);
+          console.error('Sales orders load failed:', e);
+          setErrors(prev => ({ ...prev, sales: true }));
         }
+      };
+      promises.push(fetchSales());
 
-      } catch (error) {
-        console.error('[Dashboard] Error fetching stats:', error);
+      // 5. Help Desk
+      const fetchTickets = async () => {
+        try {
+          const { count: openTicketsCount, error: ticketError } = await supabase
+            .from('tickets')
+            .select('*', { count: 'exact', head: true })
+            .eq('company_id', currentCompanyId)
+            .eq('status', 'Open');
+          if (ticketError) throw ticketError;
+          setStats(prev => ({
+            ...prev,
+            openTickets: openTicketsCount ?? 0
+          }));
+        } catch (e) {
+          console.error('Help Desk load failed:', e);
+          setErrors(prev => ({ ...prev, tickets: true }));
+        }
+      };
+      promises.push(fetchTickets());
+
+      try {
+        await Promise.allSettled(promises);
+      } finally {
+        setInitialDataLoaded(true);
       }
     };
 
@@ -227,6 +258,7 @@ export const Dashboard: React.FC = () => {
     switch (moduleId) {
       case AppView.EMPLOYEES:
         if (!hasPermission('hrms.employees.view') && !hasPermission('*')) return null;
+        if (errors.global) return <ErrorWidget name="Employee Stats" />;
         return (
           <EmployeesWidget
             onClick={() => handleNavigate(AppView.EMPLOYEES)}
@@ -237,6 +269,7 @@ export const Dashboard: React.FC = () => {
 
       case AppView.ATTENDANCE:
         if (!hasPermission('hrms.attendance.view') && !hasPermission('*')) return null;
+        if (errors.global) return <ErrorWidget name="Attendance Stats" />;
         return (
           <AttendanceWidget
             onClick={() => handleNavigate(AppView.ATTENDANCE)}
@@ -247,6 +280,7 @@ export const Dashboard: React.FC = () => {
 
       case AppView.LEAVE:
         if (!hasPermission('hrms.leave.view') && !hasPermission('*')) return null;
+        if (errors.global) return <ErrorWidget name="Leave Stats" />;
         return (
           <LeaveWidget
             onClick={() => handleNavigate(AppView.LEAVE)}
@@ -257,6 +291,7 @@ export const Dashboard: React.FC = () => {
 
       case AppView.PAYROLL:
         if (!hasPermission('finance.payroll.view') && !hasPermission('*')) return null;
+        if (errors.global) return <ErrorWidget name="Payroll" />;
         return (
           <PayrollWidget
             onClick={() => handleNavigate(AppView.PAYROLL)}
@@ -266,6 +301,7 @@ export const Dashboard: React.FC = () => {
 
       case AppView.CRM:
         if (!hasPermission('crm.dashboard.view') && !hasPermission('crm.deals.view')) return null;
+        if (errors.crm) return <ErrorWidget name="CRM Pipeline" />;
         return (
           <CRMWidget
             onClick={() => handleNavigate(AppView.CRM)}
@@ -285,6 +321,7 @@ export const Dashboard: React.FC = () => {
 
       case AppView.ACCOUNTING:
         if (!hasPermission('finance.dashboard.view') && !hasPermission('*')) return null;
+        if (errors.global) return <ErrorWidget name="Accounting Stats" />;
         return (
           <AccountingWidget
             onClick={() => handleNavigate(AppView.ACCOUNTING)}
@@ -297,6 +334,7 @@ export const Dashboard: React.FC = () => {
 
       case AppView.INVENTORY:
         if (!hasPermission('inventory.view') && !hasPermission('*')) return null;
+        if (errors.global) return <ErrorWidget name="Inventory Stats" />;
         return (
           <InventoryWidget
             onClick={() => handleNavigate(AppView.INVENTORY)}
@@ -315,13 +353,16 @@ export const Dashboard: React.FC = () => {
         return <ProcurementWidget onClick={() => handleNavigate(AppView.PROCUREMENT)} className="md:col-span-1 min-h-[180px]" />;
 
       case AppView.PROJECTS:
+        if (errors.projDocs) return <ErrorWidget name="Projects" />;
         return <ProjectsWidget onClick={() => handleNavigate(AppView.PROJECTS)} count={stats.projectCount} className="md:col-span-1 min-h-[200px]" />;
 
       case AppView.DOCUMENTS:
+        if (errors.projDocs) return <ErrorWidget name="Documents" />;
         return <DocumentsWidget onClick={() => handleNavigate(AppView.DOCUMENTS)} count={stats.documentCount} className="md:col-span-1 min-h-[200px]" />;
 
       case AppView.SALES:
         if (!hasPermission('procurement.view') && !hasPermission('*')) return null;
+        if (errors.sales) return <ErrorWidget name="Sales Metrics" />;
         return (
           <SalesWidget
             onClick={() => handleNavigate(AppView.SALES)}
@@ -333,6 +374,7 @@ export const Dashboard: React.FC = () => {
 
       case AppView.HELP_DESK:
         if (!hasPermission('hrms.helpdesk.view') && !hasPermission('*')) return null;
+        if (errors.tickets) return <ErrorWidget name="Help Desk Tickets" />;
         return (
           <HelpDeskWidget
             onClick={() => handleNavigate(AppView.HELP_DESK)}

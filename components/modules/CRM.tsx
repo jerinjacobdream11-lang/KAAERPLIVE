@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDelayLoading } from '../../contexts/GlobalLoadingContext';
+import { TableSkeleton, DashboardSkeleton } from '../ui/LoadingSkeletons';
 import {
     LayoutDashboard, Users, FileText, CheckSquare, Calendar, Folder, Briefcase, Plus, Search,
     X, ChevronRight, ChevronDown, Sparkles, Workflow, Mic, Play, KanbanSquare, Bell, Loader2, BarChart3,
@@ -56,6 +58,7 @@ export const CRM: React.FC = () => {
     const [activities, setActivities] = useState<CRMActivity[]>([]);
     const [documents, setDocuments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const delayedLoading = useDelayLoading(loading, 300);
     const [companyId, setCompanyId] = useState<string | null>(null);
     const [showContactModal, setShowContactModal] = useState(false);
     const [showDealModal, setShowDealModal] = useState(false);
@@ -534,12 +537,9 @@ export const CRM: React.FC = () => {
         <div className="flex h-full relative z-10 overflow-hidden">
             <SidebarNav />
             <div className="flex-1 overflow-hidden relative bg-slate-50/50 dark:bg-zinc-950">
-                {loading && (
-                    <div className="absolute inset-0 z-30 flex items-center justify-center bg-white/60 dark:bg-zinc-950/60 backdrop-blur-sm">
-                        <Loader2 className="w-8 h-8 text-indigo-500 animate-spin" />
-                    </div>
-                )}
-                {!companyId && !loading ? (
+                {delayedLoading ? (
+                    activeTab === 'DASHBOARD' ? <DashboardSkeleton /> : <TableSkeleton />
+                ) : !companyId ? (
                     <div className="flex h-full flex-col items-center justify-center text-slate-400">
                         <div className="w-20 h-20 bg-slate-100 dark:bg-zinc-800 rounded-full flex items-center justify-center mb-6">
                             <Briefcase className="w-10 h-10 opacity-50" />
@@ -547,7 +547,7 @@ export const CRM: React.FC = () => {
                         <h2 className="text-xl font-bold text-slate-700 dark:text-slate-200">No Company Assigned</h2>
                         <p className="max-w-md text-center mt-2">You are not currently linked to any company. Please contact your administrator to be assigned to an organization.</p>
                     </div>
-                ) : companyId ? (
+                ) : (
                     <>
                         {activeTab === 'DASHBOARD' && <SummaryView stats={stats} activities={activities} deals={deals} tasks={tasks} />}
                         {activeTab === 'LEADS' && <LeadsView companyId={companyId} onConvert={(tab) => setActiveTab(tab)} />}
@@ -569,7 +569,7 @@ export const CRM: React.FC = () => {
                         {activeTab === 'REPORTS' && <ReportsListView moduleFilter="CRM" companyId={companyId} />}
                         {activeTab === 'LIVE' && <LiveView />}
                     </>
-                ) : null}
+                )}
             </div>
         </div>
     );

@@ -31,14 +31,17 @@ import { Employee, AttendanceRecord, LeaveRequest } from '../hrms/types';
 import { KAA_LOGO_URL } from '../../constants';
 import { ReportsListView } from './reports/ReportsListView';
 import { supabase } from '../../lib/supabase';
-import { useAuth } from '../../contexts/AuthContext'; // Keeping if needed elsewhere, but mainly replaced
+import { useAuth } from '../../contexts/AuthContext';
 import { useESSP } from '../../contexts/ESSPContext';
+import { useDelayLoading } from '../../contexts/GlobalLoadingContext';
+import { TableSkeleton, DashboardSkeleton } from '../ui/LoadingSkeletons';
 import { WorkflowEngine } from '../../lib/WorkflowEngine'; // [NEW] Unified Engine
 import { CareerTimeline } from '../hrms/transitions/CareerTimeline'; // [NEW] Integrated real timeline
 // Reusing some components/styles from HRMS for consistency, but tailor for ESSP
 
 export const ESSP: React.FC = () => {
     const { employeeProfile, roleFlags, loading: esspLoading } = useESSP();
+    const delayedLoading = useDelayLoading(esspLoading, 300);
     const { user } = useAuth(); // Restored for backward compatibility
     const currentEmployee = employeeProfile;
     const isManager = roleFlags.isManager;
@@ -2305,32 +2308,38 @@ export const ESSP: React.FC = () => {
 
             {/* Main Content */}
             <div className="flex-1 overflow-hidden relative">
-                {activeTab === 'DASHBOARD' && <Dashboard />}
-                {activeTab === 'ASSISTANT' && <AssistantView />}
-                {activeTab === 'SKILLS' && <SkillsView />}
-                {activeTab === 'APPROVALS' && <MyApprovals />}
-                {activeTab === 'PROFILE' && <MyProfile />}
-                {activeTab === 'ATTENDANCE' && <MyAttendance />}
-                {activeTab === 'TEAM_ATTENDANCE' && <TeamAttendance />}
-                {activeTab === 'LEAVES' && <MyLeaves />}
-                {activeTab === 'PAYSLIPS' && <MyPayslips />}
-                {activeTab === 'ASSETS' && <MyAssets />}
-                {activeTab === 'SUPPORT' && <Support />}
-                {activeTab === 'RESIGNATION' && <Resignation />}
-                {activeTab === 'ANNOUNCEMENTS' && <Announcements />}
-                {activeTab === 'BUZZ' && <Buzz />}
-                {activeTab === 'SURVEYS' && <Surveys />}
-                {activeTab === 'KUDOS' && <KudosRewards />}
-                {activeTab === 'DIRECTORY' && <PeopleDirectory />}
-                {activeTab === 'LEARNING' && <Learning />}
-                {activeTab === 'REPORTS' && <ReportsListView />}
+                {delayedLoading ? (
+                    activeTab === 'DASHBOARD' ? <DashboardSkeleton /> : <TableSkeleton />
+                ) : (
+                    <>
+                        {activeTab === 'DASHBOARD' && <Dashboard />}
+                        {activeTab === 'ASSISTANT' && <AssistantView />}
+                        {activeTab === 'SKILLS' && <SkillsView />}
+                        {activeTab === 'APPROVALS' && <MyApprovals />}
+                        {activeTab === 'PROFILE' && <MyProfile />}
+                        {activeTab === 'ATTENDANCE' && <MyAttendance />}
+                        {activeTab === 'TEAM_ATTENDANCE' && <TeamAttendance />}
+                        {activeTab === 'LEAVES' && <MyLeaves />}
+                        {activeTab === 'PAYSLIPS' && <MyPayslips />}
+                        {activeTab === 'ASSETS' && <MyAssets />}
+                        {activeTab === 'SUPPORT' && <Support />}
+                        {activeTab === 'RESIGNATION' && <Resignation />}
+                        {activeTab === 'ANNOUNCEMENTS' && <Announcements />}
+                        {activeTab === 'BUZZ' && <Buzz />}
+                        {activeTab === 'SURVEYS' && <Surveys />}
+                        {activeTab === 'KUDOS' && <KudosRewards />}
+                        {activeTab === 'DIRECTORY' && <PeopleDirectory />}
+                        {activeTab === 'LEARNING' && <Learning />}
+                        {activeTab === 'REPORTS' && <ReportsListView />}
 
-                {activeTab !== 'DASHBOARD' && activeTab !== 'APPROVALS' && activeTab !== 'PROFILE' && activeTab !== 'ATTENDANCE' && activeTab !== 'TEAM_ATTENDANCE' && activeTab !== 'LEAVES' && activeTab !== 'PAYSLIPS' && activeTab !== 'ASSETS' && activeTab !== 'SUPPORT' && activeTab !== 'RESIGNATION' && activeTab !== 'BUZZ' && activeTab !== 'SURVEYS' && activeTab !== 'KUDOS' && activeTab !== 'DIRECTORY' && activeTab !== 'LEARNING' && activeTab !== 'REPORTS' && (
-                    <div className="p-10 flex flex-col items-center justify-center h-full text-slate-400 animate-page-enter">
-                        <Settings className="w-16 h-16 mb-6 opacity-20" />
-                        <h2 className="text-2xl font-black text-slate-300 dark:text-zinc-700 mb-2">Module Loading...</h2>
-                        <p className="font-medium">The {navItems.find(n => n.id === activeTab)?.label} module is being initialized.</p>
-                    </div>
+                        {activeTab !== 'DASHBOARD' && activeTab !== 'APPROVALS' && activeTab !== 'PROFILE' && activeTab !== 'ATTENDANCE' && activeTab !== 'TEAM_ATTENDANCE' && activeTab !== 'LEAVES' && activeTab !== 'PAYSLIPS' && activeTab !== 'ASSETS' && activeTab !== 'SUPPORT' && activeTab !== 'RESIGNATION' && activeTab !== 'BUZZ' && activeTab !== 'SURVEYS' && activeTab !== 'KUDOS' && activeTab !== 'DIRECTORY' && activeTab !== 'LEARNING' && activeTab !== 'REPORTS' && (
+                            <div className="p-10 flex flex-col items-center justify-center h-full text-slate-400 animate-page-enter">
+                                <Settings className="w-16 h-16 mb-6 opacity-20" />
+                                <h2 className="text-2xl font-black text-slate-300 dark:text-zinc-700 mb-2">Module Loading...</h2>
+                                <p className="font-medium">The {navItems.find(n => n.id === activeTab)?.label} module is being initialized.</p>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
         </div>

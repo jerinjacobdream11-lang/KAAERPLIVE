@@ -12,6 +12,8 @@ import { ReportsListView } from './reports/ReportsListView';
 import { KAA_LOGO_URL } from '../../constants';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDelayLoading } from '../../contexts/GlobalLoadingContext';
+import { TableSkeleton, DashboardSkeleton } from '../ui/LoadingSkeletons';
 
 export const AttendanceHub: React.FC = () => {
     const [activeTab, setActiveTab] = useState<AttendanceViewMode>('OVERVIEW');
@@ -19,6 +21,7 @@ export const AttendanceHub: React.FC = () => {
     const [companyId, setCompanyId] = useState<string>('');
     const [companyOffDays, setCompanyOffDays] = useState<number[]>([5, 6]);
     const [loading, setLoading] = useState(true);
+    const delayedLoading = useDelayLoading(loading, 300);
     const { user, hasPermission } = useAuth();
 
     useEffect(() => {
@@ -82,14 +85,6 @@ export const AttendanceHub: React.FC = () => {
         }
     }, [navItems, activeTab]);
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-full">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-cyan-600"></div>
-            </div>
-        );
-    }
-
     return (
         <div className="flex h-full relative z-10 overflow-hidden bg-slate-50 dark:bg-black/20">
             {/* Sidebar */}
@@ -122,12 +117,18 @@ export const AttendanceHub: React.FC = () => {
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden relative">
-                {activeTab === 'OVERVIEW' && <OverviewTab employees={activeEmployees} companyId={companyId} />}
-                {activeTab === 'LOGS' && <DailyTab employees={activeEmployees} companyId={companyId} />}
-                {activeTab === 'CORRECTION' && <MonthlyTab employees={activeEmployees} companyId={companyId} companyOffDays={companyOffDays} />}
-                {activeTab === 'MANUAL' && <DutyRosterTab employees={activeEmployees} companyId={companyId} companyOffDays={companyOffDays} />}
-                {activeTab === 'SHIFTS' && <ShiftsTab companyId={companyId} />}
-                {activeTab === 'REPORTS' && <ReportsListView moduleFilter="ATTENDANCE" />}
+                {delayedLoading ? (
+                    activeTab === 'OVERVIEW' ? <DashboardSkeleton /> : <TableSkeleton />
+                ) : (
+                    <>
+                        {activeTab === 'OVERVIEW' && <OverviewTab employees={activeEmployees} companyId={companyId} />}
+                        {activeTab === 'LOGS' && <DailyTab employees={activeEmployees} companyId={companyId} />}
+                        {activeTab === 'CORRECTION' && <MonthlyTab employees={activeEmployees} companyId={companyId} companyOffDays={companyOffDays} />}
+                        {activeTab === 'MANUAL' && <DutyRosterTab employees={activeEmployees} companyId={companyId} companyOffDays={companyOffDays} />}
+                        {activeTab === 'SHIFTS' && <ShiftsTab companyId={companyId} />}
+                        {activeTab === 'REPORTS' && <ReportsListView moduleFilter="ATTENDANCE" />}
+                    </>
+                )}
             </div>
         </div>
     );

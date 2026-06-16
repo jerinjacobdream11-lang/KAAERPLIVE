@@ -11,6 +11,8 @@ import { Modal } from '../ui/Modal';
 import { KAA_LOGO_URL } from '../../constants';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { useDelayLoading } from '../../contexts/GlobalLoadingContext';
+import { TableSkeleton, DashboardSkeleton } from '../ui/LoadingSkeletons';
 
 interface SalaryComponentRow {
     id?: string | number;
@@ -24,6 +26,7 @@ export const PayrollHub: React.FC = () => {
     const [activeTab, setActiveTab] = useState<PayrollViewMode>('OVERVIEW');
     const [companyId, setCompanyId] = useState<string>('');
     const [loading, setLoading] = useState(true);
+    const delayedLoading = useDelayLoading(loading, 300);
     const [runs, setRuns] = useState<any[]>([]);
     const [components, setComponents] = useState<SalaryComponentRow[]>([]);
     const [showComponentModal, setShowComponentModal] = useState(false);
@@ -260,68 +263,74 @@ export const PayrollHub: React.FC = () => {
 
             {/* Content Area */}
             <div className="flex-1 overflow-hidden relative">
-                {activeTab === 'OVERVIEW' && renderOverview()}
-                {activeTab === 'PROCESSING' && <PayrollDashboard />}
-                {activeTab === 'STRUCTURES' && (
-                    <div className="p-8 h-full flex flex-col overflow-y-auto">
-                        <div className="flex justify-between items-center mb-6">
-                            <div>
-                                <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Salary Components</h2>
-                                <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1">Configure earnings, deductions, and tax statuses</p>
-                            </div>
-                            <button onClick={() => setShowComponentModal(true)} className="px-5 py-2.5 bg-violet-600 text-white rounded-2xl text-sm font-bold shadow-lg shadow-violet-500/30 hover:bg-violet-700 transition-all active:scale-95 flex items-center gap-2">
-                                <Plus className="w-4 h-4" /> Add Component
-                            </button>
-                        </div>
+                {delayedLoading ? (
+                    activeTab === 'OVERVIEW' ? <DashboardSkeleton /> : <TableSkeleton />
+                ) : (
+                    <>
+                        {activeTab === 'OVERVIEW' && renderOverview()}
+                        {activeTab === 'PROCESSING' && <PayrollDashboard />}
+                        {activeTab === 'STRUCTURES' && (
+                            <div className="p-8 h-full flex flex-col overflow-y-auto">
+                                <div className="flex justify-between items-center mb-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Salary Components</h2>
+                                        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-1">Configure earnings, deductions, and tax statuses</p>
+                                    </div>
+                                    <button onClick={() => setShowComponentModal(true)} className="px-5 py-2.5 bg-violet-600 text-white rounded-2xl text-sm font-bold shadow-lg shadow-violet-500/30 hover:bg-violet-700 transition-all active:scale-95 flex items-center gap-2">
+                                        <Plus className="w-4 h-4" /> Add Component
+                                    </button>
+                                </div>
 
-                        <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl rounded-[2rem] border border-white/60 dark:border-zinc-800 shadow-xl overflow-hidden">
-                            <table className="w-full text-left">
-                                <thead className="bg-slate-50/80 dark:bg-zinc-800/80 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-                                    <tr>
-                                        <th className="px-6 py-4">Component Name</th>
-                                        <th className="px-6 py-4">Code</th>
-                                        <th className="px-6 py-4">Type</th>
-                                        <th className="px-6 py-4">Taxable Status</th>
-                                        <th className="px-6 py-4 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100/50 dark:divide-zinc-800/50">
-                                    {components.map(comp => (
-                                        <tr key={comp.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors">
-                                            <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-200">{comp.name}</td>
-                                            <td className="px-6 py-4 font-mono text-sm text-slate-600 dark:text-slate-400">{comp.code}</td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
-                                                    comp.component_type === 'EARNING' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20' : 'bg-rose-50 text-rose-600 dark:bg-rose-950/20'
-                                                }`}>
-                                                    {comp.component_type}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                                    comp.is_taxable ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/20' : 'bg-slate-50 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400'
-                                                }`}>
-                                                    {comp.is_taxable ? 'Taxable' : 'Exempt'}
-                                                </span>
-                                            </td>
-                                            <td className="px-6 py-4 text-right">
-                                                <button onClick={() => handleDeleteComponent(comp.id)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors">
-                                                    <Trash2 className="w-4 h-4 text-rose-500" />
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {components.length === 0 && (
-                                        <tr>
-                                            <td colSpan={5} className="text-center py-10 text-slate-400 italic">No components configured.</td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                                <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl rounded-[2rem] border border-white/60 dark:border-zinc-800 shadow-xl overflow-hidden">
+                                    <table className="w-full text-left">
+                                        <thead className="bg-slate-50/80 dark:bg-zinc-800/80 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                                            <tr>
+                                                <th className="px-6 py-4">Component Name</th>
+                                                <th className="px-6 py-4">Code</th>
+                                                <th className="px-6 py-4">Type</th>
+                                                <th className="px-6 py-4">Taxable Status</th>
+                                                <th className="px-6 py-4 text-right">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-slate-100/50 dark:divide-zinc-800/50">
+                                            {components.map(comp => (
+                                                <tr key={comp.id} className="hover:bg-slate-50 dark:hover:bg-zinc-800/50 transition-colors">
+                                                    <td className="px-6 py-4 font-bold text-slate-700 dark:text-slate-200">{comp.name}</td>
+                                                    <td className="px-6 py-4 font-mono text-sm text-slate-600 dark:text-slate-400">{comp.code}</td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                                                            comp.component_type === 'EARNING' ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/20' : 'bg-rose-50 text-rose-600 dark:bg-rose-950/20'
+                                                        }`}>
+                                                            {comp.component_type}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                                            comp.is_taxable ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/20' : 'bg-slate-50 text-slate-500 dark:bg-zinc-800 dark:text-zinc-400'
+                                                        }`}>
+                                                            {comp.is_taxable ? 'Taxable' : 'Exempt'}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-6 py-4 text-right">
+                                                        <button onClick={() => handleDeleteComponent(comp.id)} className="p-1.5 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg transition-colors">
+                                                            <Trash2 className="w-4 h-4 text-rose-500" />
+                                                        </button>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {components.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={5} className="text-center py-10 text-slate-400 italic">No components configured.</td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        )}
+                        {activeTab === 'REPORTS' && <ReportsListView moduleFilter="PAYROLL" />}
+                    </>
                 )}
-                {activeTab === 'REPORTS' && <ReportsListView moduleFilter="PAYROLL" />}
             </div>
 
             {showComponentModal && (

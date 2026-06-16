@@ -19,6 +19,8 @@ import { ArrowLeft } from 'lucide-react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { UIProvider } from './contexts/UIContext';
 import { ESSPProvider } from './contexts/ESSPContext';
+import { GlobalLoadingProvider, useGlobalLoading } from './contexts/GlobalLoadingContext';
+import { FullScreenLoader } from './components/ui/FullScreenLoader';
 import { GlobalSearchModal } from './components/GlobalSearchModal';
 import { supabase } from './lib/supabase';
 import { InventoryDashboard } from './components/inventory/InventoryDashboard';
@@ -36,6 +38,7 @@ import { CareersPortal } from './components/modules/CareersPortal';
 
 const AppContent: React.FC = () => {
   const { session, loading, currentCompanyId, selectCompany, userRole } = useAuth();
+  const { initialDataLoaded } = useGlobalLoading();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -134,6 +137,7 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="flex flex-col h-screen bg-slate-50 dark:bg-zinc-950 transition-colors duration-300 overflow-hidden font-sans">
+      {!initialDataLoaded && <FullScreenLoader />}
       <GlobalHeader currentView={getCurrentView()} />
       <main className="flex-1 overflow-hidden relative">
         {location.pathname !== '/' && location.pathname !== '/essp' && (
@@ -197,15 +201,17 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <AuthProvider>
-      <UIProvider>
-        <ESSPProvider>
-          <Router>
-            <GlobalSearchModal />
-            <AppContent />
-            <Analytics />
-          </Router>
-        </ESSPProvider>
-      </UIProvider>
+      <GlobalLoadingProvider>
+        <UIProvider>
+          <ESSPProvider>
+            <Router>
+              <GlobalSearchModal />
+              <AppContent />
+              <Analytics />
+            </Router>
+          </ESSPProvider>
+        </UIProvider>
+      </GlobalLoadingProvider>
     </AuthProvider>
   );
 };
