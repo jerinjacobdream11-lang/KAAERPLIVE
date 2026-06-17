@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import { Plus, Search, Filter, ArrowRight, Save, Trash2 } from 'lucide-react';
+import { Plus, Search, Filter, ArrowRight, Save, Trash2, Edit, Eye } from 'lucide-react';
 import { Modal } from '../../ui/Modal';
 import { PrintButton } from '../../ui/PrintButton';
 
@@ -89,6 +89,43 @@ export const JournalEntries: React.FC = () => {
         setIsModalOpen(true);
     };
 
+    const handleOpenEdit = async (entry: JournalEntry) => {
+        setLoading(true);
+        try {
+            const { data: lines, error } = await supabase
+                .from('accounting_journal_lines')
+                .select('*')
+                .eq('entry_id', entry.id);
+            if (error) throw error;
+
+            const mappedLines = (lines || []).map(line => ({
+                id: line.id,
+                account_id: line.account_id,
+                description: line.name || '',
+                debit: Number(line.debit) || 0,
+                credit: Number(line.credit) || 0,
+                cost_center_id: line.cost_center_id || undefined,
+                project_cost_center_id: line.project_cost_center_id || undefined,
+                contract_cost_center_id: line.contract_cost_center_id || undefined
+            }));
+
+            setCurrentEntry({
+                id: entry.id,
+                date: entry.date,
+                journal_id: entry.journal_id,
+                reference: entry.reference,
+                notes: entry.notes,
+                state: entry.state,
+                lines: mappedLines
+            });
+            setIsModalOpen(true);
+        } catch (err: any) {
+            alert("Error loading entry lines: " + err.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const updateLine = (index: number, field: keyof JournalEntryLine, value: any) => {
         const newLines = [...(currentEntry.lines || [])];
         newLines[index] = { ...newLines[index], [field]: value };
@@ -132,7 +169,7 @@ export const JournalEntries: React.FC = () => {
 
         try {
             if (!currentCompanyId) throw new Error('No company context');
-            // 1. Insert Header
+            
             const moveData = {
                 journal_id: currentEntry.journal_id,
                 date: currentEntry.date,
@@ -143,17 +180,35 @@ export const JournalEntries: React.FC = () => {
                 company_id: currentCompanyId
             };
 
-            const { data: move, error: moveError } = await supabase
-                .from('accounting_journal_entries')
-                .insert([moveData])
-                .select()
-                .single();
+            let entryId = currentEntry.id;
 
-            if (moveError) throw moveError;
+            if (entryId) {
+                const { error: moveError } = await supabase
+                    .from('accounting_journal_entries')
+                    .update(moveData)
+                    .eq('id', entryId);
 
-            // 2. Insert Lines
+                if (moveError) throw moveError;
+
+                const { error: deleteError } = await supabase
+                    .from('accounting_journal_lines')
+                    .delete()
+                    .eq('entry_id', entryId);
+
+                if (deleteError) throw deleteError;
+            } else {
+                const { data: move, error: moveError } = await supabase
+                    .from('accounting_journal_entries')
+                    .insert([moveData])
+                    .select()
+                    .single();
+
+                if (moveError) throw moveError;
+                entryId = move.id;
+            }
+
             const linesData = currentEntry.lines?.map(line => ({
-                entry_id: move.id,
+                entry_id: entryId,
                 account_id: line.account_id,
                 name: line.description,
                 debit: line.debit,
@@ -175,7 +230,7 @@ export const JournalEntries: React.FC = () => {
 
         } catch (error: any) {
             console.error(error);
-            alert('Error creating entry: ' + error.message);
+            alert('Error saving entry: ' + error.message);
         } finally {
             setLoading(false);
         }
@@ -246,6 +301,46 @@ export const JournalEntries: React.FC = () => {
         }
     };
 
+    const handleCreateCostCenterInline = async (type: 'GENERIC' | 'PROJECT' | 'CONTRACT', idx: number) => {
+        if (!currentCompanyId) return;
+        const typeLabels = {
+            GENERIC: 'Cost Center',
+            PROJECT: 'Project Cost Center',
+            CONTRACT: 'Contract Cost Center'
+        };
+        const defaultCode = type === 'PROJECT' ? 'PROJECT-' : type === 'CONTRACT' ? 'MANPOWER-' : 'CC-';
+        const code = prompt(`Enter ${typeLabels[type]} Code (e.g. ${defaultCode}XYZ):`);
+        if (!code || !code.trim()) return;
+        const name = prompt(`Enter ${typeLabels[type]} Name:`);
+        if (!name || !name.trim()) return;
+
+        try {
+            const { data, error } = await supabase
+                .from('accounting_cost_centers')
+                .insert([{
+                    company_id: currentCompanyId,
+                    code: code.trim().toUpperCase(),
+                    name: name.trim(),
+                    type: type,
+                    is_active: true
+                }])
+                .select();
+            if (error) throw error;
+            if (data && data.length > 0) {
+                setCostCenters(prev => [...prev, data[0]]);
+                const fieldMap: { [key in 'GENERIC' | 'PROJECT' | 'CONTRACT']: keyof JournalEntryLine } = {
+                    GENERIC: 'cost_center_id',
+                    PROJECT: 'project_cost_center_id',
+                    CONTRACT: 'contract_cost_center_id'
+                };
+                updateLine(idx, fieldMap[type], data[0].id);
+            }
+        } catch (err: any) {
+            console.error(err);
+            alert("Error creating Cost Center: " + err.message);
+        }
+    };
+
     // Filter cost centers by type
     const genericCC = costCenters.filter(cc => cc.type === 'GENERIC');
     const projectCC = costCenters.filter(cc => cc.type === 'PROJECT');
@@ -298,21 +393,36 @@ export const JournalEntries: React.FC = () => {
                                 </td>
                                 <td className="p-4 text-right">
                                     <div className="flex items-center justify-end gap-2">
-                                        {entry.state === 'Draft' && (
+                                        {entry.state === 'Draft' ? (
+                                            <>
+                                                <button
+                                                    onClick={() => handleOpenEdit(entry)}
+                                                    className="p-1 text-indigo-600 hover:text-indigo-800 dark:text-indigo-400 dark:hover:text-indigo-300 rounded transition"
+                                                    title="Edit Entry"
+                                                >
+                                                    <Edit className="w-4 h-4" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handlePost(entry.id)}
+                                                    className="text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition font-bold"
+                                                >
+                                                    POST
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDelete(entry.id)}
+                                                    className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition"
+                                                    title="Delete Entry"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
+                                            </>
+                                        ) : (
                                             <button
-                                                onClick={() => handlePost(entry.id)}
-                                                className="text-xs px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition"
+                                                onClick={() => handleOpenEdit(entry)}
+                                                className="p-1 text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300 rounded transition flex items-center gap-1 text-xs font-bold"
+                                                title="View Entry"
                                             >
-                                                POST
-                                            </button>
-                                        )}
-                                        {entry.state === 'Draft' && (
-                                            <button
-                                                onClick={() => handleDelete(entry.id)}
-                                                className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400 rounded transition"
-                                                title="Delete Entry"
-                                            >
-                                                <Trash2 className="w-4 h-4" />
+                                                <Eye className="w-4 h-4" /> VIEW
                                             </button>
                                         )}
                                     </div>
@@ -325,14 +435,15 @@ export const JournalEntries: React.FC = () => {
 
             {/* Create Modal */}
             {isModalOpen && (
-                <Modal title="New Journal Entry" onClose={() => setIsModalOpen(false)} maxWidth="6xl">
+                <Modal title={currentEntry.state === 'Posted' ? "View Journal Entry" : currentEntry.id ? "Edit Journal Entry" : "New Journal Entry"} onClose={() => setIsModalOpen(false)} maxWidth="6xl">
                     <div className="space-y-6">
                         {/* Header Inputs */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-slate-50 dark:bg-zinc-800 rounded-lg">
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Journal</label>
                                 <select
-                                    className="w-full p-2 border rounded dark:bg-zinc-900 dark:border-zinc-700"
+                                    disabled={currentEntry.state === 'Posted'}
+                                    className="w-full p-2 border rounded dark:bg-zinc-900 dark:border-zinc-700 disabled:opacity-75 disabled:bg-slate-100 dark:disabled:bg-zinc-800"
                                     value={currentEntry.journal_id}
                                     onChange={e => setCurrentEntry({ ...currentEntry, journal_id: e.target.value })}
                                 >
@@ -343,8 +454,9 @@ export const JournalEntries: React.FC = () => {
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Date</label>
                                 <input
+                                    disabled={currentEntry.state === 'Posted'}
                                     type="date"
-                                    className="w-full p-2 border rounded dark:bg-zinc-900 dark:border-zinc-700"
+                                    className="w-full p-2 border rounded dark:bg-zinc-900 dark:border-zinc-700 disabled:opacity-75 disabled:bg-slate-100 dark:disabled:bg-zinc-800"
                                     value={currentEntry.date}
                                     onChange={e => setCurrentEntry({ ...currentEntry, date: e.target.value })}
                                 />
@@ -352,7 +464,8 @@ export const JournalEntries: React.FC = () => {
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Reference</label>
                                 <input
-                                    className="w-full p-2 border rounded dark:bg-zinc-900 dark:border-zinc-700"
+                                    disabled={currentEntry.state === 'Posted'}
+                                    className="w-full p-2 border rounded dark:bg-zinc-900 dark:border-zinc-700 disabled:opacity-75 disabled:bg-slate-100 dark:disabled:bg-zinc-800"
                                     placeholder="e.g. JV/2026/001"
                                     value={currentEntry.reference || ''}
                                     onChange={e => setCurrentEntry({ ...currentEntry, reference: e.target.value })}
@@ -380,7 +493,8 @@ export const JournalEntries: React.FC = () => {
                                         <tr key={idx}>
                                             <td className="p-2">
                                                 <select
-                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs"
+                                                    disabled={currentEntry.state === 'Posted'}
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs disabled:opacity-75 disabled:bg-slate-100 dark:disabled:bg-zinc-800"
                                                     value={line.account_id}
                                                     onChange={e => updateLine(idx, 'account_id', e.target.value)}
                                                 >
@@ -390,7 +504,8 @@ export const JournalEntries: React.FC = () => {
                                             </td>
                                             <td className="p-2">
                                                 <input
-                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs"
+                                                    disabled={currentEntry.state === 'Posted'}
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs disabled:opacity-75 disabled:bg-slate-100 dark:disabled:bg-zinc-800"
                                                     placeholder="Label"
                                                     value={line.description}
                                                     onChange={e => updateLine(idx, 'description', e.target.value)}
@@ -398,54 +513,73 @@ export const JournalEntries: React.FC = () => {
                                             </td>
                                             <td className="p-2">
                                                 <select
-                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs"
+                                                    disabled={currentEntry.state === 'Posted'}
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs font-mono disabled:opacity-75 disabled:bg-slate-100 dark:disabled:bg-zinc-800"
                                                     value={line.cost_center_id || ''}
-                                                    onChange={e => updateLine(idx, 'cost_center_id', e.target.value || undefined)}
+                                                    onChange={e => {
+                                                        if (e.target.value === 'NEW') handleCreateCostCenterInline('GENERIC', idx);
+                                                        else updateLine(idx, 'cost_center_id', e.target.value || undefined);
+                                                    }}
                                                 >
                                                     <option value="">None</option>
                                                     {genericCC.map(cc => <option key={cc.id} value={cc.id}>{cc.code} - {cc.name}</option>)}
+                                                    <option value="NEW" className="font-semibold text-indigo-600 dark:text-indigo-400">+ New Cost Center...</option>
                                                 </select>
                                             </td>
                                             <td className="p-2">
                                                 <select
-                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs"
+                                                    disabled={currentEntry.state === 'Posted'}
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs font-mono disabled:opacity-75 disabled:bg-slate-100 dark:disabled:bg-zinc-800"
                                                     value={line.project_cost_center_id || ''}
-                                                    onChange={e => updateLine(idx, 'project_cost_center_id', e.target.value || undefined)}
+                                                    onChange={e => {
+                                                        if (e.target.value === 'NEW') handleCreateCostCenterInline('PROJECT', idx);
+                                                        else updateLine(idx, 'project_cost_center_id', e.target.value || undefined);
+                                                    }}
                                                 >
                                                     <option value="">None</option>
                                                     {projectCC.map(cc => <option key={cc.id} value={cc.id}>{cc.code} - {cc.name}</option>)}
+                                                    <option value="NEW" className="font-semibold text-indigo-600 dark:text-indigo-400">+ New Project CC...</option>
                                                 </select>
                                             </td>
                                             <td className="p-2">
                                                 <select
-                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs"
+                                                    disabled={currentEntry.state === 'Posted'}
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-xs font-mono disabled:opacity-75 disabled:bg-slate-100 dark:disabled:bg-zinc-800"
                                                     value={line.contract_cost_center_id || ''}
-                                                    onChange={e => updateLine(idx, 'contract_cost_center_id', e.target.value || undefined)}
+                                                    onChange={e => {
+                                                        if (e.target.value === 'NEW') handleCreateCostCenterInline('CONTRACT', idx);
+                                                        else updateLine(idx, 'contract_cost_center_id', e.target.value || undefined);
+                                                    }}
                                                 >
                                                     <option value="">None</option>
                                                     {contractCC.map(cc => <option key={cc.id} value={cc.id}>{cc.code} - {cc.name}</option>)}
+                                                    <option value="NEW" className="font-semibold text-indigo-600 dark:text-indigo-400">+ New Contract CC...</option>
                                                 </select>
                                             </td>
                                             <td className="p-2">
                                                 <input
+                                                    disabled={currentEntry.state === 'Posted'}
                                                     type="number" step="0.01"
-                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-right text-xs"
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-right text-xs disabled:opacity-75 disabled:bg-slate-100 dark:disabled:bg-zinc-800"
                                                     value={line.debit}
                                                     onChange={e => updateLine(idx, 'debit', parseFloat(e.target.value) || 0)}
                                                 />
                                             </td>
                                             <td className="p-2">
                                                 <input
+                                                    disabled={currentEntry.state === 'Posted'}
                                                     type="number" step="0.01"
-                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-right text-xs"
+                                                    className="w-full p-1 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded text-right text-xs disabled:opacity-75 disabled:bg-slate-100 dark:disabled:bg-zinc-800"
                                                     value={line.credit}
                                                     onChange={e => updateLine(idx, 'credit', parseFloat(e.target.value) || 0)}
                                                 />
                                             </td>
                                             <td className="p-2 text-center">
-                                                <button onClick={() => removeLine(idx)} className="text-slate-400 hover:text-red-600">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
+                                                {currentEntry.state !== 'Posted' && (
+                                                    <button onClick={() => removeLine(idx)} className="text-slate-400 hover:text-red-600">
+                                                        <Trash2 className="w-4 h-4" />
+                                                    </button>
+                                                )}
                                             </td>
                                         </tr>
                                     ))}
@@ -453,9 +587,11 @@ export const JournalEntries: React.FC = () => {
                                 <tfoot className="bg-slate-50 dark:bg-zinc-800 font-bold">
                                     <tr>
                                         <td colSpan={5} className="p-2">
-                                            <button onClick={addNewLine} className="text-indigo-600 hover:underline text-xs flex items-center gap-1">
-                                                <Plus className="w-3 h-3" /> Add Line
-                                            </button>
+                                            {currentEntry.state !== 'Posted' && (
+                                                <button onClick={addNewLine} className="text-indigo-600 hover:underline text-xs flex items-center gap-1 font-bold">
+                                                    <Plus className="w-3 h-3" /> Add Line
+                                                </button>
+                                            )}
                                         </td>
                                         <td className="p-2 text-right">{calculateTotals().totalDebit.toFixed(2)}</td>
                                         <td className="p-2 text-right">{calculateTotals().totalCredit.toFixed(2)}</td>
@@ -473,14 +609,23 @@ export const JournalEntries: React.FC = () => {
                             </div>
                         )}
 
-                        <div className="flex justify-end pt-4">
+                        <div className="flex justify-end pt-4 gap-2">
                             <button
-                                onClick={handleSave}
-                                disabled={loading}
-                                className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:opacity-50"
+                                type="button"
+                                onClick={() => setIsModalOpen(false)}
+                                className="px-6 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-slate-700 dark:text-slate-300 rounded-lg font-medium"
                             >
-                                {loading ? 'Saving...' : 'Save Draft'}
+                                Close
                             </button>
+                            {currentEntry.state !== 'Posted' && (
+                                <button
+                                    onClick={handleSave}
+                                    disabled={loading}
+                                    className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium disabled:opacity-50"
+                                >
+                                    {loading ? 'Saving...' : 'Save Draft'}
+                                </button>
+                            )}
                         </div>
                     </div>
                 </Modal>

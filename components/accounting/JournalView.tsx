@@ -114,7 +114,7 @@ export const JournalView: React.FC = () => {
                                             {entry.credit_account}
                                         </td>
                                         <td className="px-6 py-4 text-right font-bold text-slate-800 dark:text-white font-mono">
-                                            ${entry.amount.toFixed(2)}
+                                            QAR {entry.amount.toFixed(2)}
                                         </td>
                                     </tr>
                                 ))

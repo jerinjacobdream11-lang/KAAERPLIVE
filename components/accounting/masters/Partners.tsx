@@ -309,7 +309,7 @@ export const Partners: React.FC<{ type?: 'Customer' | 'Vendor' }> = ({ type }) =
 
                             <div className="flex items-center gap-2 text-xs text-rose-500 font-bold mb-4 bg-rose-50 dark:bg-rose-900/20 px-2 py-1 rounded w-fit">
                                 <span className="uppercase tracking-widest text-[10px]">Credit Limit:</span>
-                                <span>${Number(partner.credit_limit || 0).toLocaleString()}</span>
+                                <span>QAR {Number(partner.credit_limit || 0).toLocaleString()}</span>
                             </div>
 
                             <div className="space-y-2 mt-4 pt-4 border-t border-slate-100 dark:border-zinc-800">
@@ -372,7 +372,7 @@ export const Partners: React.FC<{ type?: 'Customer' | 'Vendor' }> = ({ type }) =
                         </div>
 
                         <div>
-                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Credit Limit ($)</label>
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Credit Limit (QAR)</label>
                             <input name="credit_limit" type="number" step="0.01" defaultValue={editingPartner?.credit_limit || 0} className="w-full p-2.5 bg-rose-50 dark:bg-rose-900/20 border border-rose-200 dark:border-rose-900/50 rounded-lg text-sm font-bold text-rose-600" placeholder="0.00" />
                         </div>
 

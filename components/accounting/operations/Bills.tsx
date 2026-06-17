@@ -17,6 +17,7 @@ export const Bills: React.FC = () => {
     const [items, setItems] = useState<any[]>([]);
     const [journals, setJournals] = useState<any[]>([]); // To select Purchase Journal
     const [costCenters, setCostCenters] = useState<any[]>([]);
+    const [purchaseLedgers, setPurchaseLedgers] = useState<any[]>([]);
 
     // Form State
     const [selectedPartner, setSelectedPartner] = useState('');
@@ -25,7 +26,7 @@ export const Bills: React.FC = () => {
     const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
 
     // Line Items
-    const [lines, setLines] = useState<any[]>([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '' }]);
+    const [lines, setLines] = useState<any[]>([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', purchase_ledger_id: '' }]);
 
     useEffect(() => {
         if (currentCompanyId) {
@@ -67,10 +68,13 @@ export const Bills: React.FC = () => {
 
         const { data: ccData } = await supabase.from('accounting_cost_centers').select('id, name, code, type').eq('company_id', currentCompanyId).eq('is_active', true);
         setCostCenters(ccData || []);
+
+        const { data: plData } = await supabase.from('accounting_purchase_ledgers').select('id, name').eq('company_id', currentCompanyId).eq('is_active', true);
+        setPurchaseLedgers(plData || []);
     };
 
     const handleAddLine = () => {
-        setLines([...lines, { item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '' }]);
+        setLines([...lines, { item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', purchase_ledger_id: '' }]);
     };
 
     const handleLineChange = (index: number, field: string, value: any) => {
@@ -91,12 +95,13 @@ export const Bills: React.FC = () => {
                 p_due_date: dueDate,
                 p_move_type: 'in_invoice',
                 p_lines: lines.map(l => ({
-                    item_id: l.item_id,
+                    item_id: l.item_id || null,
                     quantity: Number(l.quantity),
                     unit_price: Number(l.unit_price),
                     cost_center_id: l.cost_center_id || null,
                     project_cost_center_id: l.project_cost_center_id || null,
-                    contract_cost_center_id: l.contract_cost_center_id || null
+                    contract_cost_center_id: l.contract_cost_center_id || null,
+                    purchase_ledger_id: l.purchase_ledger_id || null
                 }))
             };
 
@@ -106,7 +111,7 @@ export const Bills: React.FC = () => {
 
             alert('Bill Created! ID: ' + data);
             setIsModalOpen(false);
-            setLines([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '' }]);
+            setLines([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', purchase_ledger_id: '' }]);
             fetchBills();
 
         } catch (err: any) {
@@ -201,7 +206,7 @@ export const Bills: React.FC = () => {
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 text-right font-bold text-slate-800 dark:text-white">
-                                    ${Number(bill.amount_total).toFixed(2)}
+                                    QAR {Number(bill.amount_total).toFixed(2)}
                                 </td>
                                 <td className="px-6 py-4 text-center">
                                     <div className="flex gap-2 justify-center">
@@ -287,6 +292,18 @@ export const Bills: React.FC = () => {
                                                 {items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
                                             </select>
                                         </div>
+                                        <div className="w-full md:w-48">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Purchase Ledger</label>
+                                            <select
+                                                required={!line.item_id}
+                                                value={line.purchase_ledger_id}
+                                                onChange={e => handleLineChange(idx, 'purchase_ledger_id', e.target.value)}
+                                                className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
+                                            >
+                                                <option value="">Select Purchase Ledger</option>
+                                                {purchaseLedgers.map(pl => <option key={pl.id} value={pl.id}>{pl.name}</option>)}
+                                            </select>
+                                        </div>
                                         <div className="w-full md:w-36">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase">Project CC</label>
                                             <select
@@ -333,13 +350,13 @@ export const Bills: React.FC = () => {
                                         <div className="w-28">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase">Price</label>
                                             <div className="relative">
-                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400">$</span>
+                                                <span className="absolute left-2 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-semibold">QAR</span>
                                                 <input
                                                     type="number"
                                                     step="0.01"
                                                     value={line.unit_price}
                                                     onChange={e => handleLineChange(idx, 'unit_price', e.target.value)}
-                                                    className="w-full pl-5 p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
+                                                    className="w-full pl-10 p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                                 />
                                             </div>
                                         </div>
@@ -362,7 +379,7 @@ export const Bills: React.FC = () => {
                                 <div>
                                     <span className="text-xs text-slate-500 font-bold uppercase mr-4">Total</span>
                                     <span className="text-xl font-bold text-slate-800 dark:text-white">
-                                        ${lines.reduce((acc, l) => acc + (Number(l.quantity) * Number(l.unit_price)), 0).toFixed(2)}
+                                        QAR {lines.reduce((acc, l) => acc + (Number(l.quantity) * Number(l.unit_price)), 0).toFixed(2)}
                                     </span>
                                 </div>
                             </div>

@@ -145,7 +145,7 @@ export const Payments: React.FC = () => {
                                     }`}>
                                     <div className="flex items-center justify-end gap-1">
                                         {pay.payment_type === 'inbound' ? <ArrowDownLeft className="w-4 h-4" /> : <ArrowUpRight className="w-4 h-4" />}
-                                        ${Number(pay.amount).toFixed(2)}
+                                        QAR {Number(pay.amount).toFixed(2)}
                                     </div>
                                 </td>
                                 <td className="px-6 py-4">
