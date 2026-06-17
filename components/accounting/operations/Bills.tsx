@@ -25,8 +25,13 @@ export const Bills: React.FC = () => {
     const [billDate, setBillDate] = useState(new Date().toISOString().split('T')[0]);
     const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
 
+    // Edit/View State
+    const [editMode, setEditMode] = useState(false);
+    const [viewMode, setViewMode] = useState(false);
+    const [editingBillId, setEditingBillId] = useState<string | null>(null);
+
     // Line Items
-    const [lines, setLines] = useState<any[]>([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', purchase_ledger_id: '' }]);
+    const [lines, setLines] = useState<any[]>([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', purchase_ledger_id: '', description: '' }]);
 
     useEffect(() => {
         if (currentCompanyId) {
@@ -69,12 +74,66 @@ export const Bills: React.FC = () => {
         const { data: ccData } = await supabase.from('accounting_cost_centers').select('id, name, code, type').eq('company_id', currentCompanyId).eq('is_active', true);
         setCostCenters(ccData || []);
 
-        const { data: plData } = await supabase.from('accounting_purchase_ledgers').select('id, name').eq('company_id', currentCompanyId).eq('is_active', true);
+        const { data: plData } = await supabase.from('accounting_purchase_ledgers').select('id, name, account_id').eq('company_id', currentCompanyId).eq('is_active', true);
         setPurchaseLedgers(plData || []);
     };
 
+    const handleOpenModal = async (bill?: any, readonly = false) => {
+        if (bill) {
+            setEditingBillId(bill.id);
+            setSelectedPartner(bill.partner_id || '');
+            setSelectedJournal(bill.journal_id || '');
+            setBillDate(bill.date || '');
+            setDueDate(bill.due_date || '');
+            setEditMode(!readonly);
+            setViewMode(readonly);
+
+            // Fetch lines for this bill
+            const { data, error } = await supabase
+                .from('accounting_journal_lines')
+                .select('*')
+                .eq('entry_id', bill.id);
+
+            if (error) {
+                console.error(error);
+                alert('Error fetching lines: ' + error.message);
+                return;
+            }
+
+            // Filter out the balancing line (receivable/payable)
+            const itemLines = (data as any[] || []).filter(l => Number(l.debit) > 0);
+
+            const mappedLines = itemLines.map((l: any) => {
+                const matchedLedger = purchaseLedgers.find(pl => pl.account_id === l.account_id);
+                return {
+                    item_id: l.item_id || '',
+                    purchase_ledger_id: matchedLedger ? matchedLedger.id : '',
+                    cost_center_id: l.cost_center_id || '',
+                    project_cost_center_id: l.project_cost_center_id || '',
+                    contract_cost_center_id: l.contract_cost_center_id || '',
+                    quantity: Number(l.quantity || 1),
+                    unit_price: Number(l.unit_price || l.debit || 0),
+                    description: l.name || ''
+                };
+            });
+
+            setLines(mappedLines.length > 0 ? mappedLines : [{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', purchase_ledger_id: '', description: '' }]);
+            setIsModalOpen(true);
+        } else {
+            setEditingBillId(null);
+            setSelectedPartner('');
+            if (journals.length > 0) setSelectedJournal(journals[0].id);
+            setBillDate(new Date().toISOString().split('T')[0]);
+            setDueDate(new Date().toISOString().split('T')[0]);
+            setLines([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', purchase_ledger_id: '', description: '' }]);
+            setEditMode(false);
+            setViewMode(false);
+            setIsModalOpen(true);
+        }
+    };
+
     const handleAddLine = () => {
-        setLines([...lines, { item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', purchase_ledger_id: '' }]);
+        setLines([...lines, { item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', purchase_ledger_id: '', description: '' }]);
     };
 
     const handleLineChange = (index: number, field: string, value: any) => {
@@ -85,38 +144,58 @@ export const Bills: React.FC = () => {
 
     const handleCreateBill = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (viewMode) {
+            setIsModalOpen(false);
+            return;
+        }
         try {
             if (!selectedPartner || !selectedJournal) throw new Error('Missing required fields');
 
-            const payload = {
-                p_partner_id: selectedPartner,
-                p_journal_id: selectedJournal,
-                p_date: billDate,
-                p_due_date: dueDate,
-                p_move_type: 'in_invoice',
-                p_lines: lines.map(l => ({
-                    item_id: l.item_id || null,
-                    quantity: Number(l.quantity),
-                    unit_price: Number(l.unit_price),
-                    cost_center_id: l.cost_center_id || null,
-                    project_cost_center_id: l.project_cost_center_id || null,
-                    contract_cost_center_id: l.contract_cost_center_id || null,
-                    purchase_ledger_id: l.purchase_ledger_id || null
-                }))
-            };
+            const payloadLines = lines.map(l => ({
+                item_id: l.item_id || null,
+                quantity: Number(l.quantity),
+                unit_price: Number(l.unit_price),
+                cost_center_id: l.cost_center_id || null,
+                project_cost_center_id: l.project_cost_center_id || null,
+                contract_cost_center_id: l.contract_cost_center_id || null,
+                purchase_ledger_id: l.purchase_ledger_id || null,
+                description: l.description || null
+            }));
 
-            const { data, error } = await supabase.rpc('rpc_create_accounting_invoice', payload);
+            if (editMode && editingBillId) {
+                const updatePayload = {
+                    p_entry_id: editingBillId,
+                    p_partner_id: selectedPartner,
+                    p_journal_id: selectedJournal,
+                    p_date: billDate,
+                    p_due_date: dueDate,
+                    p_lines: payloadLines
+                };
+                const { error } = await (supabase.rpc as any)('rpc_update_accounting_invoice', updatePayload);
+                if (error) throw error;
+                alert('Bill Updated!');
+            } else {
+                const payload = {
+                    p_partner_id: selectedPartner,
+                    p_journal_id: selectedJournal,
+                    p_date: billDate,
+                    p_due_date: dueDate,
+                    p_move_type: 'in_invoice',
+                    p_lines: payloadLines
+                };
 
-            if (error) throw error;
+                const { data, error } = await supabase.rpc('rpc_create_accounting_invoice', payload);
+                if (error) throw error;
+                alert('Bill Created! ID: ' + data);
+            }
 
-            alert('Bill Created! ID: ' + data);
             setIsModalOpen(false);
-            setLines([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', purchase_ledger_id: '' }]);
+            setLines([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', purchase_ledger_id: '', description: '' }]);
             fetchBills();
 
         } catch (err: any) {
             console.error(err);
-            alert('Error creating bill: ' + err.message);
+            alert('Error saving bill: ' + err.message);
         }
     };
 
@@ -158,7 +237,7 @@ export const Bills: React.FC = () => {
                 <div className="flex items-center gap-3 no-print">
                     <PrintButton />
                     <button
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={() => handleOpenModal()}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                     >
                         <Plus className="w-4 h-4" />
@@ -209,22 +288,38 @@ export const Bills: React.FC = () => {
                                     QAR {Number(bill.amount_total).toFixed(2)}
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                    <div className="flex gap-2 justify-center">
-                                        {bill.state === 'Draft' && bill.approval_status !== 'approved' && (
-                                            <button
-                                                onClick={(e) => handleApprove(bill.id, e)}
-                                                className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
-                                            >
-                                                APPROVE
-                                            </button>
-                                        )}
-                                        {bill.state === 'Draft' && bill.approval_status === 'approved' && (
-                                            <button
-                                                onClick={(e) => handlePost(bill.id, e)}
-                                                className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
-                                            >
-                                                POST
-                                            </button>
+                                    <div className="flex gap-2 justify-center items-center">
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); handleOpenModal(bill, true); }}
+                                            className="px-2 py-1 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 rounded transition-colors"
+                                        >
+                                            View
+                                        </button>
+                                        {bill.state === 'Draft' && (
+                                            <>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleOpenModal(bill, false); }}
+                                                    className="px-2 py-1 text-xs font-semibold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 rounded transition-colors"
+                                                >
+                                                    Edit
+                                                </button>
+                                                {bill.approval_status !== 'approved' && (
+                                                    <button
+                                                        onClick={(e) => handleApprove(bill.id, e)}
+                                                        className="px-3 py-1.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                                                    >
+                                                        APPROVE
+                                                    </button>
+                                                )}
+                                                {bill.approval_status === 'approved' && (
+                                                    <button
+                                                        onClick={(e) => handlePost(bill.id, e)}
+                                                        className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
+                                                    >
+                                                        POST
+                                                    </button>
+                                                )}
+                                            </>
                                         )}
                                     </div>
                                 </td>
@@ -236,7 +331,7 @@ export const Bills: React.FC = () => {
 
             {/* Create Modal */}
             {isModalOpen && (
-                <Modal title="Create Vendor Bill" onClose={() => setIsModalOpen(false)} maxWidth="5xl">
+                <Modal title={viewMode ? "View Vendor Bill" : (editMode ? "Edit Vendor Bill" : "Create Vendor Bill")} onClose={() => setIsModalOpen(false)} maxWidth="5xl">
                     <form onSubmit={handleCreateBill} className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -245,6 +340,7 @@ export const Bills: React.FC = () => {
                                     required
                                     value={selectedPartner}
                                     onChange={e => setSelectedPartner(e.target.value)}
+                                    disabled={viewMode}
                                     className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm"
                                 >
                                     <option value="">Select Vendor</option>
@@ -257,6 +353,7 @@ export const Bills: React.FC = () => {
                                     required
                                     value={selectedJournal}
                                     onChange={e => setSelectedJournal(e.target.value)}
+                                    disabled={viewMode}
                                     className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm"
                                 >
                                     <option value="">Select Journal</option>
@@ -265,11 +362,11 @@ export const Bills: React.FC = () => {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Bill Date</label>
-                                <input type="date" required value={billDate} onChange={e => setBillDate(e.target.value)} className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" />
+                                <input type="date" required value={billDate} onChange={e => setBillDate(e.target.value)} disabled={viewMode} className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Due Date</label>
-                                <input type="date" required value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" />
+                                <input type="date" required value={dueDate} onChange={e => setDueDate(e.target.value)} disabled={viewMode} className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" />
                             </div>
                         </div>
 
@@ -286,6 +383,7 @@ export const Bills: React.FC = () => {
                                             <select
                                                 value={line.item_id}
                                                 onChange={e => handleLineChange(idx, 'item_id', e.target.value)}
+                                                disabled={viewMode}
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             >
                                                 <option value="">Select Item</option>
@@ -298,17 +396,30 @@ export const Bills: React.FC = () => {
                                                 required={!line.item_id}
                                                 value={line.purchase_ledger_id}
                                                 onChange={e => handleLineChange(idx, 'purchase_ledger_id', e.target.value)}
+                                                disabled={viewMode}
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             >
                                                 <option value="">Select Purchase Ledger</option>
                                                 {purchaseLedgers.map(pl => <option key={pl.id} value={pl.id}>{pl.name}</option>)}
                                             </select>
                                         </div>
+                                        <div className="w-full md:flex-1 min-w-[150px]">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Narration</label>
+                                            <input
+                                                type="text"
+                                                value={line.description || ''}
+                                                onChange={e => handleLineChange(idx, 'description', e.target.value)}
+                                                disabled={viewMode}
+                                                placeholder="Comment / Line note"
+                                                className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
+                                            />
+                                        </div>
                                         <div className="w-full md:w-36">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase">Project CC</label>
                                             <select
                                                 value={line.project_cost_center_id}
                                                 onChange={e => handleLineChange(idx, 'project_cost_center_id', e.target.value)}
+                                                disabled={viewMode}
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             >
                                                 <option value="">None</option>
@@ -320,6 +431,7 @@ export const Bills: React.FC = () => {
                                             <select
                                                 value={line.contract_cost_center_id}
                                                 onChange={e => handleLineChange(idx, 'contract_cost_center_id', e.target.value)}
+                                                disabled={viewMode}
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             >
                                                 <option value="">None</option>
@@ -331,6 +443,7 @@ export const Bills: React.FC = () => {
                                             <select
                                                 value={line.cost_center_id}
                                                 onChange={e => handleLineChange(idx, 'cost_center_id', e.target.value)}
+                                                disabled={viewMode}
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             >
                                                 <option value="">None</option>
@@ -344,6 +457,7 @@ export const Bills: React.FC = () => {
                                                 min="1"
                                                 value={line.quantity}
                                                 onChange={e => handleLineChange(idx, 'quantity', e.target.value)}
+                                                disabled={viewMode}
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             />
                                         </div>
@@ -356,23 +470,28 @@ export const Bills: React.FC = () => {
                                                     step="0.01"
                                                     value={line.unit_price}
                                                     onChange={e => handleLineChange(idx, 'unit_price', e.target.value)}
+                                                    disabled={viewMode}
                                                     className="w-full pl-10 p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                                 />
                                             </div>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const newLines = lines.filter((_, i) => i !== idx);
-                                                setLines(newLines);
-                                            }}
-                                            className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-md mb-0.5"
-                                        >
-                                            &times;
-                                        </button>
+                                        {!viewMode && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newLines = lines.filter((_, i) => i !== idx);
+                                                    setLines(newLines);
+                                                }}
+                                                className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-md mb-0.5"
+                                            >
+                                                &times;
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
-                                <button type="button" onClick={handleAddLine} className="text-xs font-bold text-blue-600 hover:underline">+ Add Line</button>
+                                {!viewMode && (
+                                    <button type="button" onClick={handleAddLine} className="text-xs font-bold text-blue-600 hover:underline">+ Add Line</button>
+                                )}
                             </div>
 
                             <div className="flex justify-end text-right">
@@ -387,7 +506,7 @@ export const Bills: React.FC = () => {
 
                         <div className="pt-4 border-t border-slate-200 dark:border-zinc-700">
                             <button className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all">
-                                Create Bill
+                                {viewMode ? "Close" : (editMode ? "Save Changes" : "Create Bill")}
                             </button>
                         </div>
                     </form>

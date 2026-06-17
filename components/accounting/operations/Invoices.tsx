@@ -26,8 +26,13 @@ export const Invoices: React.FC = () => {
     const [invoiceDate, setInvoiceDate] = useState(new Date().toISOString().split('T')[0]);
     const [dueDate, setDueDate] = useState(new Date().toISOString().split('T')[0]);
 
+    // Edit/View State
+    const [editMode, setEditMode] = useState(false);
+    const [viewMode, setViewMode] = useState(false);
+    const [editingInvoiceId, setEditingInvoiceId] = useState<string | null>(null);
+
     // Line Items
-    const [lines, setLines] = useState<any[]>([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', sales_ledger_id: '' }]);
+    const [lines, setLines] = useState<any[]>([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', sales_ledger_id: '', description: '' }]);
 
     useEffect(() => {
         if (currentCompanyId) {
@@ -74,7 +79,7 @@ export const Invoices: React.FC = () => {
         const { data: ccData } = await supabase.from('accounting_cost_centers').select('id, name, code, type').eq('company_id', currentCompanyId).eq('is_active', true);
         setCostCenters(ccData || []);
 
-        const { data: slData } = await supabase.from('accounting_sales_ledgers').select('id, name').eq('company_id', currentCompanyId).eq('is_active', true);
+        const { data: slData } = await supabase.from('accounting_sales_ledgers').select('id, name, account_id').eq('company_id', currentCompanyId).eq('is_active', true);
         setSalesLedgers(slData || []);
 
         // Load new Accounts Receivable account for credit limit check
@@ -88,8 +93,62 @@ export const Invoices: React.FC = () => {
         if (arData) setArAccount(arData);
     };
 
+    const handleOpenModal = async (inv?: any, readonly = false) => {
+        if (inv) {
+            setEditingInvoiceId(inv.id);
+            setSelectedPartner(inv.partner_id || '');
+            setSelectedJournal(inv.journal_id || '');
+            setInvoiceDate(inv.date || '');
+            setDueDate(inv.due_date || '');
+            setEditMode(!readonly);
+            setViewMode(readonly);
+
+            // Fetch lines for this invoice
+            const { data, error } = await supabase
+                .from('accounting_journal_lines')
+                .select('*')
+                .eq('entry_id', inv.id);
+
+            if (error) {
+                console.error(error);
+                alert('Error fetching lines: ' + error.message);
+                return;
+            }
+
+            // Filter out the balancing line (receivable/payable)
+            const itemLines = (data as any[] || []).filter(l => Number(l.credit) > 0);
+
+            const mappedLines = itemLines.map((l: any) => {
+                const matchedLedger = salesLedgers.find(sl => sl.account_id === l.account_id);
+                return {
+                    item_id: l.item_id || '',
+                    sales_ledger_id: matchedLedger ? matchedLedger.id : '',
+                    cost_center_id: l.cost_center_id || '',
+                    project_cost_center_id: l.project_cost_center_id || '',
+                    contract_cost_center_id: l.contract_cost_center_id || '',
+                    quantity: Number(l.quantity || 1),
+                    unit_price: Number(l.unit_price || l.credit || 0),
+                    description: l.name || ''
+                };
+            });
+
+            setLines(mappedLines.length > 0 ? mappedLines : [{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', sales_ledger_id: '', description: '' }]);
+            setIsModalOpen(true);
+        } else {
+            setEditingInvoiceId(null);
+            setSelectedPartner('');
+            if (journals.length > 0) setSelectedJournal(journals[0].id);
+            setInvoiceDate(new Date().toISOString().split('T')[0]);
+            setDueDate(new Date().toISOString().split('T')[0]);
+            setLines([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', sales_ledger_id: '', description: '' }]);
+            setEditMode(false);
+            setViewMode(false);
+            setIsModalOpen(true);
+        }
+    };
+
     const handleAddLine = () => {
-        setLines([...lines, { item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', sales_ledger_id: '' }]);
+        setLines([...lines, { item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', sales_ledger_id: '', description: '' }]);
     };
 
     const handleLineChange = (index: number, field: string, value: any) => {
@@ -100,6 +159,10 @@ export const Invoices: React.FC = () => {
 
     const handleCreateInvoice = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (viewMode) {
+            setIsModalOpen(false);
+            return;
+        }
         try {
             if (!selectedPartner || !selectedJournal) throw new Error('Missing required fields');
 
@@ -123,35 +186,51 @@ export const Invoices: React.FC = () => {
                 }
             }
 
-            const payload = {
-                p_partner_id: selectedPartner,
-                p_journal_id: selectedJournal,
-                p_date: invoiceDate,
-                p_due_date: dueDate,
-                p_move_type: 'out_invoice',
-                p_lines: lines.map(l => ({
-                    item_id: l.item_id || null,
-                    quantity: Number(l.quantity),
-                    unit_price: Number(l.unit_price),
-                    cost_center_id: l.cost_center_id || null,
-                    project_cost_center_id: l.project_cost_center_id || null,
-                    contract_cost_center_id: l.contract_cost_center_id || null,
-                    sales_ledger_id: l.sales_ledger_id || null
-                }))
-            };
+            const payloadLines = lines.map(l => ({
+                item_id: l.item_id || null,
+                quantity: Number(l.quantity),
+                unit_price: Number(l.unit_price),
+                cost_center_id: l.cost_center_id || null,
+                project_cost_center_id: l.project_cost_center_id || null,
+                contract_cost_center_id: l.contract_cost_center_id || null,
+                sales_ledger_id: l.sales_ledger_id || null,
+                description: l.description || null
+            }));
 
-            const { data, error } = await supabase.rpc('rpc_create_accounting_invoice', payload);
+            if (editMode && editingInvoiceId) {
+                const updatePayload = {
+                    p_entry_id: editingInvoiceId,
+                    p_partner_id: selectedPartner,
+                    p_journal_id: selectedJournal,
+                    p_date: invoiceDate,
+                    p_due_date: dueDate,
+                    p_lines: payloadLines
+                };
+                const { error } = await (supabase.rpc as any)('rpc_update_accounting_invoice', updatePayload);
+                if (error) throw error;
+                alert('Invoice Updated!');
+            } else {
+                const payload = {
+                    p_partner_id: selectedPartner,
+                    p_journal_id: selectedJournal,
+                    p_date: invoiceDate,
+                    p_due_date: dueDate,
+                    p_move_type: 'out_invoice',
+                    p_lines: payloadLines
+                };
 
-            if (error) throw error;
+                const { data, error } = await supabase.rpc('rpc_create_accounting_invoice', payload);
+                if (error) throw error;
+                alert('Invoice Created! ID: ' + data);
+            }
 
-            alert('Invoice Created! ID: ' + data);
             setIsModalOpen(false);
-            setLines([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', sales_ledger_id: '' }]);
+            setLines([{ item_id: '', quantity: 1, unit_price: 0, cost_center_id: '', project_cost_center_id: '', contract_cost_center_id: '', sales_ledger_id: '', description: '' }]);
             fetchInvoices();
 
         } catch (err: any) {
             console.error(err);
-            alert('Error creating invoice: ' + err.message);
+            alert('Error saving invoice: ' + err.message);
         }
     };
 
@@ -182,7 +261,7 @@ export const Invoices: React.FC = () => {
                 <div className="flex items-center gap-3 no-print">
                     <PrintButton />
                     <button
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={() => handleOpenModal()}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition-colors"
                     >
                         <Plus className="w-4 h-4" />
@@ -227,14 +306,30 @@ export const Invoices: React.FC = () => {
                                     QAR {Number(inv.amount_total).toFixed(2)}
                                 </td>
                                 <td className="px-6 py-4 text-center">
-                                    {inv.state === 'Draft' && (
+                                    <div className="flex gap-2 justify-center items-center">
                                         <button
-                                            onClick={(e) => handlePost(inv.id, e)}
-                                            className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
+                                            onClick={(e) => { e.stopPropagation(); handleOpenModal(inv, true); }}
+                                            className="px-2 py-1 text-xs font-semibold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950/20 rounded transition-colors"
                                         >
-                                            POST
+                                            View
                                         </button>
-                                    )}
+                                        {inv.state === 'Draft' && (
+                                            <>
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleOpenModal(inv, false); }}
+                                                    className="px-2 py-1 text-xs font-semibold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 rounded transition-colors"
+                                                >
+                                                    Edit
+                                                </button>
+                                                <button
+                                                    onClick={(e) => handlePost(inv.id, e)}
+                                                    className="px-3 py-1.5 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors"
+                                                >
+                                                    POST
+                                                </button>
+                                            </>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -244,7 +339,7 @@ export const Invoices: React.FC = () => {
 
             {/* Create Modal */}
             {isModalOpen && (
-                <Modal title="Create Customer Invoice" onClose={() => setIsModalOpen(false)} maxWidth="5xl">
+                <Modal title={viewMode ? "View Customer Invoice" : (editMode ? "Edit Customer Invoice" : "Create Customer Invoice")} onClose={() => setIsModalOpen(false)} maxWidth="5xl">
                     <form onSubmit={handleCreateInvoice} className="space-y-6">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -253,6 +348,7 @@ export const Invoices: React.FC = () => {
                                     required
                                     value={selectedPartner}
                                     onChange={e => setSelectedPartner(e.target.value)}
+                                    disabled={viewMode}
                                     className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm"
                                 >
                                     <option value="">Select Customer</option>
@@ -265,6 +361,7 @@ export const Invoices: React.FC = () => {
                                     required
                                     value={selectedJournal}
                                     onChange={e => setSelectedJournal(e.target.value)}
+                                    disabled={viewMode}
                                     className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm"
                                 >
                                     <option value="">Select Journal</option>
@@ -273,11 +370,11 @@ export const Invoices: React.FC = () => {
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Invoice Date</label>
-                                <input type="date" required value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" />
+                                <input type="date" required value={invoiceDate} onChange={e => setInvoiceDate(e.target.value)} disabled={viewMode} className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" />
                             </div>
                             <div>
                                 <label className="block text-xs font-bold text-slate-500 uppercase mb-1">Due Date</label>
-                                <input type="date" required value={dueDate} onChange={e => setDueDate(e.target.value)} className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" />
+                                <input type="date" required value={dueDate} onChange={e => setDueDate(e.target.value)} disabled={viewMode} className="w-full p-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-lg text-sm" />
                             </div>
                         </div>
 
@@ -294,6 +391,7 @@ export const Invoices: React.FC = () => {
                                             <select
                                                 value={line.item_id}
                                                 onChange={e => handleLineChange(idx, 'item_id', e.target.value)}
+                                                disabled={viewMode}
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             >
                                                 <option value="">Select Item</option>
@@ -306,17 +404,30 @@ export const Invoices: React.FC = () => {
                                                 required={!line.item_id}
                                                 value={line.sales_ledger_id}
                                                 onChange={e => handleLineChange(idx, 'sales_ledger_id', e.target.value)}
+                                                disabled={viewMode}
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             >
                                                 <option value="">Select Sales Ledger</option>
                                                 {salesLedgers.map(sl => <option key={sl.id} value={sl.id}>{sl.name}</option>)}
                                             </select>
                                         </div>
+                                        <div className="w-full md:flex-1 min-w-[150px]">
+                                            <label className="text-[10px] font-bold text-slate-400 uppercase">Narration</label>
+                                            <input
+                                                type="text"
+                                                value={line.description || ''}
+                                                onChange={e => handleLineChange(idx, 'description', e.target.value)}
+                                                disabled={viewMode}
+                                                placeholder="Comment / Line note"
+                                                className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
+                                            />
+                                        </div>
                                         <div className="w-full md:w-36">
                                             <label className="text-[10px] font-bold text-slate-400 uppercase">Project CC</label>
                                             <select
                                                 value={line.project_cost_center_id}
                                                 onChange={e => handleLineChange(idx, 'project_cost_center_id', e.target.value)}
+                                                disabled={viewMode}
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             >
                                                 <option value="">None</option>
@@ -328,6 +439,7 @@ export const Invoices: React.FC = () => {
                                             <select
                                                 value={line.contract_cost_center_id}
                                                 onChange={e => handleLineChange(idx, 'contract_cost_center_id', e.target.value)}
+                                                disabled={viewMode}
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             >
                                                 <option value="">None</option>
@@ -339,6 +451,7 @@ export const Invoices: React.FC = () => {
                                             <select
                                                 value={line.cost_center_id}
                                                 onChange={e => handleLineChange(idx, 'cost_center_id', e.target.value)}
+                                                disabled={viewMode}
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             >
                                                 <option value="">None</option>
@@ -352,6 +465,7 @@ export const Invoices: React.FC = () => {
                                                 min="1"
                                                 value={line.quantity}
                                                 onChange={e => handleLineChange(idx, 'quantity', e.target.value)}
+                                                disabled={viewMode}
                                                 className="w-full p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                             />
                                         </div>
@@ -364,23 +478,28 @@ export const Invoices: React.FC = () => {
                                                     step="0.01"
                                                     value={line.unit_price}
                                                     onChange={e => handleLineChange(idx, 'unit_price', e.target.value)}
+                                                    disabled={viewMode}
                                                     className="w-full pl-10 p-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 rounded-md text-sm"
                                                 />
                                             </div>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                const newLines = lines.filter((_, i) => i !== idx);
-                                                setLines(newLines);
-                                            }}
-                                            className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-md mb-0.5"
-                                        >
-                                            &times;
-                                        </button>
+                                        {!viewMode && (
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    const newLines = lines.filter((_, i) => i !== idx);
+                                                    setLines(newLines);
+                                                }}
+                                                className="p-2 text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded-md mb-0.5"
+                                            >
+                                                &times;
+                                            </button>
+                                        )}
                                     </div>
                                 ))}
-                                <button type="button" onClick={handleAddLine} className="text-xs font-bold text-blue-600 hover:underline">+ Add Line</button>
+                                {!viewMode && (
+                                    <button type="button" onClick={handleAddLine} className="text-xs font-bold text-blue-600 hover:underline">+ Add Line</button>
+                                )}
                             </div>
 
                             <div className="flex justify-end text-right">
@@ -395,7 +514,7 @@ export const Invoices: React.FC = () => {
 
                         <div className="pt-4 border-t border-slate-200 dark:border-zinc-700">
                             <button className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all">
-                                Create Invoice
+                                {viewMode ? "Close" : (editMode ? "Save Changes" : "Create Invoice")}
                             </button>
                         </div>
                     </form>
