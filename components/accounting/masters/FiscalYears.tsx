@@ -7,7 +7,8 @@ import { PrintButton } from '../../ui/PrintButton';
 
 interface Period {
   id: string; name: string; code: string; start_date: string; end_date: string; status: string;
-  fiscal_year_id: string;
+  accounting_fiscal_year_id: string;
+  fiscal_year_id?: string;
 }
 interface FiscalYear {
   id: string; name: string; start_date: string; end_date: string; is_closed: boolean;
@@ -21,7 +22,7 @@ const PERIOD_STATUS_COLOR: Record<string, string> = {
 };
 
 const EMPTY_FY  = { name:'', start_date:'', end_date:'' };
-const EMPTY_PER = { name:'', code:'', start_date:'', end_date:'', status:'open', fiscal_year_id:'' };
+const EMPTY_PER = { name:'', code:'', start_date:'', end_date:'', status:'open', accounting_fiscal_year_id:'' };
 
 export const FiscalYears: React.FC = () => {
   const { currentCompanyId } = useAuth();
@@ -43,8 +44,11 @@ export const FiscalYears: React.FC = () => {
     const { data: per } = await supabase.from('accounting_periods').select('*').eq('company_id', currentCompanyId).order('start_date');
     const perByFY: Record<string, Period[]> = {};
     (per || []).forEach((p: Period) => {
-      if (!perByFY[p.fiscal_year_id]) perByFY[p.fiscal_year_id] = [];
-      perByFY[p.fiscal_year_id].push(p);
+      const fyId = p.accounting_fiscal_year_id || p.fiscal_year_id;
+      if (fyId) {
+        if (!perByFY[fyId]) perByFY[fyId] = [];
+        perByFY[fyId].push(p);
+      }
     });
     setYears((fy || []).map((y: FiscalYear) => ({ ...y, periods: perByFY[y.id] || [] })));
     setLoading(false);
@@ -54,7 +58,7 @@ export const FiscalYears: React.FC = () => {
 
   const openNewFY  = () => { setEditingFY(null); setFyForm(EMPTY_FY); setErr(''); setShowFYModal(true); };
   const openEditFY = (y: FiscalYear) => { setEditingFY(y); setFyForm({ name: y.name, start_date: y.start_date, end_date: y.end_date }); setErr(''); setShowFYModal(true); };
-  const openNewPer = (fyId: string) => { setPerForm({ ...EMPTY_PER, fiscal_year_id: fyId }); setErr(''); setShowPerModal(true); };
+  const openNewPer = (fyId: string) => { setPerForm({ ...EMPTY_PER, accounting_fiscal_year_id: fyId }); setErr(''); setShowPerModal(true); };
 
   const saveFY = async () => {
     if (!currentCompanyId) { setErr('No company context'); return; }
@@ -74,7 +78,7 @@ export const FiscalYears: React.FC = () => {
     setSaving(true); setErr('');
     const { error } = await supabase.from('accounting_periods').insert([{
       name: perForm.name, code: perForm.code || perForm.name, start_date: perForm.start_date,
-      end_date: perForm.end_date, status: perForm.status, fiscal_year_id: perForm.fiscal_year_id,
+      end_date: perForm.end_date, status: perForm.status, accounting_fiscal_year_id: perForm.accounting_fiscal_year_id,
       company_id: currentCompanyId,
     }]);
     if (error) { setErr(error.message); setSaving(false); return; }
@@ -89,7 +93,7 @@ export const FiscalYears: React.FC = () => {
   const closeFY = async (y: FiscalYear) => {
     if (!confirm(`Close fiscal year "${y.name}"? This will lock all its periods.`)) return;
     await supabase.from('accounting_fiscal_years').update({ is_closed: true }).eq('id', y.id);
-    await supabase.from('accounting_periods').update({ status: 'locked' }).eq('fiscal_year_id', y.id);
+    await supabase.from('accounting_periods').update({ status: 'locked' }).eq('accounting_fiscal_year_id', y.id);
     fetchAll();
   };
 
@@ -105,7 +109,7 @@ export const FiscalYears: React.FC = () => {
       const pEnd = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);
       const label = cur.toLocaleString('en', { month: 'short', year: 'numeric' });
       periods.push({
-        fiscal_year_id: y.id, name: label,
+        accounting_fiscal_year_id: y.id, name: label,
         code: `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`,
         start_date: cur.toISOString().slice(0, 10),
         end_date: (pEnd > end ? end : pEnd).toISOString().slice(0, 10),

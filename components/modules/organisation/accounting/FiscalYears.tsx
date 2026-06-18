@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../../lib/supabase';
 import { Calendar, Plus, Lock, Unlock, ChevronDown, ChevronRight } from 'lucide-react';
 import { Modal } from '../../../ui/Modal';
+import { useAuth } from '../../../../contexts/AuthContext';
 
 export const FiscalYears: React.FC = () => {
+    const { currentCompanyId } = useAuth();
     const [years, setYears] = useState<any[]>([]);
     const [isYearModalOpen, setIsYearModalOpen] = useState(false);
     const [expandedYear, setExpandedYear] = useState<string | null>(null);
@@ -21,7 +23,7 @@ export const FiscalYears: React.FC = () => {
 
     const fetchYears = async () => {
         const { data, error } = await supabase
-            .from('fiscal_years')
+            .from('accounting_fiscal_years')
             .select(`
                 *,
                 periods:accounting_periods(*)
@@ -33,9 +35,10 @@ export const FiscalYears: React.FC = () => {
     };
 
     const handleCreateYear = async () => {
+        if (!currentCompanyId) return alert('No company context');
         const { data: yearData, error } = await supabase
-            .from('fiscal_years')
-            .insert([newYear])
+            .from('accounting_fiscal_years')
+            .insert([{ ...newYear, company_id: currentCompanyId }])
             .select()
             .single();
 

@@ -215,6 +215,24 @@ export const Bills: React.FC = () => {
         }
     };
 
+    const handleDelete = async (id: string, e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm('Are you sure you want to delete this draft bill? This action cannot be undone.')) return;
+
+        const { error } = await supabase
+            .from('accounting_journal_entries')
+            .delete()
+            .eq('id', id);
+
+        if (error) {
+            console.error(error);
+            alert('Error deleting bill: ' + error.message);
+        } else {
+            alert('Bill deleted successfully');
+            fetchBills();
+        }
+    };
+
     const handleApprove = async (id: string, e: React.MouseEvent) => {
         e.stopPropagation();
         const { error } = await supabase
@@ -302,6 +320,12 @@ export const Bills: React.FC = () => {
                                                     className="px-2 py-1 text-xs font-semibold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/20 rounded transition-colors"
                                                 >
                                                     Edit
+                                                </button>
+                                                <button
+                                                    onClick={(e) => handleDelete(bill.id, e)}
+                                                    className="px-2 py-1 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/20 rounded transition-colors"
+                                                >
+                                                    Delete
                                                 </button>
                                                 {bill.approval_status !== 'approved' && (
                                                     <button

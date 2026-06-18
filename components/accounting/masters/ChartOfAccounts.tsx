@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
-import { Plus, Search, Edit3, Trash2, ChevronRight, ChevronDown, Layers, ToggleLeft, ToggleRight } from 'lucide-react';
+import { Plus, Search, Edit3, Trash2, ChevronRight, ChevronDown, Layers, ToggleLeft, ToggleRight, UploadCloud, Download, Loader2 } from 'lucide-react';
 import { Modal } from '../../ui/Modal';
 import { PrintButton } from '../../ui/PrintButton';
+import { read, utils, write } from 'xlsx';
 
 
 interface Account {
@@ -32,6 +33,8 @@ export const ChartOfAccounts: React.FC = () => {
     const [editing, setEditing] = useState<Account | null>(null);
     const [expanded, setExpanded] = useState<Set<string>>(new Set(['Asset','Liability','Equity','Income','Expense']));
     const [form, setForm] = useState({ code:'', name:'', type:'Asset', parent_id:'', is_active:true, currency:'QAR', description:'' });
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [importing, setImporting] = useState(false);
 
     useEffect(() => {
         if (currentCompanyId) {
@@ -68,6 +71,109 @@ export const ChartOfAccounts: React.FC = () => {
         if (error) alert('Cannot delete: ' + error.message); else fetch_();
     };
 
+    const downloadTemplate = () => {
+        const template = [
+            {
+                'Code': '1100',
+                'Name': 'Accounts Receivable',
+                'Type': 'Asset',
+                'Currency': 'QAR',
+                'Description': 'Amounts owed by customers',
+                'Is Active': true,
+                'Parent Account Code': ''
+            },
+            {
+                'Code': '1101',
+                'Name': 'Trade Receivables',
+                'Type': 'Asset',
+                'Currency': 'QAR',
+                'Description': 'Regular trade customers',
+                'Is Active': true,
+                'Parent Account Code': '1100'
+            }
+        ];
+
+        const ws = utils.json_to_sheet(template);
+        const wb = utils.book_new();
+        utils.book_append_sheet(wb, ws, 'Chart of Accounts');
+        const wbout = write(wb, { bookType: 'xlsx', type: 'array' });
+        
+        const blob = new Blob([wbout], { type: 'application/octet-stream' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `chart_of_accounts_template.xlsx`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    };
+
+    const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        if (!currentCompanyId) return alert('No company context');
+        setImporting(true);
+        try {
+            const dataBuffer = await file.arrayBuffer();
+            const workbook = read(dataBuffer);
+            const sheet = workbook.Sheets[workbook.SheetNames[0]];
+            const jsonData = utils.sheet_to_json(sheet) as any[];
+
+            if (!jsonData || jsonData.length === 0) {
+                alert('File is empty or invalid.');
+                setImporting(false);
+                return;
+            }
+
+            const accountsToInsert = jsonData.map(row => {
+                const typeVal = String(row['Type'] || 'Asset').trim();
+                const type: 'Asset' | 'Liability' | 'Equity' | 'Income' | 'Expense' = 
+                    ['Asset', 'Liability', 'Equity', 'Income', 'Expense'].includes(typeVal)
+                        ? (typeVal as any)
+                        : 'Asset';
+
+                const isActive = row['Is Active'] !== undefined 
+                    ? (String(row['Is Active']).toLowerCase() === 'true' || row['Is Active'] === 1 || row['Is Active'] === true)
+                    : true;
+
+                return {
+                    company_id: currentCompanyId,
+                    code: String(row['Code'] || '').trim(),
+                    name: String(row['Name'] || '').trim(),
+                    type: type,
+                    currency: String(row['Currency'] || 'QAR').trim(),
+                    description: String(row['Description'] || '').trim(),
+                    is_active: isActive
+                };
+            }).filter(a => a.code && a.name);
+
+            if (accountsToInsert.length === 0) {
+                alert('No valid accounts found. Ensure the "Code" and "Name" columns are populated.');
+                setImporting(false);
+                return;
+            }
+
+            const { error: insertError } = await supabase
+                .from('accounting_chart_of_accounts')
+                .insert(accountsToInsert);
+
+            if (insertError) {
+                throw insertError;
+            }
+
+            alert(`Successfully imported ${accountsToInsert.length} accounts.`);
+            setShowImportModal(false);
+            fetch_();
+        } catch (error: any) {
+            console.error(error);
+            alert('Error importing accounts: ' + error.message);
+        } finally {
+            setImporting(false);
+            e.target.value = '';
+        }
+    };
+
     const toggle = (t: string) => { const n = new Set(expanded); if (n.has(t)) n.delete(t); else n.add(t); setExpanded(n); };
 
     const filtered = accounts.filter(a => {
@@ -87,6 +193,12 @@ export const ChartOfAccounts: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-3 no-print">
                     <PrintButton />
+                    <button
+                        onClick={() => setShowImportModal(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 hover:bg-slate-50 dark:hover:bg-zinc-800 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-medium transition-colors shadow-sm"
+                    >
+                        <UploadCloud className="w-4 h-4 text-indigo-500" /> Import
+                    </button>
                     <button onClick={openCreate} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"><Plus className="w-4 h-4" /> New Account</button>
                 </div>
             </div>
@@ -164,6 +276,66 @@ export const ChartOfAccounts: React.FC = () => {
                         <button className="w-full mt-2 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold transition-colors shadow-lg shadow-indigo-500/20">{editing ? 'Update Account' : 'Create Account'}</button>
                     </form>
                 </Modal>
+            )}
+
+            {/* Import Modal */}
+            {showImportModal && (
+                <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowImportModal(false)}>
+                    <div className="bg-white dark:bg-zinc-900 rounded-2xl w-full max-w-md shadow-2xl border border-slate-200 dark:border-zinc-800 flex flex-col max-h-[90vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+                        <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/50 flex justify-between items-center flex-shrink-0">
+                            <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                <UploadCloud size={20} className="text-indigo-500" /> Import Chart of Accounts
+                            </h3>
+                            <button onClick={downloadTemplate} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/30 rounded-lg hover:bg-indigo-100 transition-colors">
+                                <Download size={14} /> Template
+                            </button>
+                        </div>
+                        <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+                            <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
+                                <h4 className="text-sm font-semibold text-indigo-800 dark:text-indigo-400 mb-2">Instructions</h4>
+                                <p className="text-xs text-indigo-600/80 dark:text-indigo-300/80 mb-3">
+                                    Upload an Excel/CSV file with a header row containing these column names:
+                                </p>
+                                <ul className="text-xs text-indigo-700 dark:text-indigo-300 list-disc list-inside space-y-1 font-medium">
+                                    <li>Code (Required, e.g. 1001)</li>
+                                    <li>Name (Required, e.g. Cash in Hand)</li>
+                                    <li>Type (Asset, Liability, Equity, Income, Expense)</li>
+                                    <li>Currency (e.g. QAR)</li>
+                                    <li>Description</li>
+                                    <li>Is Active (true or false)</li>
+                                    <li>Parent Account Code (e.g. 1000)</li>
+                                </ul>
+                            </div>
+                            
+                            <div className="border-2 border-dashed border-slate-200 dark:border-zinc-700 rounded-xl p-8 text-center relative hover:border-indigo-400 dark:hover:border-indigo-500 transition-colors bg-slate-50 dark:bg-zinc-800/30">
+                                <input 
+                                    type="file" 
+                                    accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" 
+                                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                                    onChange={handleFileUpload}
+                                    disabled={importing}
+                                />
+                                {importing ? (
+                                    <>
+                                        <Loader2 className="w-10 h-10 text-indigo-500 animate-spin mx-auto mb-3" />
+                                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">Processing file...</p>
+                                    </>
+                                ) : (
+                                    <>
+                                        <div className="w-12 h-12 bg-white dark:bg-zinc-800 rounded-full shadow flex items-center justify-center mx-auto mb-3 text-slate-500 dark:text-slate-400">
+                                            <UploadCloud size={24} />
+                                        </div>
+                                        <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-1">Click or drag file to upload</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400">Supports .xlsx, .xls, .csv</p>
+                                    </>
+                                )}
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 border-t border-slate-100 dark:border-zinc-800 flex justify-end flex-shrink-0">
+                            <button onClick={() => setShowImportModal(false)} disabled={importing} className="px-5 py-2 text-slate-700 dark:text-zinc-300 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-xl transition-colors font-semibold text-sm">Close</button>
+                        </div>
+                    </div>
+                </div>
             )}
         </div>
     );
