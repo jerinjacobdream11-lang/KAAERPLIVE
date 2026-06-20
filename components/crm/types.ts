@@ -56,7 +56,7 @@ export interface CRMLead {
   // Class
   lead_type?: string;
   request_type?: string;
-  lead_source_id?: number;
+  lead_source_id?: string;
   lead_owner_id?: string;
 
   // Org
@@ -120,13 +120,13 @@ export interface CRMOpportunity {
   customer?: CRMCustomer; // Joined
   lead_id?: string;
 
-  stage_id: number;
+  stage_id: string;
   stage?: CRMStage; // Joined
   status: 'Open' | 'Won' | 'Lost';
   probability: number;
 
   type?: string;
-  source_id?: number;
+  source_id?: string;
   expected_closing_date?: string;
 
   currency: string;

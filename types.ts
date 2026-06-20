@@ -145,7 +145,7 @@ export type PayrollViewMode = 'OVERVIEW' | 'PROCESSING' | 'RUNS' | 'PAYSLIPS' | 
 
 // CRM Interfaces
 export interface CRMStage {
-  id: number;
+  id: string;
   name: string;
   position: number;
   win_probability: number;
@@ -153,7 +153,7 @@ export interface CRMStage {
 }
 
 export interface CRMLeadSource {
-  id: number;
+  id: string;
   name: string;
   status: string;
 }
@@ -186,11 +186,11 @@ export interface CRMDeal {
   title: string;
   company: string; // client company name
   value: number;
-  stage_id: number;
+  stage_id: string;
   stage?: CRMStage; // Joined
-  deal_type_id?: number;
+  deal_type_id?: string;
   deal_type?: CRMDealType; // Joined
-  source_id?: number;
+  source_id?: string;
   source?: CRMLeadSource; // Joined
   expected_close_date?: string;
   owner_id?: string; // Auth user
@@ -200,7 +200,7 @@ export interface CRMDeal {
   currency: string;
   tag?: string;
   tag_color?: string;
-  pending_target_stage_id?: number;
+  pending_target_stage_id?: string;
   created_at: string;
 }
 

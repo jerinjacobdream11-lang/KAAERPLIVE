@@ -3,7 +3,7 @@ import { Sparkles, Globe, Play, Plus, Clock, AlertTriangle, CheckCircle2, XCircl
 import { WebsiteFinderJob, WebsiteFinderResult } from '../../types';
 import { WebsiteFinderService } from './WebsiteFinderLogic';
 import { supabase } from '../../lib/supabase';
-import { createContact, createDeal } from './services';
+import { createContact, createDeal, getStages } from './services';
 
 const COUNTRIES = ['UAE', 'KSA', 'Qatar', 'Kuwait', 'Bahrain', 'Oman'];
 
@@ -151,12 +151,15 @@ export const WebsiteFinderView: React.FC<{ companyId: string | null }> = ({ comp
                 alert("Contact created!");
             } else {
                 // Push to Deal/Pipeline
+                const stages = await getStages();
+                const defaultStageId = stages[0]?.id || "";
+
                 await createDeal({
                     company_id: companyId, // [NEW] Added
                     title: `${result.company_name} Opportunity`,
                     company: result.company_name,
                     value: 0,
-                    stage_id: 1 // Default to first stage
+                    stage_id: defaultStageId
                 });
                 alert("Deal created!");
             }

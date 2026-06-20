@@ -110,7 +110,7 @@ export default function OpportunitiesView({ companyId, onConvert }: Opportunitie
         e.dataTransfer.dropEffect = 'move';
     };
 
-    const onDrop = async (e: React.DragEvent, stageId: number) => {
+    const onDrop = async (e: React.DragEvent, stageId: string) => {
         e.preventDefault();
         if (!draggedOppId) return;
 
@@ -329,7 +329,7 @@ export default function OpportunitiesView({ companyId, onConvert }: Opportunitie
                                         <div className="relative">
                                             <select
                                                 value={activeOpp.stage_id || ''}
-                                                onChange={e => setActiveOpp({ ...activeOpp, stage_id: Number(e.target.value) })}
+                                                onChange={e => setActiveOpp({ ...activeOpp, stage_id: e.target.value })}
                                                 className="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm appearance-none"
                                             >
                                                 {stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}

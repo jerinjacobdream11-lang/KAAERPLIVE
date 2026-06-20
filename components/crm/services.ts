@@ -171,7 +171,7 @@ export const updateOpportunity = async (id: string, updates: Partial<Opportunity
 export const convertLeadToOpportunity = async (
   lead: Lead,
   companyId: string,
-  firstStageId: number,
+  firstStageId: string,
   ownerId?: string
 ): Promise<Opportunity | null> => {
   // 1. Create Opportunity from Lead data
@@ -294,7 +294,7 @@ export const checkWorkflowAvailability = async (companyId: string): Promise<stri
   return data.id;
 };
 
-export const updateDealStage = async (id: number, stage_id: number, company_id?: string, owner_id?: string): Promise<{ success: boolean, pendingApproval?: boolean }> => {
+export const updateDealStage = async (id: number, stage_id: string, company_id?: string, owner_id?: string): Promise<{ success: boolean, pendingApproval?: boolean }> => {
   // 1. Check if a workflow applies
   let workflowId = null;
   if (company_id) {
