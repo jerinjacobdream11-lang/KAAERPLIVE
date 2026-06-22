@@ -3,6 +3,7 @@ import { Plus, Mail, Phone, Building, ChevronDown, Loader2, Users, ArrowRight, L
 import { Customer } from './types';
 import { getCustomers, createCustomer, updateCustomer } from './services';
 import { useAuth } from '../../contexts/AuthContext';
+import { AttachmentPanel } from './AttachmentPanel';
 
 export default function CustomersView({ companyId }: { companyId: string }) {
     const { user } = useAuth();
@@ -160,6 +161,17 @@ export default function CustomersView({ companyId }: { companyId: string }) {
                                     <Input label="ZIP Code" value={activeCustomer.billing_zip_code} onChange={v => setActiveCustomer({ ...activeCustomer, billing_zip_code: v })} />
                                 </div>
                             </Section>
+
+                            {activeCustomer.id && (
+                                <Section title="Customer Documents & Attachments">
+                                    <AttachmentPanel
+                                        companyId={companyId}
+                                        module="customer"
+                                        recordId={activeCustomer.id}
+                                        userId={user?.id}
+                                    />
+                                </Section>
+                            )}
                         </div>
 
                         <div className="px-6 py-4 border-t border-slate-100 dark:border-zinc-800 flex justify-end gap-3 bg-slate-50/50 dark:bg-zinc-800/50">

@@ -260,6 +260,8 @@ export interface LeaveRequest {
   endDate?: string;
   level1_status?: string | null;
   level2_status?: string | null;
+  attachment_url?: string | null;
+  attachment_name?: string | null;
 }
 
 export interface Announcement {

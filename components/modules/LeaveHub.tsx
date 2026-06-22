@@ -26,6 +26,8 @@ export const LeaveHub: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const delayedLoading = useDelayLoading(loading, 300);
     const [showLeaveModal, setShowLeaveModal] = useState(false);
+    const [leaveFile, setLeaveFile] = useState<File | null>(null);
+    const [submittingLeave, setSubmittingLeave] = useState(false);
     
     const { user, hasPermission } = useAuth();
 
@@ -117,30 +119,57 @@ export const LeaveHub: React.FC = () => {
     const approvedLeaves = useMemo(() => leaves.filter(l => l.status === 'Approved'), [leaves]);
 
     const AddLeaveModal = () => (
-        <Modal title="Grant Leave / Request Leave" onClose={() => setShowLeaveModal(false)}>
+        <Modal title="Grant Leave / Request Leave" onClose={() => { setShowLeaveModal(false); setLeaveFile(null); }}>
             <form onSubmit={async (e) => {
                 e.preventDefault();
-                const formData = new FormData(e.target as HTMLFormElement);
-                const leaveTypeId = formData.get('leave_type_id') as string;
-                const typeName = leaveTypes.find(lt => lt.id.toString() === leaveTypeId.toString())?.code || 'OTHER';
-                const employeeId = formData.get('employee_id') as string || currentEmployee?.id;
+                if (submittingLeave) return;
+                setSubmittingLeave(true);
                 
-                const { error } = await supabase.from('leaves').insert([{
-                    employee_id: employeeId,
-                    company_id: companyId,
-                    leave_type_id: leaveTypeId ? parseInt(leaveTypeId) : null,
-                    type: typeName,
-                    start_date: formData.get('startDate'),
-                    end_date: formData.get('endDate'),
-                    reason: formData.get('reason'),
-                    status: 'Pending',
-                    applied_on: new Date().toISOString()
-                } as any]);
-                if (error) alert('Error: ' + error.message);
-                else {
+                try {
+                    const formData = new FormData(e.target as HTMLFormElement);
+                    const leaveTypeId = formData.get('leave_type_id') as string;
+                    const typeName = leaveTypes.find(lt => lt.id.toString() === leaveTypeId.toString())?.code || 'OTHER';
+                    const employeeId = formData.get('employee_id') as string || currentEmployee?.id;
+                    
+                    let attachmentUrl = '';
+                    let attachmentName = '';
+                    
+                    if (leaveFile) {
+                        const path = `${companyId}/leaves/${Date.now()}_${leaveFile.name}`;
+                        const { data: uploadData, error: uploadErr } = await supabase.storage
+                            .from('attachments')
+                            .upload(path, leaveFile);
+                        if (uploadErr) throw uploadErr;
+                        
+                        const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+                        attachmentUrl = urlData.publicUrl;
+                        attachmentName = leaveFile.name;
+                    }
+                    
+                    const { error } = await supabase.from('leaves').insert([{
+                        employee_id: employeeId,
+                        company_id: companyId,
+                        leave_type_id: leaveTypeId ? parseInt(leaveTypeId) : null,
+                        type: typeName,
+                        start_date: formData.get('startDate'),
+                        end_date: formData.get('endDate'),
+                        reason: formData.get('reason'),
+                        status: 'Pending',
+                        applied_on: new Date().toISOString(),
+                        attachment_url: attachmentUrl || null,
+                        attachment_name: attachmentName || null
+                    } as any]);
+                    
+                    if (error) throw error;
+                    
                     alert('Leave request submitted successfully!');
                     setShowLeaveModal(false);
+                    setLeaveFile(null);
                     refreshData();
+                } catch (err: any) {
+                    alert('Error: ' + err.message);
+                } finally {
+                    setSubmittingLeave(false);
                 }
             }} className="space-y-4">
                 {hasPermission('hrms.leave.approve') || hasPermission('*') ? (
@@ -170,7 +199,16 @@ export const LeaveHub: React.FC = () => {
                     </div>
                 </div>
                 <textarea name="reason" required placeholder="Reason for leave..." className="w-full p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white min-h-[100px]"></textarea>
-                <button className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:shadow-lg shadow-emerald-500/30 transition-all active:scale-95">Submit Request</button>
+                
+                <div>
+                    <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Attachment</label>
+                    <input type="file" onChange={(e) => setLeaveFile(e.target.files?.[0] || null)} className="w-full p-4 bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-700 text-slate-900 dark:text-white font-medium text-sm text-slate-500" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                    {leaveFile && <p className="text-xs text-indigo-500 font-medium mt-1">Selected: {leaveFile.name}</p>}
+                </div>
+
+                <button disabled={submittingLeave} className="w-full py-4 bg-emerald-600 text-white rounded-2xl font-bold hover:shadow-lg shadow-emerald-500/30 transition-all active:scale-95 disabled:opacity-50">
+                    {submittingLeave ? 'Submitting...' : 'Submit Request'}
+                </button>
             </form>
         </Modal>
     );

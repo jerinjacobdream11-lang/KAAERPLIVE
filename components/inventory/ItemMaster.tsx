@@ -24,6 +24,8 @@ interface Item {
     barcode?: string;
     reorder_level?: number;
     reorder_qty?: number;
+    photo_url?: string;
+    image_urls?: string[];
 }
 
 export const ItemMaster: React.FC = () => {
@@ -35,6 +37,100 @@ export const ItemMaster: React.FC = () => {
     const [currentItem, setCurrentItem] = useState<Partial<Item>>({});
     const [saving, setSaving] = useState(false);
     const [storageCategories, setStorageCategories] = useState<{ id: string, name: string }[]>([]);
+    
+    // Image Handling State
+    const [imageUrls, setImageUrls] = useState<Record<string, string>>({});
+    const [activeItemImages, setActiveItemImages] = useState<string[]>([]);
+    const [selectedGalleryItem, setSelectedGalleryItem] = useState<Item | null>(null);
+    const [galleryIndex, setGalleryIndex] = useState(0);
+    const [gallerySignedUrls, setGallerySignedUrls] = useState<string[]>([]);
+
+    // Helper to upload item image
+    const uploadItemImage = async (companyId: string, itemCode: string, file: File): Promise<string> => {
+        const path = `inventory/${companyId}/items/${itemCode}/${Date.now()}_${file.name}`;
+        const { error: uploadErr } = await supabase.storage.from('attachments').upload(path, file);
+        if (uploadErr) throw uploadErr;
+        const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+        return urlData.publicUrl;
+    };
+
+    // Load signed URLs for all items
+    useEffect(() => {
+        const loadAllSignedUrls = async () => {
+            const urls: Record<string, string> = {};
+            for (const item of items) {
+                if (item.photo_url) {
+                    const path = item.photo_url.split('/storage/v1/object/public/attachments/')[1];
+                    if (path) {
+                        const { data } = await supabase.storage.from('attachments').createSignedUrl(path, 3600);
+                        if (data?.signedUrl) {
+                            urls[item.id] = data.signedUrl;
+                        }
+                    } else {
+                        urls[item.id] = item.photo_url;
+                    }
+                }
+            }
+            setImageUrls(urls);
+        };
+        if (items.length > 0) {
+            loadAllSignedUrls();
+        }
+    }, [items]);
+
+    // Load signed URLs for active item gallery images (in edit modal)
+    useEffect(() => {
+        const loadActiveSignedUrls = async () => {
+            if (!currentItem.image_urls || currentItem.image_urls.length === 0) {
+                setActiveItemImages([]);
+                return;
+            }
+            const urls: string[] = [];
+            for (const url of currentItem.image_urls) {
+                const path = url.split('/storage/v1/object/public/attachments/')[1];
+                if (path) {
+                    const { data } = await supabase.storage.from('attachments').createSignedUrl(path, 3600);
+                    if (data?.signedUrl) {
+                        urls.push(data.signedUrl);
+                    }
+                } else {
+                    urls.push(url);
+                }
+            }
+            setActiveItemImages(urls);
+        };
+        loadActiveSignedUrls();
+    }, [currentItem.image_urls]);
+
+    // Load signed URLs for selected gallery item
+    useEffect(() => {
+        const loadGalleryUrls = async () => {
+            if (!selectedGalleryItem) {
+                setGallerySignedUrls([]);
+                return;
+            }
+            const allUrls = [
+                selectedGalleryItem.photo_url,
+                ...(selectedGalleryItem.image_urls || [])
+            ].filter(Boolean) as string[];
+
+            const resolved: string[] = [];
+            for (const url of allUrls) {
+                const path = url.split('/storage/v1/object/public/attachments/')[1];
+                if (path) {
+                    const { data } = await supabase.storage.from('attachments').createSignedUrl(path, 3600);
+                    if (data?.signedUrl) {
+                        resolved.push(data.signedUrl);
+                    }
+                } else {
+                    resolved.push(url);
+                }
+            }
+            setGallerySignedUrls(resolved);
+            setGalleryIndex(0);
+        };
+        loadGalleryUrls();
+    }, [selectedGalleryItem]);
     // Excel Import
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [importData, setImportData] = useState<any[]>([]);
@@ -271,15 +367,36 @@ export const ItemMaster: React.FC = () => {
                         <div key={item.id} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl p-5 hover:shadow-md transition-shadow group relative">
                             <div className="flex justify-between items-start mb-2">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600 dark:text-indigo-400">
-                                        <Package className="w-5 h-5" />
-                                    </div>
+                                    {item.photo_url ? (
+                                        <div
+                                            className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 flex items-center justify-center flex-shrink-0 cursor-pointer"
+                                            onClick={() => setSelectedGalleryItem(item)}
+                                        >
+                                            <img
+                                                src={imageUrls[item.id] || item.photo_url}
+                                                alt={item.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg text-indigo-600 dark:text-indigo-400 flex-shrink-0">
+                                            <Package className="w-5 h-5" />
+                                        </div>
+                                    )}
                                     <div>
                                         <h3 className="font-semibold text-slate-800 dark:text-white">{item.name}</h3>
                                         <div className="flex items-center gap-2 text-xs text-slate-500 font-mono mt-0.5">
                                             <QrCode className="w-3 h-3" />
                                             {item.code}
                                         </div>
+                                        {item.image_urls && item.image_urls.length > 0 && (
+                                            <span 
+                                                onClick={() => setSelectedGalleryItem(item)}
+                                                className="text-[10px] text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/20 px-1.5 py-0.5 rounded flex items-center gap-1 font-medium mt-1 w-max cursor-pointer hover:bg-indigo-100 transition-colors"
+                                            >
+                                                +{item.image_urls.length} images
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                                 <span className={`px-2 py-1 text-xs rounded-full ${item.status === 'Active' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-slate-100 text-slate-600'}`}>
@@ -358,6 +475,116 @@ export const ItemMaster: React.FC = () => {
             {isModalOpen && (
                 <Modal title={currentItem.id ? 'Edit Item' : 'New Item'} onClose={() => setIsModalOpen(false)}>
                     <form onSubmit={handleSave} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                        {/* Photo Upload Section */}
+                        <div className="border-b border-slate-100 dark:border-zinc-800 pb-4 mb-4">
+                            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Item Images</label>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                {/* Main Photo */}
+                                <div className="flex flex-col items-center justify-center border-2 border-dashed border-slate-200 dark:border-zinc-700 rounded-xl p-4 relative bg-slate-50 dark:bg-zinc-800/40">
+                                    {currentItem.photo_url ? (
+                                        <div className="relative w-full h-32 flex items-center justify-center">
+                                            <img
+                                                src={imageUrls[currentItem.id || ''] || currentItem.photo_url}
+                                                alt="Item photo"
+                                                className="max-w-full max-h-full object-contain rounded-lg"
+                                            />
+                                            <button
+                                                type="button"
+                                                onClick={() => setCurrentItem({ ...currentItem, photo_url: '' })}
+                                                className="absolute -top-2 -right-2 p-1.5 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors"
+                                            >
+                                                <X className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center justify-center py-4">
+                                            <Package className="w-10 h-10 text-slate-300 mb-2" />
+                                            <label className="px-3 py-1.5 bg-indigo-50 text-indigo-600 dark:bg-indigo-900/20 dark:text-indigo-400 text-xs font-semibold rounded-lg cursor-pointer hover:bg-indigo-100 transition-colors">
+                                                Upload Main Photo
+                                                <input
+                                                    type="file"
+                                                    accept="image/*"
+                                                    className="hidden"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (!file) return;
+                                                        try {
+                                                            const code = currentItem.code || 'temp';
+                                                            const url = await uploadItemImage(currentCompanyId, code, file);
+                                                            setCurrentItem(prev => ({ ...prev, photo_url: url }));
+                                                        } catch (err: any) {
+                                                            alert('Upload failed: ' + err.message);
+                                                        }
+                                                    }}
+                                                />
+                                            </label>
+                                            <span className="text-[10px] text-slate-400 mt-1">Main display image</span>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Gallery Images */}
+                                <div className="border border-slate-200 dark:border-zinc-700 rounded-xl p-4 bg-slate-50 dark:bg-zinc-800/40 flex flex-col justify-between">
+                                    <div>
+                                        <span className="text-xs font-semibold text-slate-500 dark:text-zinc-400 block mb-2">Gallery Images ({currentItem.image_urls?.length || 0})</span>
+                                        {currentItem.image_urls && currentItem.image_urls.length > 0 ? (
+                                            <div className="flex gap-2 overflow-x-auto pb-2 max-w-full">
+                                                {currentItem.image_urls.map((url, idx) => (
+                                                    <div key={idx} className="relative w-16 h-16 border border-slate-200 dark:border-zinc-700 rounded-lg flex-shrink-0 flex items-center justify-center bg-white dark:bg-zinc-900">
+                                                        <img
+                                                            src={activeItemImages[idx] || url}
+                                                            alt={`Gallery ${idx}`}
+                                                            className="max-w-full max-h-full object-contain rounded"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => {
+                                                                const newUrls = (currentItem.image_urls || []).filter((_, i) => i !== idx);
+                                                                setCurrentItem({ ...currentItem, image_urls: newUrls });
+                                                            }}
+                                                            className="absolute -top-1 -right-1 p-0.5 bg-red-100 text-red-600 rounded-full hover:bg-red-200 transition-colors"
+                                                        >
+                                                            <X className="w-3 h-3" />
+                                                        </button>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-[11px] text-slate-400 italic py-4 text-center">No gallery images added</p>
+                                        )}
+                                    </div>
+                                    <label className="flex items-center justify-center gap-1.5 w-full py-2 bg-indigo-600 text-white rounded-lg cursor-pointer hover:bg-indigo-700 transition-colors text-xs font-semibold mt-2">
+                                        <Upload className="w-3.5 h-3.5" />
+                                        Upload Gallery Images
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            multiple
+                                            className="hidden"
+                                            onChange={async (e) => {
+                                                const files = Array.from(e.target.files || []);
+                                                if (files.length === 0) return;
+                                                try {
+                                                    const code = currentItem.code || 'temp';
+                                                    const uploadedUrls: string[] = [];
+                                                    for (const file of files) {
+                                                        const url = await uploadItemImage(currentCompanyId, code, file);
+                                                        uploadedUrls.push(url);
+                                                    }
+                                                    setCurrentItem(prev => ({
+                                                        ...prev,
+                                                        image_urls: [...(prev.image_urls || []), ...uploadedUrls]
+                                                    }));
+                                                } catch (err: any) {
+                                                    alert('Upload failed: ' + err.message);
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
                         {/* Basic Info */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -681,6 +908,63 @@ export const ItemMaster: React.FC = () => {
                                         ))}
                                     </div>
                                 )}
+                            </div>
+                        )}
+                    </div>
+                </Modal>
+            )}
+
+            {/* Image Gallery Carousel Modal */}
+            {selectedGalleryItem && gallerySignedUrls.length > 0 && (
+                <Modal title={`${selectedGalleryItem.name} - Image Gallery`} onClose={() => setSelectedGalleryItem(null)}>
+                    <div className="flex flex-col items-center justify-center p-4">
+                        <div className="relative w-full h-[60vh] bg-slate-900 rounded-xl flex items-center justify-center overflow-hidden border border-slate-800">
+                            <img
+                                src={gallerySignedUrls[galleryIndex]}
+                                alt={`${selectedGalleryItem.name} ${galleryIndex}`}
+                                className="max-w-full max-h-full object-contain"
+                            />
+
+                            {/* Left/Right controls */}
+                            {gallerySignedUrls.length > 1 && (
+                                <>
+                                    <button
+                                        type="button"
+                                        onClick={() => setGalleryIndex(prev => (prev - 1 + gallerySignedUrls.length) % gallerySignedUrls.length)}
+                                        className="absolute left-4 top-1/2 -translate-y-1/2 p-2 bg-black/60 text-white rounded-full hover:bg-black transition-colors"
+                                    >
+                                        &larr;
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setGalleryIndex(prev => (prev + 1) % gallerySignedUrls.length)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 p-2 bg-black/60 text-white rounded-full hover:bg-black transition-colors"
+                                    >
+                                        &rarr;
+                                    </button>
+                                </>
+                            )}
+
+                            {/* Index Indicator */}
+                            <div className="absolute bottom-4 bg-black/60 text-white text-xs px-3 py-1 rounded-full">
+                                {galleryIndex + 1} / {gallerySignedUrls.length}
+                            </div>
+                        </div>
+
+                        {/* Thumbnail selector */}
+                        {gallerySignedUrls.length > 1 && (
+                            <div className="flex gap-2 mt-4 overflow-x-auto max-w-full pb-2">
+                                {gallerySignedUrls.map((url, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => setGalleryIndex(idx)}
+                                        className={`w-16 h-16 border rounded-lg overflow-hidden flex items-center justify-center bg-white dark:bg-zinc-800 transition-all ${
+                                            galleryIndex === idx ? 'border-indigo-600 ring-2 ring-indigo-500/20' : 'border-slate-200 dark:border-zinc-700'
+                                        }`}
+                                    >
+                                        <img src={url} alt="Thumbnail" className="w-full h-full object-cover" />
+                                    </button>
+                                ))}
                             </div>
                         )}
                     </div>

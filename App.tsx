@@ -35,6 +35,7 @@ import { TravelExpensesHub } from './components/modules/TravelExpensesHub';
 import { PerformanceHub } from './components/modules/PerformanceHub';
 import { RecruitmentHub } from './components/modules/RecruitmentHub';
 import { CareersPortal } from './components/modules/CareersPortal';
+import { TeamChat } from './components/modules/TeamChat';
 
 const AppContent: React.FC = () => {
   const { session, loading, currentCompanyId, selectCompany, userRole } = useAuth();
@@ -106,6 +107,7 @@ const AppContent: React.FC = () => {
     if (path === 'loans') return AppView.LOANS;
     if (path === 'travel') return AppView.TRAVEL;
     if (path === 'careers') return AppView.CAREERS;
+    if (path === 'chat') return AppView.CHAT;
     return AppView.DASHBOARD;
   };
 
@@ -133,6 +135,7 @@ const AppContent: React.FC = () => {
     { path: '/loans', element: <LoansBenefitsHub />, id: 'loans' },
     { path: '/travel', element: <TravelExpensesHub />, id: 'travel' },
     { path: '/careers', element: <CareersPortal />, id: 'careers' },
+    { path: '/chat', element: <TeamChat />, id: 'chat' },
   ];
 
   return (

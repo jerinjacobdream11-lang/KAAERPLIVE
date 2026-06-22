@@ -1,8 +1,9 @@
 import React from 'react';
 import {
-    Users, Briefcase, Bell, Check, DollarSign
+    Users, Briefcase, Bell, Check, DollarSign, Clock, AlertTriangle, TrendingUp, CheckCircle, Cake
 } from 'lucide-react';
 import { Announcement } from '../../hrms/types';
+import { supabase } from '../../../lib/supabase';
 
 interface OverviewDashboardProps {
     stats: {
@@ -15,9 +16,73 @@ interface OverviewDashboardProps {
     employees: any[]; // Or Employee[] if imported
 }
 
-import { Cake } from 'lucide-react';
-
 export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ stats, announcements, employees = [] }) => {
+    const [slaRecords, setSlaRecords] = React.useState<any[]>([]);
+    const [slaStats, setSlaStats] = React.useState({
+        pending: 0,
+        overdue: 0,
+        avgHours: 0,
+        complianceRate: 100
+    });
+
+    React.useEffect(() => {
+        const fetchSLA = async () => {
+            try {
+                // Call check_and_process_overdue_slas first to ensure DB is updated
+                await (supabase as any).rpc('check_and_process_overdue_slas');
+
+                const companyId = localStorage.getItem('app.current_company');
+                if (!companyId) return;
+
+                const { data } = await (supabase as any)
+                    .from('sla_tracking')
+                    .select('*')
+                    .eq('company_id', companyId);
+
+                if (data) {
+                    setSlaRecords(data);
+                    
+                    const now = new Date();
+                    const pending = data.filter(r => r.status === 'Pending').length;
+                    
+                    const overdue = data.filter(r => 
+                        r.status === 'Overdue' || 
+                        (r.status === 'Pending' && new Date(r.due_time) < now)
+                    ).length;
+
+                    const completed = data.filter(r => r.completed_time);
+                    
+                    let avgHours = 0;
+                    let complianceCount = 0;
+
+                    if (completed.length > 0) {
+                        const totalMs = completed.reduce((sum, r) => {
+                            const start = new Date(r.start_time);
+                            const end = new Date(r.completed_time);
+                            return sum + (end.getTime() - start.getTime());
+                        }, 0);
+                        avgHours = Math.round((totalMs / completed.length) / (1000 * 3600) * 10) / 10;
+
+                        complianceCount = completed.filter(r => {
+                            const end = new Date(r.completed_time);
+                            const due = new Date(r.due_time);
+                            return end <= due;
+                        }).length;
+                    }
+
+                    const complianceRate = completed.length > 0 
+                        ? Math.round((complianceCount / completed.length) * 100)
+                        : 100;
+
+                    setSlaStats({ pending, overdue, avgHours, complianceRate });
+                }
+            } catch (err) {
+                console.error("Error loading SLA data:", err);
+            }
+        };
+
+        fetchSLA();
+    }, []);
     // Upcoming Birthdays logic
     const upcomingBirthdays = React.useMemo(() => {
         const today = new Date();
@@ -98,6 +163,71 @@ export const OverviewDashboard: React.FC<OverviewDashboardProps> = ({ stats, ann
                     </div>
                     <div className="w-12 h-12 rounded-2xl bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 flex items-center justify-center">
                         <Briefcase className="w-6 h-6" />
+                    </div>
+                </div>
+            </div>
+
+            {/* SLA Monitoring Section */}
+            <div className="bg-white/70 dark:bg-zinc-900/70 backdrop-blur-xl p-8 rounded-[2rem] border border-white/60 dark:border-zinc-800 shadow-xl shadow-slate-200/50 dark:shadow-black/30 mb-10 animate-fade-in">
+                <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-indigo-500" />
+                        Service Level Agreement (SLA) Monitor
+                    </h3>
+                    <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tenant Isolated</span>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                    {/* Compliance Card */}
+                    <div className="p-5 bg-slate-50 dark:bg-zinc-850 rounded-2xl border border-slate-100 dark:border-zinc-800 flex flex-col justify-between shadow-sm">
+                        <div>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">SLA Compliance Rate</span>
+                            <div className="flex items-baseline gap-2 mt-2">
+                                <span className="text-3xl font-black text-slate-900 dark:text-white">{slaStats.complianceRate}%</span>
+                                <span className="text-xs text-emerald-500 font-bold">On Time</span>
+                            </div>
+                        </div>
+                        <div className="w-full bg-slate-200 dark:bg-zinc-800 h-2 rounded-full mt-4 overflow-hidden">
+                            <div 
+                                className="bg-gradient-to-r from-indigo-500 to-emerald-500 h-full rounded-full transition-all duration-500" 
+                                style={{ width: `${slaStats.complianceRate}%` }}
+                            />
+                        </div>
+                    </div>
+
+                    {/* Overdue Card */}
+                    <div className="p-5 bg-slate-50 dark:bg-zinc-850 rounded-2xl border border-slate-100 dark:border-zinc-800 flex flex-col justify-between shadow-sm">
+                        <div>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Overdue Requests</span>
+                            <div className="flex items-baseline gap-2 mt-2">
+                                <span className={`text-3xl font-black ${slaStats.overdue > 0 ? 'text-rose-600 dark:text-rose-450' : 'text-slate-900 dark:text-white'}`}>{slaStats.overdue}</span>
+                                {slaStats.overdue > 0 && <span className="text-xs text-rose-500 font-bold animate-pulse">Needs Action</span>}
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium mt-4">Active workflows exceeding target processing window</p>
+                    </div>
+
+                    {/* Average Processing Time Card */}
+                    <div className="p-5 bg-slate-50 dark:bg-zinc-850 rounded-2xl border border-slate-100 dark:border-zinc-800 flex flex-col justify-between shadow-sm">
+                        <div>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Avg Resolution Time</span>
+                            <div className="flex items-baseline gap-2 mt-2">
+                                <span className="text-3xl font-black text-slate-900 dark:text-white">{slaStats.avgHours}h</span>
+                                <span className="text-xs text-indigo-500 font-bold">Avg Response</span>
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium mt-4">Target: 48h limit for HR, Proposals and Tickets</p>
+                    </div>
+
+                    {/* Pending Requests Card */}
+                    <div className="p-5 bg-slate-50 dark:bg-zinc-850 rounded-2xl border border-slate-100 dark:border-zinc-800 flex flex-col justify-between shadow-sm">
+                        <div>
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block">Pending Approvals</span>
+                            <div className="flex items-baseline gap-2 mt-2">
+                                <span className="text-3xl font-black text-slate-900 dark:text-white">{slaStats.pending}</span>
+                                <span className="text-xs text-amber-500 font-bold">In Progress</span>
+                            </div>
+                        </div>
+                        <p className="text-[10px] text-slate-400 font-medium mt-4">Ongoing validations within SLA window</p>
                     </div>
                 </div>
             </div>

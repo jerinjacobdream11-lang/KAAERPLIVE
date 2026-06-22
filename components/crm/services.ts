@@ -38,14 +38,59 @@ export const getTaskPriorities = async (): Promise<CRMTaskPriority[]> => {
   return (data || []) as any as CRMTaskPriority[];
 }
 
+// ACCESS CONTROL HELPERS
+interface AccessFilter {
+  isSalesRep: boolean;
+  userId?: string;
+  employeeId?: string;
+}
+
+const getAccessFilter = async (): Promise<AccessFilter> => {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { isSalesRep: false };
+
+  // Fetch role
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .maybeSingle();
+
+  const role = profile?.role?.toLowerCase() || '';
+  const isManagement = ['admin', 'super admin', 'manager', 'management'].includes(role);
+
+  if (isManagement) {
+    return { isSalesRep: false, userId: user.id };
+  }
+
+  // Get employee record linked to profile_id
+  const { data: emp } = await supabase
+    .from('employees')
+    .select('id')
+    .eq('profile_id', user.id)
+    .maybeSingle();
+
+  return { 
+    isSalesRep: true, 
+    userId: user.id, 
+    employeeId: emp?.id 
+  };
+};
+
 // LEADS
 export const getLeads = async (): Promise<Lead[]> => {
-  const { data, error } = await (supabase as any).from('crm_leads')
+  const filter = await getAccessFilter();
+  let query = (supabase as any).from('crm_leads')
     .select(`
         *,
         lead_owner:employees!crm_leads_lead_owner_id_fkey(*)
-    `)
-    .order('created_at', { ascending: false });
+    `);
+
+  if (filter.isSalesRep && filter.userId) {
+    query = query.eq('lead_owner_id', filter.userId);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching leads:', error);
@@ -123,13 +168,19 @@ export const updateCustomer = async (id: string, updates: Partial<Customer>): Pr
 
 // OPPORTUNITIES
 export const getOpportunities = async (): Promise<Opportunity[]> => {
-  const { data, error } = await (supabase as any).from('crm_opportunities')
+  const filter = await getAccessFilter();
+  let query = (supabase as any).from('crm_opportunities')
     .select(`
         *,
         customer:crm_customers(*),
         stage:org_crm_stages(*)
-    `)
-    .order('created_at', { ascending: false });
+    `);
+
+  if (filter.isSalesRep && filter.userId) {
+    query = query.eq('owner_id', filter.userId);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching opportunities:', error);
@@ -244,9 +295,14 @@ export const convertOpportunityToCustomer = async (
 
 // DEALS (Legacy / To be migrated)
 export const getDeals = async (): Promise<Deal[]> => {
-  const { data, error } = await (supabase as any).from('crm_deals')
-    .select('*')
-    .order('created_at', { ascending: false });
+  const filter = await getAccessFilter();
+  let query = (supabase as any).from('crm_deals').select('*');
+
+  if (filter.isSalesRep && filter.userId) {
+    query = query.eq('owner_id', filter.userId);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false });
 
   if (error) {
     console.error('Error fetching deals:', error);
@@ -386,14 +442,20 @@ export const createContact = async (contact: Partial<Contact>): Promise<Contact 
 
 // TASKS
 export const getTasks = async (): Promise<Task[]> => {
-  const { data, error } = await (supabase as any).from('crm_tasks')
+  const filter = await getAccessFilter();
+  let query = (supabase as any).from('crm_tasks')
     .select(`
         *,
         status_details:org_task_status(*),
         priority_details:org_task_priority(*),
         assignee:employees(*)
-    `)
-    .order('due_date', { ascending: true });
+    `);
+
+  if (filter.isSalesRep && filter.userId) {
+    query = query.eq('owner_id', filter.userId);
+  }
+
+  const { data, error } = await query.order('due_date', { ascending: true });
 
   if (error) {
     console.error('Error fetching tasks:', error);
@@ -527,8 +589,15 @@ export const createDocument = async (doc: Partial<CRMDocument>): Promise<CRMDocu
 
 // ACTIVITIES
 export const getActivities = async (): Promise<CRMActivity[]> => {
-  const { data, error } = await (supabase as any).from('crm_activity_log')
-    .select(`*, performer:employees(*)`)
+  const filter = await getAccessFilter();
+  let query = (supabase as any).from('crm_activity_log')
+    .select(`*, performer:employees(*)`);
+
+  if (filter.isSalesRep && filter.employeeId) {
+    query = query.eq('performed_by', filter.employeeId);
+  }
+
+  const { data, error } = await query
     .order('created_at', { ascending: false })
     .limit(50);
 

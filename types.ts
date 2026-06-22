@@ -25,6 +25,7 @@ export enum AppView {
   LOANS = 'LOANS',
   TRAVEL = 'TRAVEL',
   CAREERS = 'CAREERS',
+  CHAT = 'CHAT',
 }
 
 export interface ModuleConfig {
@@ -100,6 +101,10 @@ export interface LeaveRequest {
   reason?: string;
   status: string;
   appliedOn?: string; // Mapped
+  attachment_url?: string;
+  attachment_name?: string;
+  level1_status?: string;
+  level2_status?: string;
 }
 
 export interface Announcement {

@@ -25,11 +25,15 @@ import {
     TrendingUp, // [NEW] For Skills
     Zap, // [NEW] For Insights
     Landmark,
-    X
+    X,
+    Paperclip,
+    MessageSquare,
+    Loader2
 } from 'lucide-react';
 import { Employee, AttendanceRecord, LeaveRequest } from '../hrms/types';
 import { KAA_LOGO_URL } from '../../constants';
 import { ReportsListView } from './reports/ReportsListView';
+import { TeamChat } from './TeamChat';
 import { supabase } from '../../lib/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 import { useESSP } from '../../contexts/ESSPContext';
@@ -38,6 +42,161 @@ import { TableSkeleton, DashboardSkeleton } from '../ui/LoadingSkeletons';
 import { WorkflowEngine } from '../../lib/WorkflowEngine'; // [NEW] Unified Engine
 import { CareerTimeline } from '../hrms/transitions/CareerTimeline'; // [NEW] Integrated real timeline
 // Reusing some components/styles from HRMS for consistency, but tailor for ESSP
+
+// Reusable Workflow Timeline component
+const WorkflowTimeline: React.FC<{ entityId: string }> = ({ entityId }) => {
+    const [logs, setLogs] = useState<any[]>([]);
+    const [instance, setInstance] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchWorkflowLogs = async () => {
+            setLoading(true);
+            try {
+                // Fetch the instance
+                const { data: instData, error: instErr } = await (supabase as any)
+                    .from('workflow_instances')
+                    .select('*')
+                    .eq('entity_id', entityId)
+                    .maybeSingle();
+
+                if (instErr) throw instErr;
+                if (!instData) {
+                    setLoading(false);
+                    return;
+                }
+
+                const inst = instData as any;
+
+                // Resolve assigned user if present
+                if (inst.assigned_to_user_id) {
+                    const { data: userProfile } = await (supabase as any)
+                        .from('profiles')
+                        .select('full_name')
+                        .eq('id', inst.assigned_to_user_id)
+                        .maybeSingle();
+                    if (userProfile) {
+                        inst.assigned_user_name = userProfile.full_name;
+                    }
+                }
+
+                setInstance(inst);
+
+                // Fetch action logs
+                const { data: actionLogsData, error: logErr } = await (supabase as any)
+                    .from('workflow_action_logs')
+                    .select('*')
+                    .eq('instance_id', inst.id)
+                    .order('created_at', { ascending: true });
+
+                if (logErr) throw logErr;
+
+                const actionLogs = (actionLogsData || []) as any[];
+
+                // Resolve actor names
+                if (actionLogs && actionLogs.length > 0) {
+                    const actorIds = Array.from(new Set(actionLogs.map(l => l.actor_id).filter(Boolean)));
+                    const { data: actors } = await (supabase as any)
+                        .from('profiles')
+                        .select('id, full_name')
+                        .in('id', actorIds);
+
+                    const actorMap = (actors || []).reduce((acc: any, curr: any) => {
+                        acc[curr.id] = curr.full_name;
+                        return acc;
+                    }, {});
+
+                    actionLogs.forEach(l => {
+                        l.actor_name = actorMap[l.actor_id] || 'System';
+                    });
+                }
+
+                setLogs(actionLogs);
+            } catch (err) {
+                console.error("Error fetching workflow logs:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchWorkflowLogs();
+    }, [entityId]);
+
+    if (loading) {
+        return <div className="text-xs text-slate-400 dark:text-zinc-500 animate-pulse py-2">Loading workflow timeline...</div>;
+    }
+
+    if (!instance) {
+        return (
+            <div className="text-xs text-slate-400 dark:text-zinc-500 py-2 italic">
+                No workflow timeline available for this request.
+            </div>
+        );
+    }
+
+    return (
+        <div className="mt-4 pt-4 border-t border-slate-100 dark:border-zinc-800 w-full text-left">
+            <h4 className="text-xs font-black uppercase text-slate-400 dark:text-zinc-500 tracking-wider mb-3">Approval History</h4>
+            <div className="relative border-l border-slate-200 dark:border-zinc-700 pl-4 ml-2 space-y-4">
+                {/* Initial Step */}
+                <div className="relative">
+                    <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 dark:ring-emerald-950/20"></span>
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-350">Request Submitted</p>
+                    <p className="text-[10px] text-slate-400 dark:text-zinc-500">{new Date(instance.created_at).toLocaleString()}</p>
+                </div>
+
+                {/* Audit Logs */}
+                {logs.map((log) => {
+                    const isApprove = log.action === 'APPROVE';
+                    const isReject = log.action === 'REJECT';
+                    const actionColor = isApprove ? 'bg-emerald-500 ring-emerald-100 dark:ring-emerald-950/20' : isReject ? 'bg-rose-500 ring-rose-100 dark:ring-rose-950/20' : 'bg-amber-500 ring-amber-100 dark:ring-amber-950/20';
+                    return (
+                        <div key={log.id} className="relative">
+                            <span className={`absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full ring-4 ${actionColor}`}></span>
+                            <p className="text-xs font-bold text-slate-700 dark:text-slate-350">
+                                {log.action === 'APPROVE' ? 'Approved' : log.action === 'REJECT' ? 'Rejected' : 'Commented'} by {log.actor_name || 'System'}
+                            </p>
+                            {log.comment && (
+                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 bg-slate-50 dark:bg-zinc-800/50 p-2 rounded-lg italic">
+                                    "{log.comment}"
+                                </p>
+                            )}
+                            <p className="text-[10px] text-slate-400 dark:text-zinc-500">{new Date(log.created_at).toLocaleString()}</p>
+                        </div>
+                    );
+                })}
+
+                {/* Current Pending Step */}
+                {instance.status === 'PENDING' && (
+                    <div className="relative">
+                        <span className="absolute -left-[21px] top-1.5 w-2.5 h-2.5 rounded-full bg-amber-500 ring-4 ring-amber-100 dark:ring-amber-950/20 animate-pulse"></span>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-350">Pending Review</p>
+                        {instance.assigned_user_name && (
+                            <p className="text-[10px] text-slate-400 dark:text-zinc-500 mt-0.5">Assigned to: {instance.assigned_user_name}</p>
+                        )}
+                    </div>
+                )}
+
+                {/* Final Completed Step */}
+                {instance.status === 'APPROVED' && (
+                    <div className="relative">
+                        <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-4 ring-emerald-100 dark:ring-emerald-950/20"></span>
+                        <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">Request Approved &amp; Completed</p>
+                        <p className="text-[10px] text-slate-400 dark:text-zinc-500">{new Date(instance.updated_at).toLocaleString()}</p>
+                    </div>
+                )}
+                {instance.status === 'REJECTED' && (
+                    <div className="relative">
+                        <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-rose-500 ring-4 ring-rose-100 dark:ring-rose-950/20"></span>
+                        <p className="text-xs font-bold text-rose-600 dark:text-rose-450">Request Rejected</p>
+                        <p className="text-[10px] text-slate-400 dark:text-zinc-500">{new Date(instance.updated_at).toLocaleString()}</p>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
 
 export const ESSP: React.FC = () => {
     const { employeeProfile, roleFlags, loading: esspLoading } = useESSP();
@@ -647,6 +806,7 @@ export const ESSP: React.FC = () => {
         { id: 'ATTENDANCE', icon: Clock, label: 'My Attendance' },
         ...(isManager ? [{ id: 'TEAM_ATTENDANCE', icon: Users, label: 'Team Attendance' }] : []),
         { id: 'LEAVES', icon: Briefcase, label: 'My Leaves' },
+        { id: 'TARGETS', icon: TrendingUp, label: 'My Targets' },
         { id: 'PAYSLIPS', icon: FileText, label: 'My Payslips' },
         { id: 'ASSETS', icon: Monitor, label: 'My Assets' },
         { id: 'SUPPORT', icon: Headphones, label: 'Support' },
@@ -657,6 +817,7 @@ export const ESSP: React.FC = () => {
         { id: 'KUDOS', icon: Star, label: 'Kudos & Rewards' },
         { id: 'DIRECTORY', icon: Users, label: 'People Directory' },
         { id: 'LEARNING', icon: BookOpen, label: 'Learning' },
+        { id: 'CHAT', icon: MessageSquare, label: 'Team Chat' },
         { id: 'REPORTS', icon: Clipboard, label: 'Reports' },
     ];
 
@@ -1303,6 +1464,8 @@ export const ESSP: React.FC = () => {
         const [showForm, setShowForm] = useState(false);
         const [formData, setFormData] = useState({ leave_type_id: '', type: 'Annual', from: '', to: '', reason: '' });
         const [submitting, setSubmitting] = useState(false);
+        const [leaveFile, setLeaveFile] = useState<File | null>(null);
+        const [expandedLeaveId, setExpandedLeaveId] = useState<string | null>(null);
 
         useEffect(() => {
             if (currentEmployee) refreshLeaves();
@@ -1320,47 +1483,79 @@ export const ESSP: React.FC = () => {
             if (data) setLeaves(data);
         };
 
+        const handleViewAttachment = async (url: string) => {
+            const path = url.split('/storage/v1/object/public/attachments/')[1];
+            if (!path) return window.open(url, '_blank');
+            try {
+                const { data, error } = await supabase.storage.from('attachments').createSignedUrl(path, 60);
+                if (error) throw error;
+                window.open(data.signedUrl, '_blank');
+            } catch (err: any) {
+                console.error(err);
+                alert('Could not view: ' + err.message);
+            }
+        };
+
         const handleSubmit = async (e: React.FormEvent) => {
             e.preventDefault();
             if (submitting) return;
             setSubmitting(true);
 
-            const { data, error } = await (supabase as any).from('leaves').insert([{
-                employee_id: currentEmployee.id,
-                leave_type_id: parseInt(formData.leave_type_id),
-                start_date: formData.from,
-                end_date: formData.to,
-                reason: formData.reason,
-                status: 'Pending',
-                company_id: currentEmployee.company_id
-            }]).select();
+            let attachmentUrl = '';
+            let attachmentName = '';
 
-            if (error) {
-                alert('Failed to submit leave application: ' + error.message);
-                setSubmitting(false);
-                return;
-            }
+            try {
+                if (leaveFile) {
+                    const path = `${currentEmployee.company_id}/leaves/${Date.now()}_${leaveFile.name}`;
+                    const { data: uploadData, error: uploadErr } = await supabase.storage
+                        .from('attachments')
+                        .upload(path, leaveFile);
+                    if (uploadErr) throw uploadErr;
 
-            // Trigger Workflow
-            if (data && currentEmployee) {
-                try {
-                    await WorkflowEngine.startWorkflow(
-                        currentEmployee.company_id,
-                        'LEAVE_REQUEST',
-                        data[0].id,
-                        currentEmployee.id,
-                        'HRMS'
-                    );
-                } catch (wfErr) {
-                    console.warn('Workflow trigger failed (may not be configured):', wfErr);
+                    const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+                    attachmentUrl = urlData.publicUrl;
+                    attachmentName = leaveFile.name;
                 }
-            }
 
-            alert('Leave application submitted successfully!');
-            setShowForm(false);
-            setSubmitting(false);
-            refreshLeaves();
-            setFormData({ leave_type_id: leaveTypes[0]?.id || '', type: leaveTypes[0]?.name || 'Annual', from: '', to: '', reason: '' });
+                const { data, error } = await (supabase as any).from('leaves').insert([{
+                    employee_id: currentEmployee.id,
+                    leave_type_id: parseInt(formData.leave_type_id),
+                    start_date: formData.from,
+                    end_date: formData.to,
+                    reason: formData.reason,
+                    status: 'Pending',
+                    company_id: currentEmployee.company_id,
+                    attachment_url: attachmentUrl || null,
+                    attachment_name: attachmentName || null
+                }]).select();
+
+                if (error) throw error;
+
+                // Trigger Workflow
+                if (data && currentEmployee) {
+                    try {
+                        await WorkflowEngine.startWorkflow(
+                            currentEmployee.company_id,
+                            'LEAVE_REQUEST',
+                            data[0].id,
+                            currentEmployee.id,
+                            'HRMS'
+                        );
+                    } catch (wfErr) {
+                        console.warn('Workflow trigger failed (may not be configured):', wfErr);
+                    }
+                }
+
+                alert('Leave application submitted successfully!');
+                setShowForm(false);
+                setLeaveFile(null);
+                setSubmitting(false);
+                refreshLeaves();
+                setFormData({ leave_type_id: leaveTypes[0]?.id || '', type: leaveTypes[0]?.name || 'Annual', from: '', to: '', reason: '' });
+            } catch (err: any) {
+                alert('Failed to submit leave application: ' + err.message);
+                setSubmitting(false);
+            }
         };
 
         return (
@@ -1370,7 +1565,7 @@ export const ESSP: React.FC = () => {
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">My Leaves</h1>
                         <p className="text-slate-500">Manage your time off.</p>
                     </div>
-                    <button onClick={() => setShowForm(!showForm)} className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-500/20">
+                    <button onClick={() => { setShowForm(!showForm); setLeaveFile(null); }} className="px-6 py-3 bg-emerald-600 text-white font-bold rounded-xl hover:bg-emerald-700 transition-colors shadow-lg shadow-emerald-500/20">
                         {showForm ? 'Cancel' : '+ Apply Leave'}
                     </button>
                 </div>
@@ -1406,6 +1601,11 @@ export const ESSP: React.FC = () => {
                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Reason</label>
                             <input type="text" required className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none text-slate-900 dark:text-white" placeholder="Going to Hawaii..." value={formData.reason} onChange={e => setFormData({ ...formData, reason: e.target.value })} />
                         </div>
+                        <div className="mb-6">
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Attachment</label>
+                            <input type="file" onChange={(e) => setLeaveFile(e.target.files?.[0] || null)} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none text-slate-900 dark:text-white font-medium text-sm text-slate-500" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                            {leaveFile && <p className="text-xs text-indigo-500 font-medium mt-1">Selected: {leaveFile.name}</p>}
+                        </div>
                         <div className="text-right">
                             <button type="submit" disabled={submitting} className="px-8 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed">{submitting ? 'Submitting...' : 'Submit Application'}</button>
                         </div>
@@ -1413,24 +1613,45 @@ export const ESSP: React.FC = () => {
                 )}
 
                 <div className="space-y-4">
-                    {leaves.map(leave => (
-                        <div key={leave.id} className="bg-white dark:bg-zinc-900/50 p-6 rounded-2xl border border-slate-100 dark:border-zinc-800 shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
-                            <div className="flex items-center gap-4">
-                                <div className="p-3 bg-slate-100 rounded-xl text-slate-500">
-                                    <Calendar className="w-6 h-6" />
+                    {leaves.map(leave => {
+                        const isExpanded = expandedLeaveId === leave.id;
+                        return (
+                            <div key={leave.id} className="bg-white dark:bg-zinc-900/50 p-6 rounded-2xl border border-slate-100 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
+                                <div className="flex flex-col md:flex-row justify-between items-center gap-4 w-full">
+                                    <div className="flex items-center gap-4">
+                                        <div className="p-3 bg-slate-100 dark:bg-zinc-800 rounded-xl text-slate-500 dark:text-zinc-400">
+                                            <Calendar className="w-6 h-6" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <h3 className="font-bold text-slate-900 dark:text-white">{leave.leave_type || leave.type} Leave</h3>
+                                            <p className="text-sm text-slate-500 dark:text-zinc-400">{new Date(leave.start_date).toLocaleDateString()} &rarr; {new Date(leave.end_date).toLocaleDateString()} • <span className="italic">{leave.reason}</span></p>
+                                            {leave.attachment_url && (
+                                                <button onClick={() => handleViewAttachment(leave.attachment_url)} className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 font-bold mt-1 bg-indigo-50 dark:bg-indigo-950/20 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/50 w-fit hover:underline" title={leave.attachment_name || 'View file'}>
+                                                    <Paperclip className="w-3.5 h-3.5" /> {leave.attachment_name || 'View file'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => setExpandedLeaveId(isExpanded ? null : leave.id)}
+                                            className="px-3 py-1.5 text-xs bg-slate-50 hover:bg-slate-150 dark:bg-zinc-850 dark:hover:bg-zinc-800 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold border border-slate-200/50 dark:border-zinc-800 transition-colors"
+                                        >
+                                            {isExpanded ? 'Hide Timeline' : 'Track Workflow'}
+                                        </button>
+                                        <span className={`px-4 py-2 font-bold text-sm rounded-xl ${leave.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
+                                            leave.status === 'Rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
+                                            }`}>
+                                            {leave.status}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-slate-900 dark:text-white">{leave.leave_type} Leave</h3>
-                                    <p className="text-sm text-slate-500">{new Date(leave.start_date).toLocaleDateString()} &rarr; {new Date(leave.end_date).toLocaleDateString()} • <span className="italic">{leave.reason}</span></p>
-                                </div>
+                                {isExpanded && (
+                                    <WorkflowTimeline entityId={leave.id} />
+                                )}
                             </div>
-                            <span className={`px-4 py-2 font-bold text-sm rounded-xl ${leave.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
-                                leave.status === 'Rejected' ? 'bg-rose-100 text-rose-700' : 'bg-amber-100 text-amber-700'
-                                }`}>
-                                {leave.status}
-                            </span>
-                        </div>
-                    ))}
+                        );
+                    })}
                     {leaves.length === 0 && !showForm && (
                         <p className="text-center text-slate-400 py-10">No leave history.</p>
                     )}
@@ -1446,6 +1667,7 @@ export const ESSP: React.FC = () => {
         const [activeResignation, setActiveResignation] = useState<any>(null);
         const [formData, setFormData] = useState({ category: 'Personal Reasons', reason: '', lastDate: '' });
         const [loading, setLoading] = useState(false);
+        const [resignationFile, setResignationFile] = useState<File | null>(null);
 
         useEffect(() => {
             const checkStatus = async () => {
@@ -1456,38 +1678,76 @@ export const ESSP: React.FC = () => {
             checkStatus();
         }, [currentEmployee]);
 
+        const handleViewAttachment = async (url: string) => {
+            const path = url.split('/storage/v1/object/public/attachments/')[1];
+            if (!path) return window.open(url, '_blank');
+            try {
+                const { data, error } = await supabase.storage.from('attachments').createSignedUrl(path, 60);
+                if (error) throw error;
+                window.open(data.signedUrl, '_blank');
+            } catch (err: any) {
+                console.error(err);
+                alert('Could not view: ' + err.message);
+            }
+        };
+
         const handleSubmit = async (e: React.FormEvent) => {
             e.preventDefault();
             if (!currentEmployee) return;
             setLoading(true);
-            const { data: newResignation, error } = await supabase.from('resignations').insert([{
-                company_id: currentEmployee.company_id,
-                employee_id: currentEmployee.id,
-                reason_category: formData.category,
-                reason_text: formData.reason,
-                proposed_last_working_date: formData.lastDate,
-                status: 'Pending'
-            }]).select().single();
 
-            if (!error && newResignation) {
-                // Trigger Workflow
-                try {
-                    await WorkflowEngine.startWorkflow(
-                        currentEmployee.company_id,
-                        'RESIGNATION',
-                        newResignation.id,
-                        currentEmployee.id,
-                        'HRMS'
-                    );
-                } catch (wfErr) {
-                    console.warn('Workflow trigger failed (may not be configured):', wfErr);
+            let attachmentUrl = '';
+            let attachmentName = '';
+
+            try {
+                if (resignationFile) {
+                    const path = `${currentEmployee.company_id}/resignations/${Date.now()}_${resignationFile.name}`;
+                    const { data: uploadData, error: uploadErr } = await supabase.storage
+                        .from('attachments')
+                        .upload(path, resignationFile);
+                    if (uploadErr) throw uploadErr;
+
+                    const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+                    attachmentUrl = urlData.publicUrl;
+                    attachmentName = resignationFile.name;
                 }
 
-                // simple refresh
-                const { data } = await supabase.from('resignations').select('*').eq('employee_id', currentEmployee.id).order('created_at', { ascending: false }).limit(1).single();
-                setActiveResignation(data);
+                const { data: newResignation, error } = await supabase.from('resignations').insert([{
+                    company_id: currentEmployee.company_id,
+                    employee_id: currentEmployee.id,
+                    reason_category: formData.category,
+                    reason_text: formData.reason,
+                    proposed_last_working_date: formData.lastDate,
+                    status: 'Pending',
+                    attachment_url: attachmentUrl || null,
+                    attachment_name: attachmentName || null
+                }]).select().single();
+
+                if (error) throw error;
+
+                if (newResignation) {
+                    // Trigger Workflow
+                    try {
+                        await WorkflowEngine.startWorkflow(
+                            currentEmployee.company_id,
+                            'RESIGNATION',
+                            newResignation.id,
+                            currentEmployee.id,
+                            'HRMS'
+                        );
+                    } catch (wfErr) {
+                        console.warn('Workflow trigger failed (may not be configured):', wfErr);
+                    }
+
+                    // simple refresh
+                    const { data } = await supabase.from('resignations').select('*').eq('employee_id', currentEmployee.id).order('created_at', { ascending: false }).limit(1).single();
+                    setActiveResignation(data);
+                }
+            } catch (err: any) {
+                alert("Failed to submit resignation request: " + err.message);
+            } finally {
+                setLoading(false);
             }
-            setLoading(false);
         };
 
         return (
@@ -1511,6 +1771,14 @@ export const ESSP: React.FC = () => {
                                 <span className="text-slate-500">Reason:</span>
                                 <span>{activeResignation.reason_category}</span>
                             </div>
+                            {activeResignation.attachment_url && (
+                                <div className="flex justify-between items-center">
+                                    <span className="text-slate-500">Attachment:</span>
+                                    <button onClick={() => handleViewAttachment(activeResignation.attachment_url)} className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 font-bold hover:underline" title={activeResignation.attachment_name || 'View file'}>
+                                        <Paperclip className="w-3.5 h-3.5" /> {activeResignation.attachment_name || 'View file'}
+                                    </button>
+                                </div>
+                            )}
                         </div>
                     </div>
                 ) : (
@@ -1548,6 +1816,11 @@ export const ESSP: React.FC = () => {
                                     value={formData.lastDate}
                                     onChange={e => setFormData({ ...formData, lastDate: e.target.value })}
                                 />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Attachment</label>
+                                <input type="file" onChange={(e) => setResignationFile(e.target.files?.[0] || null)} className="w-full p-4 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none text-slate-900 dark:text-white font-medium text-sm text-slate-500" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                                {resignationFile && <p className="text-xs text-indigo-500 font-medium mt-1">Selected: {resignationFile.name}</p>}
                             </div>
                             <button
                                 type="submit"
@@ -1822,6 +2095,9 @@ export const ESSP: React.FC = () => {
         const [tickets, setTickets] = useState<any[]>([]);
         const [showForm, setShowForm] = useState(false);
         const [formData, setFormData] = useState({ subject: '', category: 'IT Support', priority: 'Medium', description: '' });
+        const [ticketFile, setTicketFile] = useState<File | null>(null);
+        const [submitting, setSubmitting] = useState(false);
+        const [expandedTicketId, setExpandedTicketId] = useState<string | null>(null);
 
         useEffect(() => {
             if (currentEmployee) refreshTickets();
@@ -1832,24 +2108,63 @@ export const ESSP: React.FC = () => {
             if (data) setTickets(data);
         };
 
+        const handleViewAttachment = async (url: string) => {
+            const path = url.split('/storage/v1/object/public/attachments/')[1];
+            if (!path) return window.open(url, '_blank');
+            try {
+                const { data, error } = await supabase.storage.from('attachments').createSignedUrl(path, 60);
+                if (error) throw error;
+                window.open(data.signedUrl, '_blank');
+            } catch (err: any) {
+                console.error(err);
+                alert('Could not view: ' + err.message);
+            }
+        };
+
         const handleSubmit = async (e: React.FormEvent) => {
             e.preventDefault();
-            const { error } = await ((supabase as any).from('tickets').insert as any)([{
-                company_id: currentEmployee.company_id,
-                employee_id: currentEmployee.id,
-                subject: formData.subject,
-                category: formData.category,
-                priority: formData.priority,
-                description: formData.description,
-                status: 'Open',
-                created_at: new Date().toISOString()
-            }]);
-            if (!error) {
+            if (submitting) return;
+            setSubmitting(true);
+
+            let attachmentUrl = '';
+            let attachmentName = '';
+
+            try {
+                if (ticketFile) {
+                    const path = `${currentEmployee.company_id}/tickets/${Date.now()}_${ticketFile.name}`;
+                    const { data: uploadData, error: uploadErr } = await supabase.storage
+                        .from('attachments')
+                        .upload(path, ticketFile);
+                    if (uploadErr) throw uploadErr;
+
+                    const { data: urlData } = supabase.storage.from('attachments').getPublicUrl(path);
+                    attachmentUrl = urlData.publicUrl;
+                    attachmentName = ticketFile.name;
+                }
+
+                const { error } = await ((supabase as any).from('tickets').insert as any)([{
+                    company_id: currentEmployee.company_id,
+                    employee_id: currentEmployee.id,
+                    subject: formData.subject,
+                    category: formData.category,
+                    priority: formData.priority,
+                    description: formData.description,
+                    status: 'Open',
+                    created_at: new Date().toISOString(),
+                    attachment_url: attachmentUrl || null,
+                    attachment_name: attachmentName || null
+                }]);
+
+                if (error) throw error;
+
                 setShowForm(false);
+                setTicketFile(null);
                 setFormData({ subject: '', category: 'IT Support', priority: 'Medium', description: '' });
                 refreshTickets();
-            } else {
-                alert("Failed to submit ticket: " + error.message);
+            } catch (err: any) {
+                alert("Failed to submit ticket: " + err.message);
+            } finally {
+                setSubmitting(false);
             }
         };
 
@@ -1860,7 +2175,7 @@ export const ESSP: React.FC = () => {
                         <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-2">Help Desk</h1>
                         <p className="text-slate-500">Raise tickets for IT, HR, or Payroll.</p>
                     </div>
-                    <button onClick={() => setShowForm(!showForm)} className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors">
+                    <button onClick={() => { setShowForm(!showForm); setTicketFile(null); }} className="px-6 py-3 bg-slate-900 text-white font-bold rounded-xl hover:bg-slate-800 transition-colors">
                         {showForm ? 'Cancel' : '+ New Ticket'}
                     </button>
                 </div>
@@ -1893,29 +2208,55 @@ export const ESSP: React.FC = () => {
                             <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Description</label>
                             <textarea required className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none h-24 text-slate-900 dark:text-white" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })}></textarea>
                         </div>
+                        <div className="mb-6">
+                            <label className="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Attachment</label>
+                            <input type="file" onChange={(e) => setTicketFile(e.target.files?.[0] || null)} className="w-full p-3 rounded-xl bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 outline-none text-slate-900 dark:text-white font-medium text-sm text-slate-500" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" />
+                            {ticketFile && <p className="text-xs text-indigo-500 font-medium mt-1">Selected: {ticketFile.name}</p>}
+                        </div>
                         <div className="text-right">
-                            <button type="submit" className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-500/30">Submit Ticket</button>
+                            <button type="submit" disabled={submitting} className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-500/30 disabled:opacity-50">{submitting ? 'Submitting...' : 'Submit Ticket'}</button>
                         </div>
                     </form>
                 )}
 
                 <div className="space-y-4">
-                    {tickets.map(ticket => (
-                        <div key={ticket.id} className="bg-white dark:bg-zinc-900/50 p-6 rounded-2xl border border-slate-100 dark:border-zinc-800 shadow-sm flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                                <div className={`p-3 rounded-xl ${ticket.status === 'Open' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-600'}`}>
-                                    <Headphones className="w-6 h-6" />
+                    {tickets.map(ticket => {
+                        const isExpanded = expandedTicketId === ticket.id;
+                        return (
+                            <div key={ticket.id} className="bg-white dark:bg-zinc-900/50 p-6 rounded-2xl border border-slate-100 dark:border-zinc-800 shadow-sm flex flex-col gap-4">
+                                <div className="flex flex-col md:flex-row justify-between items-center gap-4 w-full">
+                                    <div className="flex items-center gap-4">
+                                        <div className={`p-3 rounded-xl ${ticket.status === 'Open' ? 'bg-orange-100 text-orange-600' : 'bg-emerald-100 text-emerald-700'}`}>
+                                            <Headphones className="w-6 h-6" />
+                                        </div>
+                                        <div className="flex flex-col">
+                                            <h3 className="font-bold text-slate-900 dark:text-white">{ticket.subject}</h3>
+                                            <p className="text-sm text-slate-500 dark:text-zinc-400">{ticket.category} • {new Date(ticket.created_at).toLocaleDateString()}</p>
+                                            {ticket.attachment_url && (
+                                                <button onClick={() => handleViewAttachment(ticket.attachment_url)} className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400 font-bold mt-1 bg-indigo-50 dark:bg-indigo-950/20 px-2 py-0.5 rounded border border-indigo-100 dark:border-indigo-900/50 w-fit hover:underline" title={ticket.attachment_name || 'View file'}>
+                                                    <Paperclip className="w-3.5 h-3.5" /> {ticket.attachment_name || 'View file'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-3">
+                                        <button
+                                            onClick={() => setExpandedTicketId(isExpanded ? null : ticket.id)}
+                                            className="px-3 py-1.5 text-xs bg-slate-50 hover:bg-slate-150 dark:bg-zinc-850 dark:hover:bg-zinc-800 rounded-lg text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 font-bold border border-slate-200/50 dark:border-zinc-800 transition-colors"
+                                        >
+                                            {isExpanded ? 'Hide Timeline' : 'Track Workflow'}
+                                        </button>
+                                        <span className={`px-3 py-1 text-xs font-bold uppercase rounded-lg ${ticket.status === 'Open' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-emerald-50 text-emerald-700 border border-emerald-100'}`}>
+                                            {ticket.status}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div>
-                                    <h3 className="font-bold text-slate-900 dark:text-white">{ticket.subject}</h3>
-                                    <p className="text-sm text-slate-500">{ticket.category} • {new Date(ticket.created_at).toLocaleDateString()}</p>
-                                </div>
+                                {isExpanded && (
+                                    <WorkflowTimeline entityId={ticket.id} />
+                                )}
                             </div>
-                            <span className={`px-3 py-1 text-xs font-bold uppercase rounded-lg ${ticket.status === 'Open' ? 'bg-orange-50 text-orange-600 border border-orange-100' : 'bg-emerald-50 text-emerald-600 border border-emerald-100'}`}>
-                                {ticket.status}
-                            </span>
-                        </div>
-                    ))}
+                        );
+                    })}
                     {tickets.length === 0 && !showForm && (
                         <p className="text-center text-slate-400 py-10">No tickets found.</p>
                     )}
@@ -2276,6 +2617,126 @@ export const ESSP: React.FC = () => {
 
 
 
+    const MyTargets = () => {
+        const [targets, setTargets] = useState<any[]>([]);
+        const [loadingTargets, setLoadingTargets] = useState(true);
+
+        useEffect(() => {
+            if (currentEmployee) {
+                fetchMyTargets();
+            }
+        }, [currentEmployee]);
+
+        const fetchMyTargets = async () => {
+            setLoadingTargets(true);
+            const { data, error } = await (supabase as any)
+                .from('employee_targets')
+                .select('*')
+                .eq('employee_id', currentEmployee.id)
+                .order('target_year', { ascending: false })
+                .order('target_period_val', { ascending: false });
+            if (error) console.error('Error fetching targets:', error);
+            else setTargets(data || []);
+            setLoadingTargets(false);
+        };
+
+        const formatPeriod = (target: any) => {
+            if (target.target_period === 'Monthly') {
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return `${months[target.target_period_val - 1]} ${target.target_year}`;
+            }
+            if (target.target_period === 'Quarterly') {
+                return `Q${target.target_period_val} ${target.target_year}`;
+            }
+            return `Year ${target.target_year}`;
+        };
+
+        const totalTargetAmt = targets.reduce((sum, t) => sum + (t.target_amount || 0), 0);
+        const totalAchievedAmt = targets.reduce((sum, t) => sum + (t.achieved_amount || 0), 0);
+        const totalIncentiveAmt = targets.reduce((sum, t) => sum + ((t.achieved_amount || 0) * (t.incentive_rate || 0) / 100), 0);
+
+        return (
+            <div className="p-8 h-full overflow-y-auto animate-page-enter">
+                <div className="mb-8">
+                    <h1 className="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">Targets & Commission</h1>
+                    <p className="text-slate-500 text-sm mt-0.5 font-medium">Track your target achievements and earned commissions</p>
+                </div>
+
+                {loadingTargets ? (
+                    <div className="flex items-center justify-center py-20 text-slate-400 gap-2">
+                        <Loader2 className="animate-spin text-indigo-500" /> Loading targets...
+                    </div>
+                ) : targets.length === 0 ? (
+                    <div className="bg-white dark:bg-zinc-900/50 rounded-2xl border border-slate-100 dark:border-zinc-800 p-12 text-center text-slate-400 shadow-sm max-w-2xl mx-auto">
+                        <TrendingUp className="w-12 h-12 mx-auto text-slate-300 dark:text-zinc-700 mb-4" />
+                        <h3 className="text-base font-bold text-slate-700 dark:text-slate-300">No targets assigned</h3>
+                        <p className="text-sm mt-1">You do not have any sales/BD targets assigned for the current period.</p>
+                    </div>
+                ) : (
+                    <div className="space-y-6">
+                        {/* Summary Metrics */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                            <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800 p-5 rounded-2xl shadow-sm">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Period Target</span>
+                                <span className="text-2xl font-extrabold text-slate-800 dark:text-white mt-1 block">QAR {totalTargetAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                            </div>
+                            <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800 p-5 rounded-2xl shadow-sm">
+                                <span className="text-xs font-bold text-slate-400 uppercase tracking-wider block">Total Achieved</span>
+                                <span className="text-2xl font-extrabold text-emerald-600 dark:text-emerald-400 mt-1 block">QAR {totalAchievedAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                <span className="text-xs text-slate-400 font-medium mt-1 block">({((totalAchievedAmt / (totalTargetAmt || 1)) * 100).toFixed(1)}% of Target)</span>
+                            </div>
+                            <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800 p-5 rounded-2xl shadow-sm bg-gradient-to-br from-indigo-50/50 to-indigo-100/10 dark:from-indigo-950/20 dark:to-indigo-900/5">
+                                <span className="text-xs font-bold text-indigo-500 dark:text-indigo-400 uppercase tracking-wider block">Estimated Incentives</span>
+                                <span className="text-2xl font-extrabold text-indigo-600 dark:text-indigo-400 mt-1 block">QAR {totalIncentiveAmt.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                                <span className="text-xs text-slate-400 font-medium mt-1 block">Earned based on achievement rates</span>
+                            </div>
+                        </div>
+
+                        {/* List */}
+                        <div className="bg-white dark:bg-zinc-900/50 border border-slate-100 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+                            <div className="px-6 py-4 border-b border-slate-100 dark:border-zinc-800 font-bold text-slate-700 dark:text-white">Active Targets & Progress</div>
+                            <div className="p-6 space-y-6">
+                                {targets.map(t => {
+                                    const progress = Math.min(100, (t.achieved_amount / (t.target_amount || 1)) * 100);
+                                    const incentive = (t.achieved_amount * t.incentive_rate) / 100;
+                                    
+                                    return (
+                                        <div key={t.id} className="p-4 bg-slate-50 dark:bg-zinc-800/40 border border-slate-100 dark:border-zinc-800 rounded-2xl space-y-3">
+                                            <div className="flex justify-between items-start">
+                                                <div>
+                                                    <span className="font-extrabold text-slate-800 dark:text-white text-base">{formatPeriod(t)}</span>
+                                                    <span className="text-[10px] bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-900/10 px-2 py-0.5 rounded ml-2 font-bold uppercase">{t.target_period}</span>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-sm font-extrabold text-slate-800 dark:text-white">QAR {t.achieved_amount.toLocaleString()} / QAR {t.target_amount.toLocaleString()}</div>
+                                                    <div className="text-xs text-slate-400 mt-0.5">Incentive Rate: {t.incentive_rate}% (Earned: QAR {incentive.toLocaleString()})</div>
+                                                </div>
+                                            </div>
+
+                                            {/* Progress Bar */}
+                                            <div className="space-y-1">
+                                                <div className="flex justify-between text-[11px] font-bold text-slate-400">
+                                                    <span>Progress</span>
+                                                    <span>{progress.toFixed(1)}%</span>
+                                                </div>
+                                                <div className="w-full h-3 bg-slate-200 dark:bg-zinc-800 rounded-full overflow-hidden">
+                                                    <div 
+                                                        className="h-full bg-gradient-to-r from-indigo-500 to-emerald-500 rounded-full transition-all duration-500" 
+                                                        style={{ width: `${progress}%` }}
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="flex h-full relative z-10 overflow-hidden bg-slate-50 dark:bg-black">
             {/* Expanded Sidebar for ESSP */}
@@ -2320,6 +2781,7 @@ export const ESSP: React.FC = () => {
                         {activeTab === 'ATTENDANCE' && <MyAttendance />}
                         {activeTab === 'TEAM_ATTENDANCE' && <TeamAttendance />}
                         {activeTab === 'LEAVES' && <MyLeaves />}
+                        {activeTab === 'TARGETS' && <MyTargets />}
                         {activeTab === 'PAYSLIPS' && <MyPayslips />}
                         {activeTab === 'ASSETS' && <MyAssets />}
                         {activeTab === 'SUPPORT' && <Support />}
@@ -2330,9 +2792,10 @@ export const ESSP: React.FC = () => {
                         {activeTab === 'KUDOS' && <KudosRewards />}
                         {activeTab === 'DIRECTORY' && <PeopleDirectory />}
                         {activeTab === 'LEARNING' && <Learning />}
+                        {activeTab === 'CHAT' && <TeamChat />}
                         {activeTab === 'REPORTS' && <ReportsListView />}
 
-                        {activeTab !== 'DASHBOARD' && activeTab !== 'APPROVALS' && activeTab !== 'PROFILE' && activeTab !== 'ATTENDANCE' && activeTab !== 'TEAM_ATTENDANCE' && activeTab !== 'LEAVES' && activeTab !== 'PAYSLIPS' && activeTab !== 'ASSETS' && activeTab !== 'SUPPORT' && activeTab !== 'RESIGNATION' && activeTab !== 'BUZZ' && activeTab !== 'SURVEYS' && activeTab !== 'KUDOS' && activeTab !== 'DIRECTORY' && activeTab !== 'LEARNING' && activeTab !== 'REPORTS' && (
+                        {activeTab !== 'DASHBOARD' && activeTab !== 'APPROVALS' && activeTab !== 'PROFILE' && activeTab !== 'ATTENDANCE' && activeTab !== 'TEAM_ATTENDANCE' && activeTab !== 'LEAVES' && activeTab !== 'TARGETS' && activeTab !== 'PAYSLIPS' && activeTab !== 'ASSETS' && activeTab !== 'SUPPORT' && activeTab !== 'RESIGNATION' && activeTab !== 'BUZZ' && activeTab !== 'SURVEYS' && activeTab !== 'KUDOS' && activeTab !== 'DIRECTORY' && activeTab !== 'LEARNING' && activeTab !== 'CHAT' && activeTab !== 'REPORTS' && (
                             <div className="p-10 flex flex-col items-center justify-center h-full text-slate-400 animate-page-enter">
                                 <Settings className="w-16 h-16 mb-6 opacity-20" />
                                 <h2 className="text-2xl font-black text-slate-300 dark:text-zinc-700 mb-2">Module Loading...</h2>

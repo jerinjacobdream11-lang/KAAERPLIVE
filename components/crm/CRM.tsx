@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { LiveView } from '../crm/LiveView';
+import { ProposalWorkflow } from './ProposalWorkflow';
 import {
     analyzeLead,
     draftEmail,
@@ -696,7 +697,7 @@ export const CRM: React.FC = () => {
                         {activeTab === 'SCHEDULE' && <ScheduleView />}
                         {activeTab === 'DOCUMENTS' && <DocumentsView />}
                         {activeTab === 'CONTACTS' && <ContactsView />}
-                        {activeTab === 'WORKFLOWS' && <WorkflowsView />}
+                        {activeTab === 'WORKFLOWS' && <ProposalWorkflow companyId={currentCompanyId || ''} />}
                         {activeTab === 'ASSISTANT' && <AssistantView />}
                         {activeTab === 'UPDATES' && <UpdatesView />}
                         {activeTab === 'LIVE' && <LiveView />}

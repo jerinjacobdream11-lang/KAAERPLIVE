@@ -9,6 +9,7 @@ import { StorageCategories } from './config/StorageCategories';
 import { PutawayRules } from './config/PutawayRules';
 import { InventoryAdjustments } from './ops/InventoryAdjustments';
 import { ScrapInventory } from './ops/ScrapInventory';
+import { ToolTracking } from './ops/ToolTracking';
 import { InventoryOverview } from './InventoryOverview';
 import { StockAlerts } from './StockAlerts';
 import { DocumentGenerator } from './DocumentGenerator';
@@ -19,7 +20,7 @@ import { Package, Boxes, ClipboardList, Warehouse, ArrowDownLeft, ArrowUpRight, 
 
 export const InventoryDashboard: React.FC = () => {
     const { currentCompanyId } = useAuth();
-    const [activeTab, setActiveTab] = useState<'overview' | 'items' | 'stock' | 'movements' | 'warehouse' | 'inbound' | 'outbound' | 'adjustments' | 'scrap' | 'alerts' | 'documents' | 'barcodes' | 'reports' | 'config'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'items' | 'stock' | 'movements' | 'warehouse' | 'inbound' | 'outbound' | 'adjustments' | 'scrap' | 'alerts' | 'documents' | 'barcodes' | 'reports' | 'config' | 'tools'>('overview');
     const [configSubTab, setConfigSubTab] = useState<'categories' | 'rules'>('categories');
 
     return (
@@ -124,6 +125,12 @@ export const InventoryDashboard: React.FC = () => {
                         <QrCode className="w-3.5 h-3.5" /> Barcodes
                     </button>
                     <button
+                        onClick={() => setActiveTab('tools')}
+                        className={`px-2 py-1 md:px-3 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${activeTab === 'tools' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                    >
+                        <Boxes className="w-3.5 h-3.5" /> Tool Tracking
+                    </button>
+                    <button
                         onClick={() => setActiveTab('reports')}
                         className={`px-2 py-1 md:px-3 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all flex items-center gap-1.5 whitespace-nowrap ${activeTab === 'reports' ? 'bg-white dark:bg-zinc-700 text-indigo-600 dark:text-indigo-400 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
                     >
@@ -157,6 +164,8 @@ export const InventoryDashboard: React.FC = () => {
                 {activeTab === 'documents' && <DocumentGenerator />}
 
                 {activeTab === 'barcodes' && <BarcodeManager />}
+
+                {activeTab === 'tools' && <ToolTracking />}
 
                 {activeTab === 'reports' && <ReportsListView moduleFilter="INVENTORY" companyId={currentCompanyId || undefined} />}
 

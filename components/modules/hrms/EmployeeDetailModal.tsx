@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Users, Briefcase, Phone, DollarSign, FileText, Edit3,
-    Plus, Trash2, X, TrendingUp, MoreVertical, ArrowRightLeft
+    Plus, Trash2, X, TrendingUp, MoreVertical, ArrowRightLeft, Loader2
 } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
 import { Employee } from '../../hrms/types';
@@ -38,7 +38,7 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
     departments, locations, designations, grades, employmentTypes, payGroups, roles, employees, salaryComponents, maritalStatuses, nationalities,
     visaTypes, employeeStatuses, leavePlans
 }) => {
-    const [tab, setTab] = useState<'PROFILE' | 'JOB' | 'CONTACT' | 'FINANCIAL' | 'DOCUMENTS' | 'TIMELINE'>('PROFILE');
+    const [tab, setTab] = useState<'PROFILE' | 'JOB' | 'CONTACT' | 'FINANCIAL' | 'DOCUMENTS' | 'TIMELINE' | 'TARGETS'>('PROFILE');
 
     // Financial Mapping State
     const [empSalaryComponents, setEmpSalaryComponents] = useState<any[]>([]);
@@ -111,6 +111,220 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
         else fetchSalaryMapping();
     };
 
+    const EmployeeTargets = () => {
+        const [targets, setTargets] = useState<any[]>([]);
+        const [loadingTargets, setLoadingTargets] = useState(true);
+        const [showAddForm, setShowAddForm] = useState(false);
+
+        // Add Target Form state
+        const [form, setForm] = useState({
+            target_period: 'Monthly',
+            target_year: new Date().getFullYear(),
+            target_period_val: new Date().getMonth() + 1,
+            target_amount: '',
+            achieved_amount: '',
+            incentive_rate: '2.5'
+        });
+
+        useEffect(() => {
+            fetchTargets();
+        }, []);
+
+        const fetchTargets = async () => {
+            setLoadingTargets(true);
+            const { data, error } = await (supabase as any)
+                .from('employee_targets')
+                .select('*')
+                .eq('employee_id', emp.id)
+                .order('target_year', { ascending: false })
+                .order('target_period_val', { ascending: false });
+
+            if (error) console.error('Error fetching targets:', error);
+            else setTargets(data || []);
+            setLoadingTargets(false);
+        };
+
+        const handleSave = async (e: React.FormEvent) => {
+            e.preventDefault();
+            if (!emp.company_id) return;
+            
+            const payload = {
+                company_id: emp.company_id,
+                employee_id: emp.id,
+                target_period: form.target_period as any,
+                target_year: form.target_year,
+                target_period_val: form.target_period_val,
+                target_amount: parseFloat(form.target_amount) || 0,
+                achieved_amount: parseFloat(form.achieved_amount) || 0,
+                incentive_rate: parseFloat(form.incentive_rate) || 0
+            };
+
+            const { error } = await (supabase as any)
+                .from('employee_targets')
+                .upsert([payload], { onConflict: 'company_id, employee_id, target_period, target_year, target_period_val' });
+
+            if (error) {
+                alert('Error saving target: ' + error.message);
+            } else {
+                setShowAddForm(false);
+                setForm({
+                    target_period: 'Monthly',
+                    target_year: new Date().getFullYear(),
+                    target_period_val: new Date().getMonth() + 1,
+                    target_amount: '',
+                    achieved_amount: '',
+                    incentive_rate: '2.5'
+                });
+                fetchTargets();
+            }
+        };
+
+        const formatPeriod = (t: any) => {
+            if (t.target_period === 'Monthly') {
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                return `${months[t.target_period_val - 1]} ${t.target_year}`;
+            }
+            if (t.target_period === 'Quarterly') {
+                return `Q${t.target_period_val} ${t.target_year}`;
+            }
+            return `Year ${t.target_year}`;
+        };
+
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-slate-800 dark:text-white tracking-tight">Performance Targets</h3>
+                    <button 
+                        onClick={() => setShowAddForm(!showAddForm)} 
+                        className="text-sm font-bold text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20 px-3.5 py-1.5 rounded-lg transition-colors border border-indigo-100 dark:border-indigo-900/10"
+                    >
+                        {showAddForm ? 'Cancel' : '+ Assign Target'}
+                    </button>
+                </div>
+
+                {showAddForm && (
+                    <form onSubmit={handleSave} className="p-5 bg-slate-50 dark:bg-zinc-800/40 rounded-3xl border border-slate-100 dark:border-zinc-800 grid grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1">Target Period</label>
+                            <select
+                                value={form.target_period}
+                                onChange={e => setForm({ ...form, target_period: e.target.value })}
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-xl text-sm"
+                            >
+                                <option value="Monthly">Monthly</option>
+                                <option value="Quarterly">Quarterly</option>
+                                <option value="Annual">Annual</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1">Target Year</label>
+                            <input
+                                type="number"
+                                required
+                                value={form.target_year}
+                                onChange={e => setForm({ ...form, target_year: parseInt(e.target.value) || new Date().getFullYear() })}
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-xl text-sm"
+                            />
+                        </div>
+                        {form.target_period !== 'Annual' && (
+                            <div>
+                                <label className="block text-xs font-bold text-slate-400 mb-1">
+                                    {form.target_period === 'Monthly' ? 'Month (1-12)' : 'Quarter (1-4)'}
+                                </label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max={form.target_period === 'Monthly' ? 12 : 4}
+                                    required
+                                    value={form.target_period_val}
+                                    onChange={e => setForm({ ...form, target_period_val: parseInt(e.target.value) || 1 })}
+                                    className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-xl text-sm"
+                                />
+                            </div>
+                        )}
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1">Target Amount (QAR)</label>
+                            <input
+                                type="number"
+                                required
+                                value={form.target_amount}
+                                onChange={e => setForm({ ...form, target_amount: e.target.value })}
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-xl text-sm"
+                                placeholder="e.g. 50000"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1">Achieved Amount (QAR)</label>
+                            <input
+                                type="number"
+                                value={form.achieved_amount}
+                                onChange={e => setForm({ ...form, achieved_amount: e.target.value })}
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-xl text-sm"
+                                placeholder="e.g. 45000"
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-slate-400 mb-1">Incentive Rate (%)</label>
+                            <input
+                                type="number"
+                                step="0.01"
+                                value={form.incentive_rate}
+                                onChange={e => setForm({ ...form, incentive_rate: e.target.value })}
+                                className="w-full px-3 py-2 border border-slate-200 dark:border-zinc-700 bg-white dark:bg-zinc-900 rounded-xl text-sm"
+                            />
+                        </div>
+                        <div className="col-span-2 flex justify-end gap-2 mt-2">
+                            <button 
+                                type="submit" 
+                                className="px-4 py-2 bg-indigo-600 text-white rounded-xl text-xs font-bold hover:bg-indigo-700 transition-colors"
+                            >
+                                Save Target
+                            </button>
+                        </div>
+                    </form>
+                )}
+
+                {loadingTargets ? (
+                    <div className="flex items-center justify-center py-10 text-slate-400">
+                        <Loader2 className="animate-spin text-indigo-500 mr-2" /> Loading targets...
+                    </div>
+                ) : targets.length === 0 ? (
+                    <div className="p-8 text-center text-slate-400 border border-slate-200 dark:border-zinc-800 rounded-2xl">
+                        No targets assigned to this employee.
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                        {targets.map(t => {
+                            const progress = Math.min(100, (t.achieved_amount / (t.target_amount || 1)) * 100);
+                            return (
+                                <div key={t.id} className="p-4 bg-slate-50 dark:bg-zinc-800/40 border border-slate-100 dark:border-zinc-800 rounded-2xl flex items-center justify-between">
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-bold text-slate-800 dark:text-white">{formatPeriod(t)}</span>
+                                            <span className="text-[10px] bg-slate-200 dark:bg-zinc-700 text-slate-700 dark:text-slate-300 px-2 py-0.5 rounded font-bold uppercase">{t.target_period}</span>
+                                        </div>
+                                        <div className="text-xs text-slate-400">
+                                            Target: QAR {t.target_amount.toLocaleString()} | Achieved: QAR {t.achieved_amount.toLocaleString()}
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-4">
+                                        <div className="text-right">
+                                            <div className="text-sm font-bold text-slate-800 dark:text-white">{progress.toFixed(1)}%</div>
+                                            <div className="text-[10px] text-slate-400">Incentive: {t.incentive_rate}%</div>
+                                        </div>
+                                        <div className="w-16 h-1.5 bg-slate-200 dark:bg-zinc-700 rounded-full overflow-hidden">
+                                            <div className="h-full bg-indigo-600" style={{ width: `${progress}%` }} />
+                                        </div>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/30 backdrop-blur-md animate-fade-in" onClick={onClose}>
             <div className="bg-white/95 dark:bg-zinc-900/95 backdrop-blur-xl w-full max-w-5xl h-[85vh] rounded-[3rem] shadow-2xl flex overflow-hidden animate-slide-up border border-white/50 dark:border-zinc-800" onClick={e => e.stopPropagation()}>
@@ -131,7 +345,8 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
                             { id: 'CONTACT', label: 'Contact', icon: Phone },
                             { id: 'FINANCIAL', label: 'Financial', icon: DollarSign },
                             { id: 'DOCUMENTS', label: 'Documents', icon: FileText },
-                            { id: 'TIMELINE', label: 'Career Timeline', icon: TrendingUp },
+                            { id: 'TIMELINE', label: 'Career Timeline', icon: ArrowRightLeft },
+                            { id: 'TARGETS', label: 'Targets', icon: TrendingUp },
                         ].map(t => (
                             <button
                                 key={t.id}
@@ -421,6 +636,12 @@ export const EmployeeDetailModal: React.FC<EmployeeDetailModalProps> = ({
                                 </button>
                             </div>
                             <CareerTimeline employeeId={emp.id} />
+                        </div>
+                    )}
+
+                    {tab === 'TARGETS' && (
+                        <div className="animate-fade-in-up">
+                            <EmployeeTargets />
                         </div>
                     )}
                 </div>

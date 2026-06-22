@@ -16,7 +16,8 @@ import {
   CalendarDays,
   DollarSign,
   Award,
-  Plane
+  Plane,
+  MessageSquare
 } from 'lucide-react';
 import { AppView, ModuleConfig } from './types';
 
@@ -178,5 +179,13 @@ export const MODULES: ModuleConfig[] = [
     icon: Plane,
     color: "text-rose-600",
     bgColor: "bg-rose-100",
+  },
+  {
+    id: AppView.CHAT,
+    name: "Team Chat",
+    description: "Direct Messaging & Channels",
+    icon: MessageSquare,
+    color: "text-indigo-600",
+    bgColor: "bg-indigo-100",
   },
 ];

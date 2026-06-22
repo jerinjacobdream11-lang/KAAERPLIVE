@@ -1,10 +1,23 @@
 import React, { useState, useEffect } from 'react';
 import {
-    Calendar, Check, X, Settings, Plus, Trash2, Loader2, Save
+    Calendar, Check, X, Settings, Plus, Trash2, Loader2, Save, Paperclip
 } from 'lucide-react';
 import { LeaveRequest } from '../../hrms/types';
 import { supabase } from '../../../lib/supabase';
 import { useAuth } from '../../../contexts/AuthContext';
+
+const handleViewAttachment = async (url: string) => {
+    const path = url.split('/storage/v1/object/public/attachments/')[1];
+    if (!path) return window.open(url, '_blank');
+    try {
+        const { data, error } = await supabase.storage.from('attachments').createSignedUrl(path, 60);
+        if (error) throw error;
+        window.open(data.signedUrl, '_blank');
+    } catch (err: any) {
+        console.error(err);
+        alert('Could not view: ' + err.message);
+    }
+};
 
 interface LeaveModuleProps {
     leaves: LeaveRequest[];
@@ -284,6 +297,7 @@ export const LeaveModule: React.FC<LeaveModuleProps> = ({
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Type</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Dates</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Reason</th>
+                                <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Attachment</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-4 text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider text-right">Actions</th>
                             </tr>
@@ -299,6 +313,14 @@ export const LeaveModule: React.FC<LeaveModuleProps> = ({
                                     </td>
                                     <td className="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">{formatDate(req.appliedOn)}</td>
                                     <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 max-w-xs truncate">{req.reason || 'Personal'}</td>
+                                    <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
+                                        {req.attachment_url ? (
+                                            <button onClick={() => handleViewAttachment(req.attachment_url!)} className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-bold bg-indigo-50 dark:bg-indigo-950/30 px-2 py-1 rounded-lg border border-indigo-100 dark:border-indigo-900/50 hover:shadow-sm transition-all" title={req.attachment_name || 'View file'}>
+                                                <Paperclip className="w-3.5 h-3.5" />
+                                                <span className="max-w-[100px] truncate">{req.attachment_name || 'View file'}</span>
+                                            </button>
+                                        ) : <span className="text-slate-300 dark:text-zinc-700">—</span>}
+                                    </td>
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col gap-1">
                                             <span className={`px-2 py-1 rounded-lg text-xs font-bold w-fit ${req.status === 'Approved' ? 'bg-emerald-100 text-emerald-700' :
