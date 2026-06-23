@@ -330,7 +330,7 @@ export const getChatRooms = async (companyId: string, profileId: string): Promis
             *,
             participants:chat_participants(
                 profile_id,
-                profile:profiles(id, full_name, avatar_url)
+                profile:profiles(id, full_name, email, avatar_url)
             )
         `)
         .in('id', roomIds)
@@ -402,7 +402,7 @@ export const getOrCreateDirectChatRoom = async (companyId: string, profile1: str
                     *,
                     participants:chat_participants(
                         profile_id,
-                        profile:profiles(id, full_name, avatar_url)
+                        profile:profiles(id, full_name, email, avatar_url)
                     )
                 `)
                 .eq('id', matchingRooms[0].id)
@@ -432,7 +432,7 @@ export const getOrCreateDirectChatRoom = async (companyId: string, profile1: str
             *,
             participants:chat_participants(
                 profile_id,
-                profile:profiles(id, full_name, avatar_url)
+                profile:profiles(id, full_name, email, avatar_url)
             )
         `)
         .eq('id', room.id)
@@ -459,7 +459,7 @@ export const createGroupChatRoom = async (companyId: string, name: string, parti
             *,
             participants:chat_participants(
                 profile_id,
-                profile:profiles(id, full_name, avatar_url)
+                profile:profiles(id, full_name, email, avatar_url)
             )
         `)
         .eq('id', room.id)

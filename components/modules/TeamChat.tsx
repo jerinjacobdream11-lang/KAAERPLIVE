@@ -137,14 +137,49 @@ export const TeamChat: React.FC = () => {
     const loadInitialData = async () => {
         if (!currentCompanyId || !user) return;
 
-        // Fetch user profiles in the company
+        // 1. Fetch user profiles in the company
         const { data: profs } = await (supabase as any)
             .from('profiles')
             .select('id, full_name, email, avatar_url, role')
             .eq('company_id', currentCompanyId)
             .neq('id', user.id); // Exclude self
-        
-        if (profs) setProfiles(profs);
+
+        // 2. Fetch employees who have a user profile linked
+        const { data: emps } = await (supabase as any)
+            .from('employees')
+            .select('profile_id, name, office_email, profiles(avatar_url, role)')
+            .eq('company_id', currentCompanyId)
+            .not('profile_id', 'is', null)
+            .neq('profile_id', user.id);
+
+        const mergedMap = new Map<string, any>();
+
+        if (profs) {
+            profs.forEach((p: any) => {
+                mergedMap.set(p.id, {
+                    id: p.id,
+                    full_name: p.full_name || p.email?.split('@')[0] || 'Employee',
+                    email: p.email,
+                    avatar_url: p.avatar_url,
+                    role: p.role || 'Employee'
+                });
+            });
+        }
+
+        if (emps) {
+            emps.forEach((e: any) => {
+                const existing = mergedMap.get(e.profile_id);
+                mergedMap.set(e.profile_id, {
+                    id: e.profile_id,
+                    full_name: e.name || existing?.full_name || e.office_email?.split('@')[0] || 'Employee',
+                    email: e.office_email || existing?.email,
+                    avatar_url: e.profiles?.avatar_url || existing?.avatar_url,
+                    role: e.profiles?.role || existing?.role || 'Employee'
+                });
+            });
+        }
+
+        setProfiles(Array.from(mergedMap.values()));
 
         // Fetch departments
         const { data: depts } = await (supabase as any)
@@ -378,7 +413,7 @@ export const TeamChat: React.FC = () => {
     const getRoomDisplayName = (room: ChatRoom) => {
         if (room.type === 'direct') {
             const peer = room.participants?.find(p => p.profile_id !== user?.id);
-            return peer?.profile?.full_name || 'Direct Chat';
+            return peer?.profile?.full_name || peer?.profile?.email?.split('@')[0] || 'Direct Chat';
         }
         return room.name || 'Group Chat';
     };
@@ -405,8 +440,8 @@ export const TeamChat: React.FC = () => {
     );
 
     const filteredProfiles = profiles.filter(p =>
-        p.full_name?.toLowerCase().includes(modalSearchTerm.toLowerCase()) ||
-        p.email?.toLowerCase().includes(modalSearchTerm.toLowerCase())
+        (p.full_name || '').toLowerCase().includes(modalSearchTerm.toLowerCase()) ||
+        (p.email || '').toLowerCase().includes(modalSearchTerm.toLowerCase())
     );
 
     return (
