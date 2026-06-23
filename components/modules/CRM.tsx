@@ -19,6 +19,7 @@ import ItemsView from '../crm/ItemsView';
 import QuotationsView from '../crm/QuotationsView';
 import SalesInvoiceView from '../crm/SalesInvoiceView';
 import DeliveryNoteView from '../crm/DeliveryNoteView';
+import { ProposalWorkflow } from '../crm/ProposalWorkflow';
 import {
     Deal, Contact, Task, CRMActivity, CRMViewMode, CRMStats,
     CRMDeal, CRMContact, CRMTask, CRMDocument
@@ -181,7 +182,7 @@ export const CRM: React.FC = () => {
             { id: 'DELIVERY_NOTES', icon: Truck, label: 'Delivery Notes', permission: 'crm.deals.view' },
             { id: 'TASKS', icon: CheckSquare, label: 'Tasks', permission: 'crm.tasks.view' },
             { id: 'DOCUMENTS', icon: Folder, label: 'Documents', permission: 'crm.deals.view' },
-            { id: 'WORKFLOWS', icon: Workflow, label: 'Workflows', permission: 'crm.settings.manage' },
+            { id: 'WORKFLOWS', icon: Workflow, label: 'Workflows', permission: 'crm.leads.view' },
             { id: 'ASSISTANT', icon: Sparkles, label: 'Assistant', permission: 'crm.ai.view' },
             { id: 'UPDATES', icon: Bell, label: 'Updates', permission: 'crm.dashboard.view' },
             { id: 'REPORTS', icon: BarChart3, label: 'Reports', permission: 'crm.dashboard.view' },
@@ -563,7 +564,7 @@ export const CRM: React.FC = () => {
                         {activeTab === 'TASKS' && <TasksView />}
                         {activeTab === 'SCHEDULE' && <ScheduleView />}
                         {activeTab === 'DOCUMENTS' && <DocumentsView />}
-                        {activeTab === 'WORKFLOWS' && <WorkflowsView />}
+                        {activeTab === 'WORKFLOWS' && <ProposalWorkflow companyId={companyId || ''} />}
                         {activeTab === 'ASSISTANT' && <AssistantView />}
                         {activeTab === 'UPDATES' && <UpdatesView />}
                         {activeTab === 'REPORTS' && <ReportsListView moduleFilter="CRM" companyId={companyId} />}

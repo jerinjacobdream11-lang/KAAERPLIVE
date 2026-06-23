@@ -28,7 +28,8 @@ import {
     User, 
     Calendar, 
     DollarSign,
-    Loader2
+    Loader2,
+    Printer
 } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 
@@ -166,6 +167,253 @@ export const ProposalWorkflow: React.FC<{ companyId: string }> = ({ companyId })
             alert('Error: ' + err.message);
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handlePrintProposal = async (prop: Proposal) => {
+        if (!companyId) return;
+
+        // Fetch company logo and details
+        const { data: comp } = await supabase
+            .from('companies')
+            .select('*')
+            .eq('id', companyId)
+            .single();
+
+        const companyLogo = comp?.logo_url || 'https://raw.githubusercontent.com/jacobjerin38/KAA-ERP-Live1/main/kaa_logo.png';
+        const companyName = comp?.name || 'KAA ERP SYSTEM';
+        const companyAddress = (comp as any)?.address || `${comp?.address_line_1 || ''} ${comp?.city || ''}`.trim();
+        const companyPhone = comp?.phone || '';
+
+        const receiptHTML = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Proposal - ${prop.title}</title>
+                <style>
+                    body {
+                        font-family: Arial, sans-serif;
+                        color: #333;
+                        margin: 40px;
+                        line-height: 1.5;
+                    }
+                    .header {
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                        border-bottom: 2px solid #333;
+                        padding-bottom: 20px;
+                        margin-bottom: 30px;
+                    }
+                    .company-logo {
+                        max-height: 60px;
+                        max-width: 150px;
+                    }
+                    .company-details {
+                        text-align: right;
+                    }
+                    .company-name {
+                        font-weight: bold;
+                        font-size: 1.4rem;
+                        margin-bottom: 5px;
+                    }
+                    .proposal-title {
+                        text-align: center;
+                        font-size: 1.6rem;
+                        font-weight: bold;
+                        margin: 30px 0;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                    }
+                    .details-grid {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        gap: 20px;
+                        margin-bottom: 40px;
+                    }
+                    .section {
+                        border: 1px solid #ddd;
+                        border-radius: 6px;
+                        padding: 15px;
+                        background: #fdfdfd;
+                    }
+                    .section-title {
+                        font-weight: bold;
+                        text-transform: uppercase;
+                        font-size: 0.85rem;
+                        color: #666;
+                        margin-bottom: 10px;
+                        border-bottom: 1px solid #eee;
+                        padding-bottom: 5px;
+                    }
+                    .row {
+                        display: flex;
+                        justify-content: space-between;
+                        margin-bottom: 8px;
+                        font-size: 0.9rem;
+                    }
+                    .label {
+                        color: #666;
+                    }
+                    .value {
+                        font-weight: bold;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        margin-top: 20px;
+                        margin-bottom: 30px;
+                    }
+                    th, td {
+                        padding: 12px;
+                        border-bottom: 1px solid #ddd;
+                        text-align: left;
+                        font-size: 0.9rem;
+                    }
+                    th {
+                        background-color: #f8f9fa;
+                        font-weight: bold;
+                    }
+                    .text-right {
+                        text-align: right;
+                    }
+                    .text-center {
+                        text-align: center;
+                    }
+                    .total-row {
+                        font-size: 1.1rem;
+                        font-weight: bold;
+                        background-color: #f8f9fa;
+                    }
+                    .terms-box {
+                        border: 1px solid #ddd;
+                        border-radius: 6px;
+                        padding: 15px;
+                        background: #fdfdfd;
+                        margin-top: 30px;
+                        font-size: 0.85rem;
+                    }
+                    .terms-title {
+                        font-weight: bold;
+                        margin-bottom: 8px;
+                        color: #555;
+                    }
+                    .footer-sig {
+                        margin-top: 60px;
+                        display: flex;
+                        justify-content: space-between;
+                    }
+                    .sig-line {
+                        width: 200px;
+                        border-top: 1px solid #333;
+                        text-align: center;
+                        padding-top: 5px;
+                        font-size: 0.85rem;
+                    }
+                    @media print {
+                        .print-btn {
+                            display: none !important;
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div style="display: flex; justify-content: flex-end; margin-bottom: 20px;" class="print-btn">
+                    <button onclick="window.print()" style="padding: 10px 20px; font-weight: bold; background: #4f46e5; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                        Print / Save PDF
+                    </button>
+                </div>
+
+                <div class="header">
+                    <img class="company-logo" src="${companyLogo}" alt="Logo" />
+                    <div class="company-details">
+                        <div class="company-name">${companyName}</div>
+                        <div>${companyAddress}</div>
+                        <div>Phone: ${companyPhone}</div>
+                    </div>
+                </div>
+
+                <div class="proposal-title">Commercial Proposal</div>
+
+                <div class="details-grid">
+                    <div class="section">
+                        <div class="section-title">Client Details</div>
+                        <div class="row">
+                            <span class="label">Customer Name:</span>
+                            <span class="value">${prop.customer?.name || 'N/A'}</span>
+                        </div>
+                        <div class="row">
+                            <span class="label">Email:</span>
+                            <span class="value">${prop.customer?.primary_email || 'N/A'}</span>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="section-title">Proposal Info</div>
+                        <div class="row">
+                            <span class="label">Proposal Title:</span>
+                            <span class="value">${prop.title}</span>
+                        </div>
+                        <div class="row">
+                            <span class="label">Status:</span>
+                            <span class="value">${prop.status}</span>
+                        </div>
+                        <div class="row">
+                            <span class="label">Date Created:</span>
+                            <span class="value">${new Date(prop.created_at || '').toLocaleDateString()}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Item Details / Services</th>
+                            <th class="text-center">Quantity</th>
+                            <th class="text-right">Rate</th>
+                            <th class="text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${(prop.pricing_details?.lines || []).map((l: any) => `
+                            <tr>
+                                <td>${l.item_name}</td>
+                                <td class="text-center">${l.quantity}</td>
+                                <td class="text-right">${l.rate.toLocaleString()} QAR</td>
+                                <td class="text-right">${(l.quantity * l.rate).toLocaleString()} QAR</td>
+                            </tr>
+                        `).join('')}
+                        <tr class="total-row">
+                            <td colspan="3">Grand Total</td>
+                            <td class="text-right">${prop.grand_total.toLocaleString()} QAR</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                ${prop.terms_and_conditions ? `
+                    <div class="terms-box">
+                        <div class="terms-title">Terms & Conditions</div>
+                        <div>${prop.terms_and_conditions}</div>
+                    </div>
+                ` : ''}
+
+                <div class="footer-sig">
+                    <div>
+                        <div style="height: 50px;"></div>
+                        <div class="sig-line">Prepared By</div>
+                    </div>
+                    <div>
+                        <div style="height: 50px;"></div>
+                        <div class="sig-line">Approved By (Client)</div>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        const printWindow = window.open('', '_blank');
+        if (printWindow) {
+            printWindow.document.write(receiptHTML);
+            printWindow.document.close();
         }
     };
 
@@ -364,7 +612,14 @@ export const ProposalWorkflow: React.FC<{ companyId: string }> = ({ companyId })
                                 <span>QAR {prop.grand_total.toLocaleString()}</span>
                             </div>
 
-                            <div className="flex justify-end pt-3 border-t border-slate-50 dark:border-zinc-800">
+                            <div className="flex justify-between items-center pt-3 border-t border-slate-50 dark:border-zinc-800">
+                                <button
+                                    onClick={() => handlePrintProposal(prop)}
+                                    className="p-2 hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg text-slate-400 hover:text-slate-600 transition-colors"
+                                    title="Print Proposal"
+                                >
+                                    <Printer size={15} />
+                                </button>
                                 <button
                                     onClick={() => {
                                         setSelectedProposal(prop);
@@ -618,12 +873,20 @@ export const ProposalWorkflow: React.FC<{ companyId: string }> = ({ companyId })
                                     </button>
                                 </div>
                             )}
-                            <button
-                                onClick={() => { setIsReviewModalOpen(false); setSelectedProposal(null); }}
-                                className="px-4 py-2 text-slate-500 text-xs font-bold hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
-                            >
-                                Close
-                            </button>
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => handlePrintProposal(selectedProposal)}
+                                    className="px-4 py-2 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-950/20 dark:hover:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+                                >
+                                    <Printer size={13} /> Print / Save PDF
+                                </button>
+                                <button
+                                    onClick={() => { setIsReviewModalOpen(false); setSelectedProposal(null); }}
+                                    className="px-4 py-2 text-slate-500 text-xs font-bold hover:bg-slate-100 dark:hover:bg-zinc-800 rounded-lg transition-colors"
+                                >
+                                    Close
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </Modal>
