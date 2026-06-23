@@ -144,12 +144,12 @@ export const TeamChat: React.FC = () => {
             .eq('company_id', currentCompanyId)
             .neq('id', user.id); // Exclude self
 
-        // 2. Fetch employees who have a user profile linked
+        // 2. Fetch all active employees (even if not linked to a user profile yet)
         const { data: emps } = await (supabase as any)
             .from('employees')
-            .select('profile_id, name, office_email, profiles(avatar_url, role)')
+            .select('id, profile_id, name, office_email, personal_email, email')
             .eq('company_id', currentCompanyId)
-            .not('profile_id', 'is', null)
+            .eq('status', 'Active')
             .neq('profile_id', user.id);
 
         const mergedMap = new Map<string, any>();
@@ -158,24 +158,50 @@ export const TeamChat: React.FC = () => {
             profs.forEach((p: any) => {
                 mergedMap.set(p.id, {
                     id: p.id,
+                    employee_id: null,
                     full_name: p.full_name || p.email?.split('@')[0] || 'Employee',
                     email: p.email,
                     avatar_url: p.avatar_url,
-                    role: p.role || 'Employee'
+                    role: p.role || 'Employee',
+                    hasAccount: true
                 });
             });
         }
 
         if (emps) {
             emps.forEach((e: any) => {
-                const existing = mergedMap.get(e.profile_id);
-                mergedMap.set(e.profile_id, {
-                    id: e.profile_id,
-                    full_name: e.name || existing?.full_name || e.office_email?.split('@')[0] || 'Employee',
-                    email: e.office_email || existing?.email,
-                    avatar_url: e.profiles?.avatar_url || existing?.avatar_url,
-                    role: e.profiles?.role || existing?.role || 'Employee'
-                });
+                const empEmail = (e.office_email || e.personal_email || e.email || '').toLowerCase();
+                
+                // Check if we can match this employee to a profile client-side or by profile_id
+                let matchedProfile: any = null;
+                if (e.profile_id) {
+                    matchedProfile = mergedMap.get(e.profile_id);
+                } else if (empEmail) {
+                    matchedProfile = Array.from(mergedMap.values()).find(
+                        (p: any) => p.email && p.email.toLowerCase() === empEmail
+                    );
+                }
+
+                if (matchedProfile) {
+                    mergedMap.set(matchedProfile.id, {
+                        ...matchedProfile,
+                        employee_id: e.id,
+                        full_name: e.name || matchedProfile.full_name,
+                        email: e.office_email || e.personal_email || e.email || matchedProfile.email,
+                        hasAccount: true
+                    });
+                } else {
+                    const tempId = `emp_${e.id}`;
+                    mergedMap.set(tempId, {
+                        id: tempId,
+                        employee_id: e.id,
+                        full_name: e.name || empEmail.split('@')[0] || 'Employee',
+                        email: e.office_email || e.personal_email || e.email || '',
+                        avatar_url: null,
+                        role: 'Employee (Pending Account)',
+                        hasAccount: false
+                    });
+                }
             });
         }
 
@@ -345,6 +371,14 @@ export const TeamChat: React.FC = () => {
     // 6. Direct Chat Creator
     const handleSelectContact = async (contactId: string) => {
         if (!currentCompanyId || !user) return;
+
+        // Check if employee has a linked user account
+        const contact = profiles.find(p => p.id === contactId);
+        if (contact && contact.id.startsWith('emp_')) {
+            alert(`"${contact.full_name}" does not have an active user account yet. Once they sign up or their user account is linked, you can start a chat with them.`);
+            return;
+        }
+
         setShowNewChatModal(false);
 
         const room = await getOrCreateDirectChatRoom(currentCompanyId, user.id, contactId);
@@ -784,9 +818,16 @@ export const TeamChat: React.FC = () => {
                                                     {prof.full_name?.charAt(0) || 'U'}
                                                 </div>
                                             )}
-                                            <div>
-                                                <p className="truncate">{prof.full_name}</p>
-                                                <p className="text-[9px] text-slate-400 font-medium capitalize">{prof.role || 'Employee'}</p>
+                                            <div className="flex-1 min-w-0">
+                                                <p className="truncate flex items-center gap-1.5">
+                                                    {prof.full_name}
+                                                    {!prof.hasAccount && (
+                                                        <span className="px-1.5 py-0.5 text-[8px] bg-amber-50 dark:bg-amber-950/40 text-amber-600 dark:text-amber-400 rounded-full font-black border border-amber-200/40">
+                                                            Pending Sign-up
+                                                        </span>
+                                                    )}
+                                                </p>
+                                                <p className="text-[9px] text-slate-400 font-medium truncate">{prof.role}</p>
                                             </div>
                                         </button>
                                     ))
@@ -825,7 +866,7 @@ export const TeamChat: React.FC = () => {
                             <div>
                                 <p className="text-[10px] font-black uppercase text-slate-400 tracking-wider mb-2">Select Members</p>
                                 <div className="space-y-1 max-h-52 overflow-y-auto pr-1">
-                                    {profiles.map((prof) => {
+                                    {profiles.filter(p => !p.id.startsWith('emp_')).map((prof) => {
                                         const selected = selectedGroupMembers.includes(prof.id);
                                         return (
                                             <button
